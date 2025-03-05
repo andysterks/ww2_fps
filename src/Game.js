@@ -51,8 +51,8 @@ class Game {
         // Initialize audio
         audioManager.init();
         
-        // Create environment
-        this.environment = new Environment(this.scene);
+        // Create a simple environment directly in the scene
+        this.createSimpleEnvironment();
         
         // Create player
         this.player = new PlayerController(this.camera, this.scene);
