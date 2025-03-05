@@ -1242,49 +1242,70 @@ class SimpleGame {
     }
     
     updateDebugInfo() {
-        const debugInfo = document.getElementById('debug-info');
-        if (debugInfo) {
-            debugInfo.style.display = 'block';
-            
-            // Calculate delta time for this frame
-            const delta = performance.now() / 1000 - this.prevTime / 1000;
-            
-            // Calculate player's effective speed with sprint
-            const playerEffectiveSpeed = this.playerSpeed * (this.isSprinting ? this.sprintMultiplier : 1.0);
-            
-            // Static player always uses base speed
-            const staticPlayerSpeed = this.playerSpeed;
-            
-            // Check if player is moving
-            const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
-            
-            debugInfo.innerHTML = `
-                <div>Bullets: ${this.bulletCount}/${this.maxBullets}</div>
-                <div>Can Shoot: ${this.canShoot}</div>
-                <div>Is Reloading: ${this.isReloading}</div>
-                <div>Is Aiming: ${this.isAimingDownSights}</div>
-                <div>Position: ${this.camera.position.x.toFixed(2)}, ${this.camera.position.y.toFixed(2)}, ${this.camera.position.z.toFixed(2)}</div>
-                <div>Movement: F:${this.moveForward} B:${this.moveBackward} L:${this.moveLeft} R:${this.moveRight}</div>
-                <div>Is Moving: ${isMoving}</div>
-                <div>Base Speed: ${this.playerSpeed.toFixed(1)}</div>
-                <div>Sprint: ${this.isSprinting ? 'ON' : 'OFF'} (Multiplier: ${this.sprintMultiplier.toFixed(1)}x)</div>
-                <div>Player Speed: ${playerEffectiveSpeed.toFixed(1)} (with sprint)</div>
-                <div>Static Player Speed: ${staticPlayerSpeed.toFixed(1)} (constant)</div>
-                <div>Movement System: Direct control</div>
-            `;
+        if (!this.debugInfoElement) {
+            this.debugInfoElement = document.createElement('div');
+            this.debugInfoElement.style.position = 'absolute';
+            this.debugInfoElement.style.top = '10px';
+            this.debugInfoElement.style.left = '10px';
+            this.debugInfoElement.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            this.debugInfoElement.style.color = 'white';
+            this.debugInfoElement.style.padding = '10px';
+            this.debugInfoElement.style.fontFamily = 'monospace';
+            this.debugInfoElement.style.fontSize = '12px';
+            this.debugInfoElement.style.borderRadius = '5px';
+            this.debugInfoElement.style.zIndex = '1000';
+            document.body.appendChild(this.debugInfoElement);
         }
         
-        // Add player count to debug info
-        if (this.debugInfoElement) {
-            const playerCount = this.players.size;
-            const localPlayerPos = this.localPlayer ? 
-                `(${this.localPlayer.position.x.toFixed(2)}, ${this.localPlayer.position.y.toFixed(2)}, ${this.localPlayer.position.z.toFixed(2)})` : 
-                'unknown';
-            
-            // Add to existing debug info
-            this.debugInfoElement.innerHTML += `<br>Players: ${playerCount}`;
-            this.debugInfoElement.innerHTML += `<br>Local Player Position: ${localPlayerPos}`;
-        }
+        // Calculate effective player speed
+        const effectiveSpeed = this.isSprinting ? 
+            this.playerSpeed * this.sprintMultiplier : 
+            this.playerSpeed;
+        
+        // Get static player speed
+        const staticPlayerSpeed = this.playerSpeed;
+        
+        // Check if player is moving
+        const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
+        
+        // Get player count
+        const playerCount = this.players.size;
+        
+        // Get local player position
+        const localPlayerPos = this.localPlayer ? 
+            `(${this.localPlayer.position.x.toFixed(2)}, ${this.localPlayer.position.y.toFixed(2)}, ${this.localPlayer.position.z.toFixed(2)})` : 
+            'unknown';
+        
+        // Get network status
+        const networkStatus = this.lastNetworkUpdate ? 
+            `Active (last update: ${(performance.now() - this.lastNetworkUpdate).toFixed(0)}ms ago)` : 
+            'Inactive';
+        
+        // Get remote players info
+        let remotePlayers = '';
+        this.players.forEach((player, id) => {
+            if (!player.isLocalPlayer) {
+                remotePlayers += `<br>- ${id}: (${player.position.x.toFixed(1)}, ${player.position.y.toFixed(1)}, ${player.position.z.toFixed(1)})`;
+            }
+        });
+        
+        // Update debug info
+        this.debugInfoElement.innerHTML = `
+            FPS: ${(1 / (performance.now() - this.prevTime) * 1000).toFixed(1)}<br>
+            Player Speed: ${effectiveSpeed.toFixed(1)} (Base: ${this.playerSpeed.toFixed(1)}, Sprint: ${this.isSprinting ? 'ON' : 'OFF'})<br>
+            Moving: ${isMoving ? 'YES' : 'NO'}<br>
+            Position: ${this.camera.position.x.toFixed(2)}, ${this.camera.position.y.toFixed(2)}, ${this.camera.position.z.toFixed(2)}<br>
+            Movement System: Direct control<br>
+            <br>
+            <b>Multiplayer Info:</b><br>
+            Connected Players: ${playerCount}<br>
+            Local Player ID: ${this.localPlayer ? this.localPlayer.id : 'unknown'}<br>
+            Local Player Position: ${localPlayerPos}<br>
+            Network Status: ${networkStatus}<br>
+            Update Interval: ${this.networkUpdateInterval}ms<br>
+            <br>
+            <b>Remote Players:</b>${remotePlayers || '<br>- None'}
+        `;
     }
     
     shoot() {
