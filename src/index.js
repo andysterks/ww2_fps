@@ -64,12 +64,11 @@ class SimpleGame {
             // Physics variables
             this.velocity = new THREE.Vector3();
             this.direction = new THREE.Vector3();
-            this.playerSpeed = 5.0;
+            this.playerSpeed = 5.0; // Unified speed for all player movement (user and NPCs)
             this.prevTime = performance.now();
             
             // Animation variables
             this.animationClock = 0;
-            this.walkingSpeed = 3.0;
             
             // Debug mode
             this.debugMode = true;
@@ -1153,13 +1152,13 @@ class SimpleGame {
     // Simplified animation method
     animateSimpleStaticPlayer(delta) {
         if (!this.staticPlayerModel) {
-            console.log("No static player model found for animation");
+            console.error("No static player model found for animation");
             return;
         }
         
         try {
-            // Update animation clock
-            this.animationClock += delta * this.walkingSpeed;
+            // Update animation clock - use the same playerSpeed for animation speed consistency
+            this.animationClock += delta * this.playerSpeed;
             
             // Calculate leg and arm swing based on sine wave
             const legSwing = Math.sin(this.animationClock * Math.PI) * 0.4;
@@ -1181,7 +1180,7 @@ class SimpleGame {
                 this.staticPlayerModel.rightArmGroup.rotation.x = armSwing;
             }
             
-            // Move the player forward
+            // Move the player forward - use the same playerSpeed for movement consistency
             const moveDistance = delta * this.playerSpeed;
             this.staticPlayerModel.position.z += moveDistance;
             
