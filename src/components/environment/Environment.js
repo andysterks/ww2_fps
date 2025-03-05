@@ -68,13 +68,13 @@ export class Environment {
         // Sun position for bright daytime
         const sun = new THREE.Vector3();
         const uniforms = sky.material.uniforms;
-        uniforms['turbidity'].value = 10; // Increased for more realistic atmosphere
-        uniforms['rayleigh'].value = 1.0; // Reduced for less scattering
-        uniforms['mieCoefficient'].value = 0.005;
-        uniforms['mieDirectionalG'].value = 0.8;
+        uniforms['turbidity'].value = 8; // Reduced for less atmospheric scattering
+        uniforms['rayleigh'].value = 0.5; // Significantly reduced for less blue scatter
+        uniforms['mieCoefficient'].value = 0.015; // Increased for more realistic atmosphere
+        uniforms['mieDirectionalG'].value = 0.85; // Adjusted for softer sunlight diffusion
         
         // Position sun for nice daytime lighting
-        const phi = THREE.MathUtils.degToRad(60); // Adjusted sun height
+        const phi = THREE.MathUtils.degToRad(45); // Lower sun angle
         const theta = THREE.MathUtils.degToRad(180);
         sun.setFromSphericalCoords(1, phi, theta);
         uniforms['sunPosition'].value.copy(sun);
@@ -82,12 +82,12 @@ export class Environment {
         // Create clouds
         this.createClouds();
         
-        // Subtle blue-grey fog for distance
-        this.scene.fog = new THREE.FogExp2(0x88a0b3, 0.0015);
+        // Darker fog for better depth perception
+        this.scene.fog = new THREE.FogExp2(0x666666, 0.002);
     }
     
     createClouds() {
-        const cloudCount = 20;
+        const cloudCount = 15; // Reduced cloud count
         const cloudGeometry = new THREE.PlaneGeometry(50, 50);
         
         // Create cloud texture
@@ -96,7 +96,7 @@ export class Environment {
         const cloudMaterial = new THREE.MeshStandardMaterial({
             map: cloudTexture,
             transparent: true,
-            opacity: 0.8,
+            opacity: 0.4, // Reduced opacity
             side: THREE.DoubleSide
         });
         
@@ -106,14 +106,14 @@ export class Environment {
             
             // Random position in sky
             cloud.position.set(
-                (Math.random() - 0.5) * 500, // Spread clouds around
-                80 + Math.random() * 40,     // Vary cloud height
-                (Math.random() - 0.5) * 500  // Spread clouds around
+                (Math.random() - 0.5) * 500,
+                100 + Math.random() * 40, // Higher clouds
+                (Math.random() - 0.5) * 500
             );
             
             // Random rotation and scale for variety
-            cloud.rotation.x = -Math.PI / 2; // Lay flat
-            cloud.rotation.z = Math.random() * Math.PI; // Random rotation
+            cloud.rotation.x = -Math.PI / 2;
+            cloud.rotation.z = Math.random() * Math.PI;
             const scale = 1 + Math.random() * 2;
             cloud.scale.set(scale, scale, 1);
             
@@ -156,13 +156,13 @@ export class Environment {
     }
     
     createLighting() {
-        // Softer ambient light
-        const ambientLight = new THREE.AmbientLight(0x666666, 0.5);
+        // Very soft ambient light
+        const ambientLight = new THREE.AmbientLight(0x444444, 0.3);
         this.scene.add(ambientLight);
         
         // Directional light (sun)
-        const sunLight = new THREE.DirectionalLight(0xffffff, 1.0); // Reduced intensity
-        sunLight.position.set(50, 150, 50);
+        const sunLight = new THREE.DirectionalLight(0xffffff, 0.5); // Further reduced intensity
+        sunLight.position.set(-50, 100, -50); // Adjusted position for softer shadows
         sunLight.castShadow = true;
         
         // Improve shadow quality
@@ -175,14 +175,15 @@ export class Environment {
         sunLight.shadow.camera.top = 100;
         sunLight.shadow.camera.bottom = -100;
         sunLight.shadow.bias = -0.0001;
+        sunLight.shadow.normalBias = 0.02; // Added to reduce shadow acne
         
         this.scene.add(sunLight);
         
-        // Softer hemisphere light
+        // Very soft hemisphere light
         const hemiLight = new THREE.HemisphereLight(
-            0x88a0b3, // Sky color - subtle blue-grey
-            0x505050, // Ground color - neutral grey
-            0.6 // Reduced intensity
+            0x666666, // Sky color - darker grey
+            0x444444, // Ground color - darker grey
+            0.3 // Very low intensity
         );
         hemiLight.position.set(0, 100, 0);
         this.scene.add(hemiLight);
