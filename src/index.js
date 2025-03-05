@@ -1180,20 +1180,41 @@ class SimpleGame {
         head.position.y = 1.6;
         head.castShadow = true;
         
-        // Create German Stahlhelm (helmet) - more LEGO-like
-        const helmetGeometry = new THREE.CylinderGeometry(0.25, 0.25, 0.12, 16);
+        // Create improved German Stahlhelm (helmet)
+        // Main helmet dome - more accurate shape
+        const helmetGeometry = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
         const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
+        helmet.scale.set(1.1, 0.8, 1.1);
         helmet.position.y = 1.75;
         helmet.castShadow = true;
         
-        // Helmet brim
-        const helmetBrimGeometry = new THREE.CylinderGeometry(0.28, 0.28, 0.05, 16);
+        // Helmet rim - more pronounced
+        const helmetBrimGeometry = new THREE.CylinderGeometry(0.28, 0.3, 0.08, 16);
         const helmetBrim = new THREE.Mesh(helmetBrimGeometry, helmetMaterial);
         helmetBrim.position.y = 1.68;
         helmetBrim.castShadow = true;
         
-        // Helmet front extension (simplified)
-        const frontBrimGeometry = new THREE.BoxGeometry(0.15, 0.05, 0.08);
+        // Helmet neck guard - characteristic of Stahlhelm
+        const neckGuardGeometry = new THREE.BoxGeometry(0.3, 0.08, 0.15);
+        const neckGuard = new THREE.Mesh(neckGuardGeometry, helmetMaterial);
+        neckGuard.position.set(0, 1.68, -0.18);
+        neckGuard.castShadow = true;
+        
+        // Helmet side flares - characteristic of Stahlhelm
+        const leftFlareGeometry = new THREE.BoxGeometry(0.08, 0.1, 0.15);
+        const leftFlare = new THREE.Mesh(leftFlareGeometry, helmetMaterial);
+        leftFlare.position.set(-0.25, 1.68, 0);
+        leftFlare.rotation.z = Math.PI / 6;
+        leftFlare.castShadow = true;
+        
+        const rightFlareGeometry = new THREE.BoxGeometry(0.08, 0.1, 0.15);
+        const rightFlare = new THREE.Mesh(rightFlareGeometry, helmetMaterial);
+        rightFlare.position.set(0.25, 1.68, 0);
+        rightFlare.rotation.z = -Math.PI / 6;
+        rightFlare.castShadow = true;
+        
+        // Helmet front extension (more accurate)
+        const frontBrimGeometry = new THREE.BoxGeometry(0.2, 0.05, 0.1);
         const frontBrim = new THREE.Mesh(frontBrimGeometry, helmetMaterial);
         frontBrim.position.set(0, 1.68, 0.25);
         frontBrim.castShadow = true;
@@ -1220,16 +1241,22 @@ class SimpleGame {
         buckle.position.set(0, 1.0, 0.14);
         buckle.castShadow = true;
         
-        // LEGO-style legs (more blocky)
+        // Hip connector to fix the gap between legs and waist
+        const hipGeometry = new THREE.BoxGeometry(0.4, 0.1, 0.2);
+        const hip = new THREE.Mesh(hipGeometry, uniformMaterial);
+        hip.position.y = 0.9;
+        hip.castShadow = true;
+        
+        // LEGO-style legs (more blocky) - adjusted position to connect with hip
         const legGeometry = new THREE.BoxGeometry(0.18, 0.5, 0.18);
         const legMaterial = uniformMaterial.clone();
         
         const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-        leftLeg.position.set(-0.12, 0.5, 0);
+        leftLeg.position.set(-0.12, 0.6, 0); // Raised position to connect with hip
         leftLeg.castShadow = true;
         
         const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-        rightLeg.position.set(0.12, 0.5, 0);
+        rightLeg.position.set(0.12, 0.6, 0); // Raised position to connect with hip
         rightLeg.castShadow = true;
         
         // LEGO-style boots (flat on bottom)
@@ -1241,11 +1268,11 @@ class SimpleGame {
         });
         
         const leftBoot = new THREE.Mesh(bootGeometry, bootMaterial);
-        leftBoot.position.set(-0.12, 0.2, 0.02);
+        leftBoot.position.set(-0.12, 0.3, 0.02); // Adjusted position
         leftBoot.castShadow = true;
         
         const rightBoot = new THREE.Mesh(bootGeometry, bootMaterial);
-        rightBoot.position.set(0.12, 0.2, 0.02);
+        rightBoot.position.set(0.12, 0.3, 0.02); // Adjusted position
         rightBoot.castShadow = true;
         
         // LEGO-style arms (cylindrical with angle)
@@ -1366,9 +1393,13 @@ class SimpleGame {
         playerGroup.add(helmet);
         playerGroup.add(helmetBrim);
         playerGroup.add(frontBrim);
+        playerGroup.add(neckGuard); // Add new neck guard
+        playerGroup.add(leftFlare); // Add new left flare
+        playerGroup.add(rightFlare); // Add new right flare
         playerGroup.add(torso);
         playerGroup.add(belt);
         playerGroup.add(buckle);
+        playerGroup.add(hip); // Add new hip connector
         playerGroup.add(leftLeg);
         playerGroup.add(rightLeg);
         playerGroup.add(leftBoot);
