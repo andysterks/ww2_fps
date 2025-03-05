@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sound Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.secondary {
+            background-color: #2196F3;
+        }
+        button.secondary:hover {
+            background-color: #0b7dda;
+        }
+        .sound-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2196F3;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            border-left: 4px solid #2196F3;
+        }
+        .tools-section {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #e9f7ef;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        audio {
+            width: 100%;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>WW2 FPS Sound Test Page</h1>
+    <p>This page tests if the sound files are working correctly and helps you manage your game's audio.</p>
+    
+    <div class="status" id="status">Click any button to test sounds</div>
+    
+    <div class="tools-section">
+        <h2>Sound Tools</h2>
+        <p>Use these tools to edit and manage your sound files:</p>
+        <button onclick="window.location.href='./simple-sound-editor.html'" class="secondary">Open Sound Editor</button>
+        <button onclick="window.location.href='./sound-editor.html'" class="secondary">Open Advanced Editor</button>
+        <button onclick="window.location.href='./convert-to-mp3.html'" class="secondary">Open WAV to MP3 Converter</button>
+        <button onclick="window.location.href='./convert-aiff-to-mp3.html'" class="secondary">Convert AIFF to MP3</button>
+    </div>
+    
+    <div class="sound-item">
+        <h3>M1 Garand Shot</h3>
+        <audio controls src="./sounds/m1_garand_shot.mp3"></audio>
+        <div class="button-group">
+            <button onclick="playSound('./sounds/m1_garand_shot.mp3')">Play with Web Audio API</button>
+            <button onclick="playWithAudio('./sounds/m1_garand_shot.mp3')" class="secondary">Play with Audio Element</button>
+        </div>
+    </div>
+    
+    <div class="sound-item">
+        <h3>New M1 Garand Shot (AIFF)</h3>
+        <audio controls src="./sounds/386842__nioczkus__m1-garand-rifle.aiff"></audio>
+        <div class="button-group">
+            <button onclick="playSound('./sounds/386842__nioczkus__m1-garand-rifle.aiff')">Play with Web Audio API</button>
+            <button onclick="playWithAudio('./sounds/386842__nioczkus__m1-garand-rifle.aiff')" class="secondary">Play with Audio Element</button>
+        </div>
+    </div>
+    
+    <div class="sound-item">
+        <h3>Empty Click</h3>
+        <audio controls src="./sounds/empty_click.mp3"></audio>
+        <div class="button-group">
+            <button onclick="playSound('./sounds/empty_click.mp3')">Play with Web Audio API</button>
+            <button onclick="playWithAudio('./sounds/empty_click.mp3')" class="secondary">Play with Audio Element</button>
+        </div>
+    </div>
+    
+    <div class="sound-item">
+        <h3>M1 Garand Reload</h3>
+        <h4>Current MP3 Version:</h4>
+        <audio controls src="./sounds/m1_garand_reload.mp3"></audio>
+        <div class="button-group">
+            <button onclick="playSound('./sounds/m1_garand_reload.mp3')">Play with Web Audio API</button>
+            <button onclick="playWithAudio('./sounds/m1_garand_reload.mp3')" class="secondary">Play with Audio Element</button>
+        </div>
+        
+        <h4>Original WAV File (Multiple Reload Sounds):</h4>
+        <audio controls src="./sounds/460857__mpierluissi__gunmech_m1-garand-slide-pull-back_mp.wav"></audio>
+        <div class="button-group">
+            <button onclick="playSound('./sounds/460857__mpierluissi__gunmech_m1-garand-slide-pull-back_mp.wav')">Play with Web Audio API</button>
+            <button onclick="playWithAudio('./sounds/460857__mpierluissi__gunmech_m1-garand-slide-pull-back_mp.wav')" class="secondary">Play with Audio Element</button>
+        </div>
+    </div>
+    
+    <div class="sound-item">
+        <h3>M1 Garand Ping</h3>
+        <audio controls src="./sounds/m1_garand_ping.mp3"></audio>
+        <div class="button-group">
+            <button onclick="playSound('./sounds/m1_garand_ping.mp3')">Play with Web Audio API</button>
+            <button onclick="playWithAudio('./sounds/m1_garand_ping.mp3')" class="secondary">Play with Audio Element</button>
+        </div>
+    </div>
+    
+    <script>
+        // Initialize audio context
+        let audioContext;
+        let statusElement = document.getElementById('status');
+        
+        function initAudioContext() {
+            if (audioContext) return;
+            
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                updateStatus(`Audio context created, state: ${audioContext.state}`);
+                
+                if (audioContext.state === 'suspended') {
+                    updateStatus('Audio context suspended, trying to resume...');
+                    audioContext.resume().then(() => {
+                        updateStatus(`Audio context resumed, state: ${audioContext.state}`);
+                    }).catch(err => {
+                        updateStatus(`Failed to resume audio context: ${err}`);
+                    });
+                }
+            } catch (e) {
+                updateStatus(`Error creating audio context: ${e}`);
+            }
+        }
+        
+        function updateStatus(message) {
+            console.log(message);
+            statusElement.textContent = message;
+        }
+        
+        function playSound(url) {
+            initAudioContext();
+            
+            updateStatus(`Loading sound: ${url}`);
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.arrayBuffer();
+                })
+                .then(arrayBuffer => {
+                    updateStatus(`Decoding audio data, size: ${arrayBuffer.byteLength} bytes`);
+                    return audioContext.decodeAudioData(arrayBuffer);
+                })
+                .then(audioBuffer => {
+                    updateStatus(`Playing sound, duration: ${audioBuffer.duration}s`);
+                    
+                    const source = audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(audioContext.destination);
+                    source.start(0);
+                    
+                    // Add event for when playback ends
+                    source.onended = () => {
+                        updateStatus(`Playback finished: ${url}`);
+                    };
+                })
+                .catch(error => {
+                    updateStatus(`Error playing sound: ${error}`);
+                });
+        }
+        
+        function playWithAudio(url) {
+            updateStatus(`Playing with Audio element: ${url}`);
+            
+            const audio = new Audio(url);
+            audio.volume = 1.0;
+            
+            audio.addEventListener('canplaythrough', () => {
+                updateStatus(`Audio can play through: ${url}`);
+            });
+            
+            audio.addEventListener('playing', () => {
+                updateStatus(`Audio is playing: ${url}`);
+            });
+            
+            audio.addEventListener('ended', () => {
+                updateStatus(`Audio playback finished: ${url}`);
+            });
+            
+            audio.addEventListener('error', (e) => {
+                updateStatus(`Error loading audio: ${e.target.error ? e.target.error.code : 'unknown error'}`);
+            });
+            
+            audio.play().then(() => {
+                updateStatus(`Audio playback started: ${url}`);
+            }).catch(e => {
+                updateStatus(`Failed to play audio: ${e}`);
+            });
+        }
+        
+        // Check if all audio files are valid
+        function checkAllAudioFiles() {
+            const soundFiles = [
+                './sounds/m1_garand_shot.mp3',
+                './sounds/empty_click.mp3',
+                './sounds/m1_garand_reload.mp3',
+                './sounds/m1_garand_ping.mp3',
+                './sounds/460857__mpierluissi__gunmech_m1-garand-slide-pull-back_mp.wav'
+            ];
+            
+            let validCount = 0;
+            let totalSize = 0;
+            
+            Promise.all(soundFiles.map(url => {
+                return fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const size = response.headers.get('content-length');
+                        totalSize += parseInt(size || '0');
+                        return response.arrayBuffer();
+                    })
+                    .then(arrayBuffer => {
+                        console.log(`File ${url} size: ${arrayBuffer.byteLength} bytes`);
+                        validCount++;
+                        return audioContext.decodeAudioData(arrayBuffer);
+                    })
+                    .catch(error => {
+                        console.error(`Error checking ${url}: ${error}`);
+                        return null;
+                    });
+            }))
+            .then(results => {
+                const validResults = results.filter(result => result !== null);
+                updateStatus(`Sound check complete: ${validResults.length}/${soundFiles.length} files are valid. Total size: ${(totalSize / 1024).toFixed(2)} KB`);
+            });
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            updateStatus('Page loaded, click any button to test sounds');
+            
+            // Add a button to check all audio files
+            const checkButton = document.createElement('button');
+            checkButton.textContent = 'Check All Sound Files';
+            checkButton.style.display = 'block';
+            checkButton.style.margin = '20px auto';
+            checkButton.onclick = () => {
+                initAudioContext();
+                checkAllAudioFiles();
+            };
+            document.body.insertBefore(checkButton, document.querySelector('.sound-item'));
+        });
+        
+        // Try to initialize on user interaction
+        document.addEventListener('click', initAudioContext, { once: true });
+    </script>
+</body>
+</html>

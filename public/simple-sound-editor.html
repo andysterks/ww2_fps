@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Sound Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .container {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        h1 {
+            color: #333;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        audio {
+            width: 100%;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simple Sound Editor</h1>
+    <p>This page lets you listen to different portions of the M1 Garand reload sound and save the one you like.</p>
+    
+    <div class="container">
+        <h2>Original Sound</h2>
+        <audio id="originalSound" controls src="./sounds/460857__mpierluissi__gunmech_m1-garand-slide-pull-back_mp.wav"></audio>
+        <div class="status">Listen to the full sound to identify which part you want to use.</div>
+    </div>
+    
+    <div class="container">
+        <h2>First Reload Sound (0-1.5s)</h2>
+        <button id="playFirst">Play First Reload</button>
+        <button id="saveFirst">Save as Reload Sound</button>
+        <div id="firstStatus" class="status">Click to play or save this segment</div>
+    </div>
+    
+    <div class="container">
+        <h2>Second Reload Sound (2-3.5s)</h2>
+        <button id="playSecond">Play Second Reload</button>
+        <button id="saveSecond">Save as Reload Sound</button>
+        <div id="secondStatus" class="status">Click to play or save this segment</div>
+    </div>
+    
+    <div class="container">
+        <h2>Third Reload Sound (4-5.5s)</h2>
+        <button id="playThird">Play Third Reload</button>
+        <button id="saveThird">Save as Reload Sound</button>
+        <div id="thirdStatus" class="status">Click to play or save this segment</div>
+    </div>
+    
+    <script>
+        // Audio context and variables
+        let audioContext;
+        let audioBuffer;
+        let sourceNode;
+        let isPlaying = false;
+        
+        // DOM elements
+        const originalSound = document.getElementById('originalSound');
+        const playFirstButton = document.getElementById('playFirst');
+        const saveFirstButton = document.getElementById('saveFirst');
+        const firstStatus = document.getElementById('firstStatus');
+        const playSecondButton = document.getElementById('playSecond');
+        const saveSecondButton = document.getElementById('saveSecond');
+        const secondStatus = document.getElementById('secondStatus');
+        const playThirdButton = document.getElementById('playThird');
+        const saveThirdButton = document.getElementById('saveThird');
+        const thirdStatus = document.getElementById('thirdStatus');
+        
+        // Initialize audio context
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                loadOriginalSound();
+            }
+        }
+        
+        // Load the original sound
+        async function loadOriginalSound() {
+            try {
+                const response = await fetch('./sounds/460857__mpierluissi__gunmech_m1-garand-slide-pull-back_mp.wav');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const arrayBuffer = await response.arrayBuffer();
+                audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                console.log('Sound loaded successfully!', audioBuffer);
+            } catch (error) {
+                console.error('Error loading sound:', error);
+            }
+        }
+        
+        // Play a segment of the sound
+        function playSegment(start, end) {
+            if (!audioContext) {
+                initAudioContext();
+            }
+            
+            if (!audioBuffer) {
+                console.log('Audio buffer not loaded yet');
+                return;
+            }
+            
+            if (isPlaying) {
+                stopSound();
+            }
+            
+            sourceNode = audioContext.createBufferSource();
+            sourceNode.buffer = audioBuffer;
+            sourceNode.connect(audioContext.destination);
+            
+            const duration = end - start;
+            sourceNode.start(0, start, duration);
+            isPlaying = true;
+            
+            sourceNode.onended = () => {
+                isPlaying = false;
+            };
+        }
+        
+        // Stop sound
+        function stopSound() {
+            if (sourceNode && isPlaying) {
+                sourceNode.stop();
+                isPlaying = false;
+            }
+        }
+        
+        // Extract a segment of the sound and create a new audio element
+        function extractSegment(start, end, statusElement) {
+            if (!audioContext) {
+                initAudioContext();
+            }
+            
+            if (!audioBuffer) {
+                statusElement.textContent = 'Audio buffer not loaded yet';
+                return;
+            }
+            
+            try {
+                // Create a new buffer for the segment
+                const duration = end - start;
+                const sampleRate = audioBuffer.sampleRate;
+                const newBuffer = audioContext.createBuffer(
+                    audioBuffer.numberOfChannels,
+                    Math.floor(duration * sampleRate),
+                    sampleRate
+                );
+                
+                // Copy the segment data
+                for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+                    const originalData = audioBuffer.getChannelData(channel);
+                    const newData = newBuffer.getChannelData(channel);
+                    
+                    const startSample = Math.floor(start * sampleRate);
+                    for (let i = 0; i < newData.length; i++) {
+                        newData[i] = originalData[startSample + i];
+                    }
+                }
+                
+                // Create an offline audio context to render the segment
+                const offlineCtx = new OfflineAudioContext(
+                    audioBuffer.numberOfChannels,
+                    Math.floor(duration * sampleRate),
+                    sampleRate
+                );
+                
+                // Create a source node with the new buffer
+                const offlineSource = offlineCtx.createBufferSource();
+                offlineSource.buffer = newBuffer;
+                offlineSource.connect(offlineCtx.destination);
+                offlineSource.start();
+                
+                // Render the audio
+                offlineCtx.startRendering().then(renderedBuffer => {
+                    // Convert to WAV
+                    const wavBlob = audioBufferToWav(renderedBuffer);
+                    
+                    // Create an audio element to play the segment
+                    const audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = URL.createObjectURL(wavBlob);
+                    
+                    // Add the audio element to the status element
+                    statusElement.innerHTML = 'Extracted segment:';
+                    statusElement.appendChild(audio);
+                    
+                    // Add a download link
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = audio.src;
+                    downloadLink.download = 'm1_garand_reload.wav';
+                    downloadLink.textContent = 'Download WAV';
+                    downloadLink.style.display = 'block';
+                    downloadLink.style.marginTop = '10px';
+                    statusElement.appendChild(downloadLink);
+                    
+                    // Add instructions for manual copy
+                    const instructions = document.createElement('p');
+                    instructions.textContent = 'After downloading, manually copy this file to the sounds folder and rename it to m1_garand_reload.mp3';
+                    statusElement.appendChild(instructions);
+                    
+                }).catch(err => {
+                    statusElement.textContent = `Error rendering audio: ${err}`;
+                    console.error('Error rendering audio:', err);
+                });
+                
+            } catch (error) {
+                statusElement.textContent = `Error extracting segment: ${error}`;
+                console.error('Error extracting segment:', error);
+            }
+        }
+        
+        // Convert AudioBuffer to WAV
+        function audioBufferToWav(buffer) {
+            const numChannels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const format = 1; // PCM
+            const bitDepth = 16;
+            
+            let result;
+            if (numChannels === 2) {
+                result = interleave(buffer.getChannelData(0), buffer.getChannelData(1));
+            } else {
+                result = buffer.getChannelData(0);
+            }
+            
+            return encodeWAV(result, format, sampleRate, numChannels, bitDepth);
+        }
+        
+        // Interleave two channels
+        function interleave(inputL, inputR) {
+            const length = inputL.length + inputR.length;
+            const result = new Float32Array(length);
+            
+            let index = 0;
+            let inputIndex = 0;
+            
+            while (index < length) {
+                result[index++] = inputL[inputIndex];
+                result[index++] = inputR[inputIndex];
+                inputIndex++;
+            }
+            
+            return result;
+        }
+        
+        // Encode as WAV
+        function encodeWAV(samples, format, sampleRate, numChannels, bitDepth) {
+            const bytesPerSample = bitDepth / 8;
+            const blockAlign = numChannels * bytesPerSample;
+            
+            const buffer = new ArrayBuffer(44 + samples.length * bytesPerSample);
+            const view = new DataView(buffer);
+            
+            // RIFF identifier
+            writeString(view, 0, 'RIFF');
+            // RIFF chunk length
+            view.setUint32(4, 36 + samples.length * bytesPerSample, true);
+            // RIFF type
+            writeString(view, 8, 'WAVE');
+            // format chunk identifier
+            writeString(view, 12, 'fmt ');
+            // format chunk length
+            view.setUint32(16, 16, true);
+            // sample format (raw)
+            view.setUint16(20, format, true);
+            // channel count
+            view.setUint16(22, numChannels, true);
+            // sample rate
+            view.setUint32(24, sampleRate, true);
+            // byte rate (sample rate * block align)
+            view.setUint32(28, sampleRate * blockAlign, true);
+            // block align (channel count * bytes per sample)
+            view.setUint16(32, blockAlign, true);
+            // bits per sample
+            view.setUint16(34, bitDepth, true);
+            // data chunk identifier
+            writeString(view, 36, 'data');
+            // data chunk length
+            view.setUint32(40, samples.length * bytesPerSample, true);
+            
+            // Write the PCM samples
+            const offset = 44;
+            if (bitDepth === 16) {
+                for (let i = 0; i < samples.length; i++) {
+                    const s = Math.max(-1, Math.min(1, samples[i]));
+                    view.setInt16(offset + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+                }
+            } else {
+                for (let i = 0; i < samples.length; i++) {
+                    const s = Math.max(-1, Math.min(1, samples[i]));
+                    view.setInt8(offset + i, (s < 0 ? s * 0x80 : s * 0x7F) + 128);
+                }
+            }
+            
+            return new Blob([buffer], { type: 'audio/wav' });
+        }
+        
+        // Write string to DataView
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize on user interaction
+            document.addEventListener('click', initAudioContext, { once: true });
+            
+            // Play buttons
+            playFirstButton.addEventListener('click', () => {
+                playSegment(0, 1.5);
+                firstStatus.textContent = 'Playing first reload sound...';
+            });
+            
+            playSecondButton.addEventListener('click', () => {
+                playSegment(2, 3.5);
+                secondStatus.textContent = 'Playing second reload sound...';
+            });
+            
+            playThirdButton.addEventListener('click', () => {
+                playSegment(4, 5.5);
+                thirdStatus.textContent = 'Playing third reload sound...';
+            });
+            
+            // Save buttons
+            saveFirstButton.addEventListener('click', () => {
+                extractSegment(0, 1.5, firstStatus);
+            });
+            
+            saveSecondButton.addEventListener('click', () => {
+                extractSegment(2, 3.5, secondStatus);
+            });
+            
+            saveThirdButton.addEventListener('click', () => {
+                extractSegment(4, 5.5, thirdStatus);
+            });
+        });
+    </script>
+</body>
+</html>
