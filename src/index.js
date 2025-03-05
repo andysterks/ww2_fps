@@ -743,16 +743,19 @@ class SimpleGame {
         
         try {
             // Use socket.io for WebSocket communication
-            const serverUrl = 'http://localhost:3000';
+            const serverUrl = window.location.hostname === 'localhost' ? 
+                'http://localhost:3000' : 
+                `${window.location.protocol}//${window.location.hostname}:3000`;
             
             console.log('Connecting to server at:', serverUrl);
             this.socket = io(serverUrl, {
-                transports: ['websocket'],
+                transports: ['websocket', 'polling'], // Allow fallback to polling
                 path: '/socket.io',
                 reconnection: true,
                 reconnectionAttempts: 5,
                 reconnectionDelay: 1000,
-                timeout: 20000
+                timeout: 20000,
+                autoConnect: true
             });
             
             // Set up event listeners for socket.io
@@ -761,6 +764,18 @@ class SimpleGame {
                 
                 // Send initial player data
                 this.sendNetworkUpdate();
+                
+                // Request current players list from server
+                this.socket.emit('request-players');
+            });
+            
+            this.socket.on('current-players', (players) => {
+                console.log('Received current players:', players);
+                players.forEach(player => {
+                    if (player.id !== this.socket.id) {
+                        this.addRemotePlayer(player.id, player.position);
+                    }
+                });
             });
             
             this.socket.on('connect_error', (error) => {
@@ -950,6 +965,7 @@ class SimpleGame {
         
         // Send the player's current state to the server
         this.socket.emit('player-update', {
+            id: this.socket.id, // Include the player's ID
             position,
             rotation,
             // Include movement flags for smoother animations
@@ -957,8 +973,12 @@ class SimpleGame {
             moveBackward: this.moveBackward,
             moveLeft: this.moveLeft,
             moveRight: this.moveRight,
-            isSprinting: this.isSprinting
+            isSprinting: this.isSprinting,
+            timestamp: Date.now() // Add timestamp for interpolation
         });
+        
+        // Debug log
+        console.log('Sent position update:', position);
     }
 
     // Add a remote player to the game
