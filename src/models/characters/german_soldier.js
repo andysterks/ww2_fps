@@ -87,10 +87,118 @@ export function createGermanSoldier() {
     head.add(ventHole2);
 
     // Face
-    const face = new THREE.Mesh(
+    const face = new THREE.Group();
+    
+    // Base head shape
+    const headShape = new THREE.Mesh(
         new THREE.BoxGeometry(0.15, 0.2, 0.15),
         skinMaterial
     );
+    
+    // Create darker material for facial features
+    const facialFeaturesMaterial = new THREE.MeshStandardMaterial({
+        color: 0x8B7355,  // Darker skin tone for features
+        roughness: 0.7,
+        metalness: 0.1
+    });
+    
+    // Eyes
+    const createEye = (isLeft) => {
+        const eyeGroup = new THREE.Group();
+        
+        // White of eye
+        const eyeWhite = new THREE.Mesh(
+            new THREE.SphereGeometry(0.02, 8, 8),
+            new THREE.MeshStandardMaterial({
+                color: 0xFFFFFF,
+                roughness: 0.3,
+                metalness: 0.1
+            })
+        );
+        
+        // Iris
+        const iris = new THREE.Mesh(
+            new THREE.CircleGeometry(0.01, 8),
+            new THREE.MeshStandardMaterial({
+                color: 0x4B3621,  // Brown eyes
+                roughness: 0.5,
+                metalness: 0.2
+            })
+        );
+        iris.position.z = 0.019;
+        
+        // Pupil
+        const pupil = new THREE.Mesh(
+            new THREE.CircleGeometry(0.005, 8),
+            new THREE.MeshBasicMaterial({ color: 0x000000 })
+        );
+        pupil.position.z = 0.02;
+        
+        eyeGroup.add(eyeWhite);
+        eyeGroup.add(iris);
+        eyeGroup.add(pupil);
+        
+        eyeGroup.position.set(isLeft ? -0.04 : 0.04, 0.02, 0.07);
+        return eyeGroup;
+    };
+    
+    // Add eyes
+    face.add(createEye(true));
+    face.add(createEye(false));
+    
+    // Nose
+    const nose = new THREE.Mesh(
+        new THREE.ConeGeometry(0.02, 0.04, 4),
+        facialFeaturesMaterial
+    );
+    nose.rotation.x = -Math.PI / 2;
+    nose.position.set(0, 0, 0.09);
+    face.add(nose);
+    
+    // Mouth
+    const mouth = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.01, 0.01),
+        facialFeaturesMaterial
+    );
+    mouth.position.set(0, -0.05, 0.07);
+    face.add(mouth);
+    
+    // Eyebrows
+    const createEyebrow = (isLeft) => {
+        const eyebrow = new THREE.Mesh(
+            new THREE.BoxGeometry(0.04, 0.01, 0.01),
+            facialFeaturesMaterial
+        );
+        eyebrow.position.set(isLeft ? -0.04 : 0.04, 0.05, 0.07);
+        return eyebrow;
+    };
+    
+    face.add(createEyebrow(true));
+    face.add(createEyebrow(false));
+    
+    // Jaw definition
+    const jaw = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.05, 0.12),
+        skinMaterial
+    );
+    jaw.position.y = -0.08;
+    face.add(jaw);
+    
+    // Cheekbones
+    const createCheekbone = (isLeft) => {
+        const cheekbone = new THREE.Mesh(
+            new THREE.BoxGeometry(0.03, 0.02, 0.02),
+            skinMaterial
+        );
+        cheekbone.position.set(isLeft ? -0.06 : 0.06, -0.02, 0.06);
+        return cheekbone;
+    };
+    
+    face.add(createCheekbone(true));
+    face.add(createCheekbone(false));
+    
+    // Add base head shape first
+    face.add(headShape);
     face.position.y = -0.02;
     head.add(face);
 
