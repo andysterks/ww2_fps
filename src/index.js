@@ -35,7 +35,7 @@ class SimpleGame {
         this.velocity = new THREE.Vector3();
         this.direction = new THREE.Vector3();
         this.prevTime = performance.now();
-        this.playerSpeed = 10.0;
+        this.playerSpeed = 1.0;
         this.sprintMultiplier = 1.5;
         
         // Weapon state
