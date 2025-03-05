@@ -15,9 +15,9 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve static files from the 'public' directory
-app.use(express.static('public'));
-app.use(express.static('.'));
+// Serve static files from the current directory and public directory
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname)));
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -54,13 +54,12 @@ const io = new Server(server, {
     cors: {
         origin: '*',
         methods: ['GET', 'POST'],
-        allowedHeaders: ['*'],
         credentials: true
     },
-    transports: ['websocket', 'polling'],
+    path: '/socket.io',
+    transports: ['websocket'],
     pingTimeout: 60000,
-    pingInterval: 25000,
-    allowEIO3: true
+    pingInterval: 25000
 });
 
 // Store connected players

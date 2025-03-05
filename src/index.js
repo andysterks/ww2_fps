@@ -715,18 +715,16 @@ class SimpleGame {
         
         try {
             // Use socket.io for WebSocket communication
-            const serverUrl = window.location.hostname === 'localhost' ? 
-                'http://localhost:3000' : 
-                `${window.location.protocol}//${window.location.hostname}:3000`;
+            const serverUrl = 'http://localhost:3000';
             
             console.log('Connecting to server at:', serverUrl);
             this.socket = io(serverUrl, {
-                transports: ['websocket', 'polling'],
+                transports: ['websocket'],
+                path: '/socket.io',
                 reconnection: true,
                 reconnectionAttempts: 5,
                 reconnectionDelay: 1000,
-                timeout: 20000,
-                autoConnect: true
+                timeout: 20000
             });
             
             // Set up event listeners for socket.io
