@@ -59,7 +59,7 @@ class SimpleGame {
             this.moveLeft = false;
             this.moveRight = false;
             this.isSprinting = false;
-            this.sprintMultiplier = 1.5;
+            this.sprintMultiplier = 2.0; // Increased from 1.5 for more noticeable sprint
             
             // Physics variables
             this.velocity = new THREE.Vector3();
@@ -1129,9 +1129,6 @@ class SimpleGame {
             const time = performance.now();
             const delta = (time - this.prevTime) / 1000; // Convert to seconds
             
-            // Calculate the exact distance the static player would move this frame
-            const staticPlayerDistance = delta * this.playerSpeed;
-            
             // Check if any movement keys are pressed
             const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
             
@@ -1154,7 +1151,16 @@ class SimpleGame {
                 // Direct velocity calculation without friction
                 // This ensures immediate response to input and no drifting
                 const scalingFactor = 0.05;
-                const moveSpeed = this.playerSpeed * speedMultiplier * delta * scalingFactor;
+                
+                // Apply sprint multiplier to both player and static player movement
+                const effectivePlayerSpeed = this.playerSpeed * speedMultiplier;
+                
+                // Calculate the exact distance the static player would move this frame
+                // Apply the same sprint multiplier to static player for consistency
+                const staticPlayerDistance = delta * effectivePlayerSpeed;
+                
+                // Calculate move speed with sprint
+                const moveSpeed = effectivePlayerSpeed * delta * scalingFactor;
                 
                 // Set velocity directly based on input direction
                 this.velocity.z = -this.direction.z * moveSpeed;
@@ -1181,8 +1187,8 @@ class SimpleGame {
                 this.controls.moveForward(-this.velocity.z);
             }
             
-            // Animate static player
-            this.animateSimpleStaticPlayer(delta);
+            // Animate static player - pass the sprint multiplier to keep speeds consistent
+            this.animateSimpleStaticPlayer(delta, this.isSprinting ? this.sprintMultiplier : 1.0);
             
             // Update debug info
             if (this.debugMode) {
@@ -1200,19 +1206,24 @@ class SimpleGame {
     }
     
     // Simplified animation method
-    animateSimpleStaticPlayer(delta) {
+    animateSimpleStaticPlayer(delta, speedMultiplier = 1.0) {
         if (!this.staticPlayerModel) {
             console.error("No static player model found for animation");
             return;
         }
         
         try {
-            // Update animation clock - use the same playerSpeed for animation speed consistency
-            this.animationClock += delta * this.playerSpeed;
+            // Apply the speed multiplier (for sprint) to the animation speed
+            const effectiveSpeed = this.playerSpeed * speedMultiplier;
+            
+            // Update animation clock - use the effective speed for animation speed consistency
+            this.animationClock += delta * effectiveSpeed;
             
             // Calculate leg and arm swing based on sine wave
-            const legSwing = Math.sin(this.animationClock * Math.PI) * 0.4;
-            const armSwing = Math.sin(this.animationClock * Math.PI) * 0.3;
+            // Increase animation speed when sprinting
+            const animationSpeed = speedMultiplier > 1.0 ? 1.2 : 1.0;
+            const legSwing = Math.sin(this.animationClock * Math.PI * animationSpeed) * 0.4;
+            const armSwing = Math.sin(this.animationClock * Math.PI * animationSpeed) * 0.3;
             
             // Apply rotations to legs
             if (this.staticPlayerModel.leftLegGroup) {
@@ -1230,9 +1241,9 @@ class SimpleGame {
                 this.staticPlayerModel.rightArmGroup.rotation.x = armSwing;
             }
             
-            // Move the player forward - use the exact same playerSpeed as the user
+            // Move the player forward - use the effective speed with sprint multiplier
             // This ensures consistent movement speed between all characters
-            const moveDistance = delta * this.playerSpeed;
+            const moveDistance = delta * effectiveSpeed;
             this.staticPlayerModel.position.z += moveDistance;
             
             // Reset position if the player goes too far
@@ -1252,6 +1263,9 @@ class SimpleGame {
             // Calculate delta time for this frame
             const delta = performance.now() / 1000 - this.prevTime / 1000;
             
+            // Calculate effective speed with sprint
+            const effectiveSpeed = this.playerSpeed * (this.isSprinting ? this.sprintMultiplier : 1.0);
+            
             // Calculate actual player velocity magnitude
             const playerVelocityMagnitude = Math.sqrt(
                 this.velocity.x * this.velocity.x + 
@@ -1259,7 +1273,7 @@ class SimpleGame {
             );
             
             // Calculate static player movement for this frame
-            const staticPlayerDistance = delta * this.playerSpeed;
+            const staticPlayerDistance = delta * effectiveSpeed;
             
             // Calculate the speed difference as a percentage
             const speedDifference = playerVelocityMagnitude > 0 
@@ -1280,7 +1294,9 @@ class SimpleGame {
                 <div>Position: ${this.camera.position.x.toFixed(2)}, ${this.camera.position.y.toFixed(2)}, ${this.camera.position.z.toFixed(2)}</div>
                 <div>Movement: F:${this.moveForward} B:${this.moveBackward} L:${this.moveLeft} R:${this.moveRight}</div>
                 <div>Is Moving: ${isMoving}</div>
-                <div>Player Speed: ${this.playerSpeed.toFixed(1)} (Sprint: ${this.isSprinting ? 'ON' : 'OFF'})</div>
+                <div>Base Speed: ${this.playerSpeed.toFixed(1)}</div>
+                <div>Sprint: ${this.isSprinting ? 'ON' : 'OFF'} (Multiplier: ${this.sprintMultiplier.toFixed(1)}x)</div>
+                <div>Effective Speed: ${effectiveSpeed.toFixed(1)}</div>
                 <div>Player Velocity: ${playerVelocityMagnitude.toFixed(3)}</div>
                 <div>Static Player Distance: ${staticPlayerDistance.toFixed(3)}</div>
                 <div>Speed Difference: ${speedDifference}%</div>
@@ -2125,6 +2141,7 @@ class SimpleGame {
         
         // Reset to default values for optimal speed matching
         this.playerSpeed = 2.0;
+        this.sprintMultiplier = 2.0;
         
         // Reset velocity to prevent lingering momentum
         this.velocity.x = 0;
@@ -2132,6 +2149,7 @@ class SimpleGame {
         
         console.log("Player speeds matched. Both player and static player now move at the same speed.");
         console.log("Using playerSpeed: 2.0, scalingFactor: 0.05, direct velocity calculation");
+        console.log("Sprint multiplier: 2.0x - Hold SHIFT to sprint");
         console.log("Drifting has been eliminated - player will stop immediately when keys are released");
         
         return true;
