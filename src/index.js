@@ -1034,6 +1034,20 @@ class SimpleGame {
                         // Toggle aim
                         this.toggleAim();
                         break;
+                        
+                    case 'NumpadAdd':
+                    case 'Equal':
+                        // Increase player speed
+                        this.setPlayerSpeed(this.playerSpeed + 0.5);
+                        console.log(`Increased player speed to ${this.playerSpeed.toFixed(1)}`);
+                        break;
+                        
+                    case 'NumpadSubtract':
+                    case 'Minus':
+                        // Decrease player speed (minimum 0.5)
+                        this.setPlayerSpeed(Math.max(0.5, this.playerSpeed - 0.5));
+                        console.log(`Decreased player speed to ${this.playerSpeed.toFixed(1)}`);
+                        break;
                 }
             }
         });
@@ -1180,7 +1194,8 @@ class SimpleGame {
                 this.staticPlayerModel.rightArmGroup.rotation.x = armSwing;
             }
             
-            // Move the player forward - use the same playerSpeed for movement consistency
+            // Move the player forward - use the exact same playerSpeed as the user
+            // This ensures consistent movement speed between all characters
             const moveDistance = delta * this.playerSpeed;
             this.staticPlayerModel.position.z += moveDistance;
             
@@ -1204,6 +1219,7 @@ class SimpleGame {
                 <div>Is Aiming: ${this.isAimingDownSights}</div>
                 <div>Position: ${this.camera.position.x.toFixed(2)}, ${this.camera.position.y.toFixed(2)}, ${this.camera.position.z.toFixed(2)}</div>
                 <div>Movement: F:${this.moveForward} B:${this.moveBackward} L:${this.moveLeft} R:${this.moveRight}</div>
+                <div>Player Speed: ${this.playerSpeed.toFixed(1)} (Sprint: ${this.isSprinting ? 'ON' : 'OFF'})</div>
             `;
         }
     }
@@ -1931,6 +1947,8 @@ class SimpleGame {
             { key: 'LEFT CLICK', action: 'Shoot' },
             { key: 'RIGHT CLICK', action: 'Aim down sights' },
             { key: 'R', action: 'Reload weapon' },
+            { key: 'F', action: 'Toggle aim' },
+            { key: '+/-', action: 'Increase/decrease player speed' },
             { key: 'M', action: 'Toggle sound' },
             { key: 'ESC', action: 'Pause game / Release mouse' }
         ];
@@ -2021,5 +2039,17 @@ class SimpleGame {
         this.controls.addEventListener('unlock', () => {
             instructionsContainer.style.display = 'block';
         });
+    }
+
+    // Method to set player speed for all characters
+    setPlayerSpeed(speed) {
+        if (typeof speed === 'number' && speed > 0) {
+            console.log(`Setting player speed to ${speed}`);
+            this.playerSpeed = speed;
+            return true;
+        } else {
+            console.error("Invalid speed value. Speed must be a positive number.");
+            return false;
+        }
     }
 }
