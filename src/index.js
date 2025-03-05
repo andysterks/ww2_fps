@@ -176,22 +176,64 @@ class SimpleGame {
             metalness: 0.3
         });
         
-        // Main helmet dome
-        const helmetGeometry = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        // Create improved German Stahlhelm (helmet)
+        // Main helmet dome - complete shape to avoid gaps
+        const helmetGeometry = new THREE.SphereGeometry(0.25, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.6);
         const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
         helmet.scale.set(1.1, 0.8, 1.1);
+        helmet.position.y = 1.78; // Raised significantly higher
+        helmet.position.z = -0.05; // Moved further back
         helmet.castShadow = true;
         
-        // Helmet rim
-        const helmetRimGeometry = new THREE.TorusGeometry(0.25, 0.05, 8, 24, Math.PI * 2);
+        // Helmet rim - complete circle to avoid gaps
+        const helmetRimGeometry = new THREE.TorusGeometry(0.27, 0.04, 16, 32);
         const helmetRim = new THREE.Mesh(helmetRimGeometry, helmetMaterial);
-        helmetRim.position.y = -0.1;
+        helmetRim.position.y = 1.7; // Raised higher
+        helmetRim.position.z = -0.05; // Moved back
         helmetRim.rotation.x = Math.PI / 2;
         helmetRim.castShadow = true;
+        
+        // Helmet neck guard - characteristic of Stahlhelm
+        const neckGuardGeometry = new THREE.BoxGeometry(0.3, 0.08, 0.15);
+        const neckGuard = new THREE.Mesh(neckGuardGeometry, helmetMaterial);
+        neckGuard.position.set(0, 1.7, -0.23); // Adjusted position
+        neckGuard.castShadow = true;
+        
+        // Helmet side flares - characteristic of Stahlhelm
+        const leftFlareGeometry = new THREE.BoxGeometry(0.08, 0.1, 0.15);
+        const leftFlare = new THREE.Mesh(leftFlareGeometry, helmetMaterial);
+        leftFlare.position.set(-0.25, 1.7, -0.05); // Adjusted position
+        leftFlare.rotation.z = Math.PI / 6;
+        leftFlare.castShadow = true;
+        
+        const rightFlareGeometry = new THREE.BoxGeometry(0.08, 0.1, 0.15);
+        const rightFlare = new THREE.Mesh(rightFlareGeometry, helmetMaterial);
+        rightFlare.position.set(0.25, 1.7, -0.05); // Adjusted position
+        rightFlare.rotation.z = -Math.PI / 6;
+        rightFlare.castShadow = true;
+        
+        // Helmet front extension (more accurate)
+        const frontBrimGeometry = new THREE.BoxGeometry(0.2, 0.05, 0.1);
+        const frontBrim = new THREE.Mesh(frontBrimGeometry, helmetMaterial);
+        frontBrim.position.set(0, 1.7, 0.2); // Adjusted position
+        frontBrim.castShadow = true;
+        
+        // Inner helmet liner to fill any gaps
+        const helmetLinerGeometry = new THREE.SphereGeometry(0.24, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const helmetLiner = new THREE.Mesh(helmetLinerGeometry, helmetMaterial);
+        helmetLiner.scale.set(1.05, 0.75, 1.05);
+        helmetLiner.position.y = 1.78; // Raised to match helmet
+        helmetLiner.position.z = -0.05; // Moved back to match helmet
+        helmetLiner.castShadow = true;
         
         // Add parts to group
         helmetGroup.add(helmet);
         helmetGroup.add(helmetRim);
+        helmetGroup.add(neckGuard);
+        helmetGroup.add(leftFlare);
+        helmetGroup.add(rightFlare);
+        helmetGroup.add(frontBrim);
+        helmetGroup.add(helmetLiner);
         
         // Position and rotate to look like it's fallen on the ground
         helmetGroup.position.set(x, y, z);
@@ -1185,48 +1227,49 @@ class SimpleGame {
         const helmetGeometry = new THREE.SphereGeometry(0.25, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.6);
         const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
         helmet.scale.set(1.1, 0.8, 1.1);
-        helmet.position.y = 1.73; // Raised slightly to not block face
-        helmet.position.z = -0.02; // Moved back slightly
+        helmet.position.y = 1.78; // Raised significantly higher
+        helmet.position.z = -0.05; // Moved further back
         helmet.castShadow = true;
         
         // Helmet rim - complete circle to avoid gaps
         const helmetRimGeometry = new THREE.TorusGeometry(0.27, 0.04, 16, 32);
         const helmetRim = new THREE.Mesh(helmetRimGeometry, helmetMaterial);
-        helmetRim.position.y = 1.65;
+        helmetRim.position.y = 1.7; // Raised higher
+        helmetRim.position.z = -0.05; // Moved back
         helmetRim.rotation.x = Math.PI / 2;
         helmetRim.castShadow = true;
         
         // Helmet neck guard - characteristic of Stahlhelm
         const neckGuardGeometry = new THREE.BoxGeometry(0.3, 0.08, 0.15);
         const neckGuard = new THREE.Mesh(neckGuardGeometry, helmetMaterial);
-        neckGuard.position.set(0, 1.65, -0.18);
+        neckGuard.position.set(0, 1.7, -0.23); // Adjusted position
         neckGuard.castShadow = true;
         
         // Helmet side flares - characteristic of Stahlhelm
         const leftFlareGeometry = new THREE.BoxGeometry(0.08, 0.1, 0.15);
         const leftFlare = new THREE.Mesh(leftFlareGeometry, helmetMaterial);
-        leftFlare.position.set(-0.25, 1.65, 0);
+        leftFlare.position.set(-0.25, 1.7, -0.05); // Adjusted position
         leftFlare.rotation.z = Math.PI / 6;
         leftFlare.castShadow = true;
         
         const rightFlareGeometry = new THREE.BoxGeometry(0.08, 0.1, 0.15);
         const rightFlare = new THREE.Mesh(rightFlareGeometry, helmetMaterial);
-        rightFlare.position.set(0.25, 1.65, 0);
+        rightFlare.position.set(0.25, 1.7, -0.05); // Adjusted position
         rightFlare.rotation.z = -Math.PI / 6;
         rightFlare.castShadow = true;
         
         // Helmet front extension (more accurate)
         const frontBrimGeometry = new THREE.BoxGeometry(0.2, 0.05, 0.1);
         const frontBrim = new THREE.Mesh(frontBrimGeometry, helmetMaterial);
-        frontBrim.position.set(0, 1.65, 0.25);
+        frontBrim.position.set(0, 1.7, 0.2); // Adjusted position
         frontBrim.castShadow = true;
         
         // Inner helmet liner to fill any gaps
         const helmetLinerGeometry = new THREE.SphereGeometry(0.24, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
         const helmetLiner = new THREE.Mesh(helmetLinerGeometry, helmetMaterial);
         helmetLiner.scale.set(1.05, 0.75, 1.05);
-        helmetLiner.position.y = 1.73;
-        helmetLiner.position.z = -0.02;
+        helmetLiner.position.y = 1.78; // Raised to match helmet
+        helmetLiner.position.z = -0.05; // Moved back to match helmet
         helmetLiner.castShadow = true;
         
         // LEGO-style torso (more rectangular)
