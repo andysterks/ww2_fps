@@ -744,7 +744,7 @@ class SimpleGame {
         try {
             // Use socket.io for WebSocket communication
             const serverUrl = window.location.hostname === 'localhost' ? 
-                window.location.origin : // Use the same origin when running locally
+                'http://localhost:3000' : // Use explicit URL when running locally
                 `${window.location.protocol}//${window.location.hostname}`;
             
             console.log('Connecting to server at:', serverUrl);
@@ -752,7 +752,7 @@ class SimpleGame {
             // Create socket instance with updated configuration
             this.socket = io(serverUrl, {
                 path: '/socket.io/',
-                transports: ['polling', 'websocket'],
+                transports: ['websocket', 'polling'],
                 upgrade: true,
                 rememberUpgrade: true,
                 reconnection: true,
@@ -760,7 +760,8 @@ class SimpleGame {
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
                 timeout: 20000,
-                autoConnect: true
+                autoConnect: true,
+                forceNew: true
             });
             
             // Debug connection state
