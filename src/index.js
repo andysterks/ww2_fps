@@ -269,32 +269,48 @@ class Player {
             const rifle = new THREE.Group();
             rifle.name = 'rifle';
             
-            // Rifle body (longer and more rectangular)
-            const rifleBody = new THREE.Mesh(
-                new THREE.BoxGeometry(0.12, 1.0, 0.12),
-                new THREE.MeshLambertMaterial({ color: 0x4a3520 }) // Darker wood color
-            );
-            rifle.add(rifleBody);
-            
-            // Rifle barrel (shorter and thicker)
-            const rifleBarrel = new THREE.Mesh(
-                new THREE.BoxGeometry(0.08, 0.4, 0.08),
-                new THREE.MeshLambertMaterial({ color: 0x2a2a2a }) // Darker metal
-            );
-            rifleBarrel.position.y = 0.7;
-            rifle.add(rifleBarrel);
-            
-            // Add rifle stock (bottom part)
+            // Rifle stock (wooden part)
             const rifleStock = new THREE.Mesh(
-                new THREE.BoxGeometry(0.14, 0.25, 0.1),
-                new THREE.MeshLambertMaterial({ color: 0x3a2815 }) // Slightly darker wood for stock
+                new THREE.BoxGeometry(0.12, 0.8, 0.08),
+                new THREE.MeshLambertMaterial({ color: 0x4a3520 }) // Dark wood color
             );
-            rifleStock.position.y = -0.5;
             rifle.add(rifleStock);
             
-            // Position the rifle vertically along the body
-            rifle.position.set(-0.35, 0.8, 0); // Position alongside the right side
+            // Rifle barrel (metal part)
+            const rifleBarrel = new THREE.Mesh(
+                new THREE.BoxGeometry(0.08, 0.9, 0.08),
+                new THREE.MeshLambertMaterial({ color: 0x2a2a2a }) // Dark metal
+            );
+            rifleBarrel.position.y = 0.85; // Position barrel above stock
+            rifle.add(rifleBarrel);
+            
+            // Rifle bolt mechanism
+            const rifleBolt = new THREE.Mesh(
+                new THREE.BoxGeometry(0.12, 0.15, 0.05),
+                new THREE.MeshLambertMaterial({ color: 0x1a1a1a }) // Darker metal for bolt
+            );
+            rifleBolt.position.set(0.06, 0.7, 0); // Position on right side
+            rifle.add(rifleBolt);
+            
+            // Position the rifle diagonally across the body
+            rifle.rotation.z = -Math.PI / 8; // Tilt rifle diagonally
+            rifle.rotation.y = Math.PI / 16; // Slight rotation towards body
+            rifle.position.set(-0.2, 1.0, -0.1); // Position across chest, slightly forward
             this.model.add(rifle);
+            
+            // Adjust arm positions to hold rifle
+            const leftArmGroup = this.model.getObjectByName('leftArm');
+            const rightArmGroup = this.model.getObjectByName('rightArm');
+            
+            if (leftArmGroup) {
+                leftArmGroup.position.set(0.3, 1.1, -0.1); // Move left arm forward to hold barrel
+                leftArmGroup.rotation.x = -Math.PI / 8; // Angle forward
+            }
+            
+            if (rightArmGroup) {
+                rightArmGroup.position.set(-0.25, 1.1, -0.1); // Position right arm to hold stock
+                rightArmGroup.rotation.x = -Math.PI / 8; // Angle forward
+            }
             
             // Add the model to the scene
             if (this.game && this.game.scene) {
