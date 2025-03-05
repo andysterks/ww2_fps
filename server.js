@@ -44,9 +44,12 @@ const server = require('http').createServer(app);
 // Create Socket.IO server
 const io = new Server(server, {
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"]
-  }
+    origin: true, // Allow all origins
+    methods: ["GET", "POST"],
+    credentials: true,
+    transports: ['websocket', 'polling']
+  },
+  allowEIO3: true // Allow Engine.IO 3 compatibility
 });
 
 // Store connected players
@@ -98,7 +101,7 @@ io.on('connection', (socket) => {
     });
     
     // Handle updates from this player
-    socket.on('update', (data) => {
+    socket.on('player-update', (data) => {
         try {
             const player = players.get(playerId);
             if (player) {

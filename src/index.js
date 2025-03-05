@@ -721,7 +721,13 @@ class SimpleGame {
                 `http://${window.location.hostname.replace('www.', '')}:3000`; // Production - direct connection
             
             console.log('Connecting to server at:', serverUrl);
-            this.socket = io(serverUrl);
+            this.socket = io(serverUrl, {
+                transports: ['websocket', 'polling'],
+                withCredentials: true,
+                forceNew: true,
+                reconnectionAttempts: 5,
+                timeout: 10000
+            });
             
             // Set up event listeners for socket.io
             this.socket.on('connect', () => {
@@ -733,6 +739,12 @@ class SimpleGame {
             
             this.socket.on('connect_error', (error) => {
                 console.error('Connection error:', error);
+                console.error('Connection details:', {
+                    url: serverUrl,
+                    transport: this.socket.io.engine.transport.name,
+                    protocol: window.location.protocol,
+                    hostname: window.location.hostname
+                });
                 
                 // Update debug message
                 const debugDiv = document.querySelector('div[style*="network"]');
@@ -748,8 +760,12 @@ class SimpleGame {
                 }
             });
             
-            this.socket.on('disconnect', () => {
-                console.log('Disconnected from server');
+            this.socket.on('error', (error) => {
+                console.error('Socket error:', error);
+            });
+            
+            this.socket.on('disconnect', (reason) => {
+                console.log('Disconnected from server:', reason);
             });
             
             this.socket.on('player-joined', (data) => {
