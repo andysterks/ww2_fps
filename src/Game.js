@@ -115,6 +115,9 @@ class Game {
         this.player = new PlayerController(this.camera, this.scene);
         this.camera.position.set(0, 2, 10); // Set initial position above ground and back from center
         
+        // Set collidable objects for player
+        this.player.setCollidableObjects(this.environment.getCollidableObjects());
+        
         // Create weapon system
         this.weaponSystem = new WeaponSystem(this.camera, this.scene);
 

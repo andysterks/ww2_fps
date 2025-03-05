@@ -33,11 +33,21 @@ export class Environment {
             this.scene.fog = testEnvironment.fog;
             
             // Store collidable objects
-            testEnvironment.children.forEach(child => {
-                if (child.isMesh && child !== testEnvironment.getObjectByName('ground')) {
+            testEnvironment.traverse((child) => {
+                if (child.isMesh && child.name !== 'ground') {
                     this.collidableObjects.push(child);
                 }
             });
+            
+            // Create ground plane for collision
+            const ground = new THREE.Mesh(
+                new THREE.PlaneGeometry(1000, 1000),
+                new THREE.MeshBasicMaterial({ visible: false })
+            );
+            ground.rotation.x = -Math.PI / 2;
+            ground.name = 'ground';
+            this.scene.add(ground);
+            this.collidableObjects.push(ground);
             
             console.log('Environment initialized successfully');
         } catch (error) {
@@ -368,8 +378,7 @@ export class Environment {
     }
     
     update(deltaTime) {
-        // Update atmospheric effects
-        // Add any dynamic updates here
+        // Update any dynamic environment elements here
     }
     
     getCollidableObjects() {

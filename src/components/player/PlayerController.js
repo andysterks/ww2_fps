@@ -72,19 +72,23 @@ export class PlayerController {
     }
     
     setupEventListeners() {
-        // Keyboard events
-        document.addEventListener('keydown', (event) => {
+        // Keyboard events for movement
+        const onKeyDown = (event) => {
             switch (event.code) {
                 case 'KeyW':
+                case 'ArrowUp':
                     this.moveForward = true;
                     break;
                 case 'KeyS':
+                case 'ArrowDown':
                     this.moveBackward = true;
                     break;
                 case 'KeyA':
+                case 'ArrowLeft':
                     this.moveLeft = true;
                     break;
                 case 'KeyD':
+                case 'ArrowRight':
                     this.moveRight = true;
                     break;
                 case 'ShiftLeft':
@@ -94,30 +98,37 @@ export class PlayerController {
                     this.toggleCrouch();
                     break;
                 case 'Space':
-                    this.jump();
+                    if (!event.repeat) this.jump();
                     break;
             }
-        });
-        
-        document.addEventListener('keyup', (event) => {
+        };
+
+        const onKeyUp = (event) => {
             switch (event.code) {
                 case 'KeyW':
+                case 'ArrowUp':
                     this.moveForward = false;
                     break;
                 case 'KeyS':
+                case 'ArrowDown':
                     this.moveBackward = false;
                     break;
                 case 'KeyA':
+                case 'ArrowLeft':
                     this.moveLeft = false;
                     break;
                 case 'KeyD':
+                case 'ArrowRight':
                     this.moveRight = false;
                     break;
                 case 'ShiftLeft':
                     this.isSprinting = false;
                     break;
             }
-        });
+        };
+
+        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keyup', onKeyUp);
     }
     
     update(deltaTime) {
@@ -126,52 +137,52 @@ export class PlayerController {
         // Store previous position for collision detection
         this.lastPosition.copy(this.camera.position);
         
-        // Update movement
-        this.updateMovement(deltaTime);
-        
-        // Update camera effects
-        this.updateCameraEffects(deltaTime);
-        
-        // Check collisions and update final position
-        this.handleCollisions();
-    }
-    
-    updateMovement(deltaTime) {
-        // Calculate base speed
+        // Calculate movement speed
         let currentSpeed = this.moveSpeed;
         if (this.isSprinting) currentSpeed *= this.sprintMultiplier;
         if (this.isCrouching) currentSpeed *= this.crouchMultiplier;
         
-        // Apply movement based on input
+        // Reset velocity
+        this.velocity.x = 0;
+        this.velocity.z = 0;
+        
+        // Calculate movement direction
         this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
         this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
         this.direction.normalize();
         
-        // Update velocity
+        // Apply movement
         if (this.moveForward || this.moveBackward) {
-            this.velocity.z = -this.direction.z * currentSpeed;
+            this.velocity.z = this.direction.z * currentSpeed;
         }
         if (this.moveLeft || this.moveRight) {
-            this.velocity.x = -this.direction.x * currentSpeed;
+            this.velocity.x = this.direction.x * currentSpeed;
         }
         
-        // Apply gravity and handle jumping
+        // Apply gravity
         if (!this.isOnGround()) {
             this.velocity.y -= this.gravity * deltaTime;
         } else if (this.velocity.y < 0) {
             this.velocity.y = 0;
         }
         
-        // Update position
-        this.controls.moveRight(-this.velocity.x * deltaTime);
+        // Move the player
         this.controls.moveForward(-this.velocity.z * deltaTime);
+        this.controls.moveRight(-this.velocity.x * deltaTime);
         this.camera.position.y += this.velocity.y * deltaTime;
         
-        // Clamp height to ground
-        const minHeight = this.isOnGround() ? 
-            (this.isCrouching ? this.crouchingHeight : this.standingHeight) : 
-            this.camera.position.y;
-        this.camera.position.y = Math.max(minHeight, this.camera.position.y);
+        // Ensure minimum height
+        const minHeight = this.isCrouching ? this.crouchingHeight : this.standingHeight;
+        if (this.camera.position.y < minHeight) {
+            this.camera.position.y = minHeight;
+            this.velocity.y = 0;
+        }
+        
+        // Handle collisions
+        this.handleCollisions();
+        
+        // Update camera effects
+        this.updateCameraEffects(deltaTime);
     }
     
     updateCameraEffects(deltaTime) {
@@ -218,15 +229,13 @@ export class PlayerController {
     }
     
     handleCollisions() {
-        // Check for collisions with environment
+        // Basic collision check with collidable objects
         for (const object of this.collidableObjects) {
-            // Simple sphere-box collision check
-            if (object.geometry.type === 'BoxGeometry') {
+            if (object.geometry) {
                 const box = new THREE.Box3().setFromObject(object);
                 const sphere = new THREE.Sphere(this.camera.position, this.radius);
                 
                 if (box.intersectsSphere(sphere)) {
-                    // Move back to last safe position
                     this.camera.position.copy(this.lastPosition);
                     break;
                 }
@@ -243,13 +252,9 @@ export class PlayerController {
     
     toggleCrouch() {
         this.isCrouching = !this.isCrouching;
-        
-        // Cannot sprint while crouching
-        if (this.isCrouching) this.isSprinting = false;
-        
-        // Smoothly adjust camera height
-        const targetHeight = this.isCrouching ? this.crouchingHeight : this.standingHeight;
-        this.currentHeight = targetHeight;
+        if (this.isCrouching) {
+            this.isSprinting = false;
+        }
     }
     
     isMoving() {
@@ -257,7 +262,6 @@ export class PlayerController {
     }
     
     isOnGround() {
-        // Cast ray downward to check for ground
         this.raycaster.ray.origin.copy(this.camera.position);
         this.raycaster.ray.direction.set(0, -1, 0);
         
