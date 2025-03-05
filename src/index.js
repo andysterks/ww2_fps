@@ -198,30 +198,82 @@ class Player {
             console.log("Creating helmet");
             const helmet = new THREE.Group();
             
-            // Main helmet dome
-            const helmetDome = new THREE.Mesh(
-                new THREE.BoxGeometry(0.45, 0.25, 0.45),
+            // Main helmet dome (using multiple segments for better shape)
+            const helmetDome = new THREE.Group();
+            
+            // Upper dome with slight taper
+            const upperDome = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.22, 0.25, 0.2, 8, 1, false),
                 helmetMaterial
             );
-            helmetDome.position.y = 1.8;
-            helmet.add(helmetDome);
+            upperDome.position.y = 1.85;
+            helmetDome.add(upperDome);
             
-            // Helmet brim (wider and angled)
-            const helmetBrim = new THREE.Mesh(
-                new THREE.BoxGeometry(0.55, 0.05, 0.55),
+            // Lower dome with more pronounced taper
+            const lowerDome = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.25, 0.28, 0.15, 8, 1, false),
                 helmetMaterial
             );
-            helmetBrim.position.y = 1.7;
-            helmet.add(helmetBrim);
+            lowerDome.position.y = 1.75;
+            helmetDome.add(lowerDome);
             
-            // Helmet neck guard (characteristic of Stahlhelm)
+            // Front visor (angled forward)
+            const visor = new THREE.Mesh(
+                new THREE.BoxGeometry(0.55, 0.08, 0.15),
+                helmetMaterial
+            );
+            visor.position.set(0, 1.72, -0.12);
+            visor.rotation.x = Math.PI / 8; // Angle forward
+            helmet.add(visor);
+            
+            // Side brims (angled outward)
+            const leftBrim = new THREE.Mesh(
+                new THREE.BoxGeometry(0.15, 0.08, 0.35),
+                helmetMaterial
+            );
+            leftBrim.position.set(-0.22, 1.72, 0);
+            leftBrim.rotation.z = -Math.PI / 8; // Angle outward
+            helmet.add(leftBrim);
+            
+            const rightBrim = new THREE.Mesh(
+                new THREE.BoxGeometry(0.15, 0.08, 0.35),
+                helmetMaterial
+            );
+            rightBrim.position.set(0.22, 1.72, 0);
+            rightBrim.rotation.z = Math.PI / 8; // Angle outward
+            helmet.add(rightBrim);
+            
+            // Neck guard (characteristic of Stahlhelm)
             const neckGuard = new THREE.Mesh(
-                new THREE.BoxGeometry(0.5, 0.1, 0.2),
+                new THREE.BoxGeometry(0.5, 0.12, 0.25),
                 helmetMaterial
             );
             neckGuard.position.set(0, 1.7, 0.2);
+            neckGuard.rotation.x = -Math.PI / 6; // Angle downward
             helmet.add(neckGuard);
             
+            // Add ventilation holes (small cylinders)
+            const ventHole = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.02, 0.02, 0.05, 6),
+                new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
+            );
+            ventHole.rotation.x = Math.PI / 2;
+            
+            // Add two vent holes on each side
+            const ventPositions = [
+                [-0.15, 1.8, -0.1],
+                [0.15, 1.8, -0.1],
+                [-0.15, 1.8, 0.1],
+                [0.15, 1.8, 0.1]
+            ];
+            
+            ventPositions.forEach(pos => {
+                const vent = ventHole.clone();
+                vent.position.set(...pos);
+                helmet.add(vent);
+            });
+            
+            helmet.add(helmetDome);
             this.model.add(helmet);
             
             // Torso (more detailed uniform)
