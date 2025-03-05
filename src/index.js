@@ -165,6 +165,26 @@ class SimpleGame {
         head.castShadow = true;
         playerGroup.add(head);
         
+        // Add facial features
+        // Eyes
+        const eyeGeometry = new THREE.SphereGeometry(0.03, 8, 8);
+        const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
+        
+        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        leftEye.position.set(-0.08, 1.65, 0.18);
+        playerGroup.add(leftEye);
+        
+        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        rightEye.position.set(0.08, 1.65, 0.18);
+        playerGroup.add(rightEye);
+        
+        // Mouth
+        const mouthGeometry = new THREE.BoxGeometry(0.1, 0.02, 0.01);
+        const mouthMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+        mouth.position.set(0, 1.55, 0.2);
+        playerGroup.add(mouth);
+        
         // German Stahlhelm helmet
         const helmetGeometry = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
         const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
@@ -189,6 +209,26 @@ class SimpleGame {
         torso.position.y = 1.25;
         torso.castShadow = true;
         playerGroup.add(torso);
+        
+        // Add uniform details - collar
+        const collarGeometry = new THREE.BoxGeometry(0.42, 0.08, 0.22);
+        const collar = new THREE.Mesh(collarGeometry, uniformMaterial);
+        collar.position.y = 1.5;
+        collar.castShadow = true;
+        playerGroup.add(collar);
+        
+        // Add insignia - eagle
+        const eagleGeometry = new THREE.PlaneGeometry(0.15, 0.08);
+        const eagleMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xCCCCCC,
+            roughness: 0.4,
+            metalness: 0.6,
+            side: THREE.DoubleSide
+        });
+        const eagle = new THREE.Mesh(eagleGeometry, eagleMaterial);
+        eagle.position.set(0, 1.4, 0.11);
+        eagle.castShadow = true;
+        playerGroup.add(eagle);
         
         // Belt
         const beltGeometry = new THREE.BoxGeometry(0.42, 0.08, 0.22);
@@ -274,6 +314,13 @@ class SimpleGame {
         breadBag.position.set(-0.2, 1.0, 0.15);
         breadBag.castShadow = true;
         playerGroup.add(breadBag);
+        
+        // Add canteen
+        const canteenGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.2, 8);
+        const canteen = new THREE.Mesh(canteenGeometry, new THREE.MeshStandardMaterial({ color: 0x5D4037 }));
+        canteen.position.set(0.2, 1.0, 0.15);
+        canteen.castShadow = true;
+        playerGroup.add(canteen);
         
         // Add rifle (simplified Kar98k)
         const rifleGroup = new THREE.Group();
@@ -1105,7 +1152,10 @@ class SimpleGame {
     
     // Simplified animation method
     animateSimpleStaticPlayer(delta) {
-        if (!this.staticPlayerModel) return;
+        if (!this.staticPlayerModel) {
+            console.log("No static player model found for animation");
+            return;
+        }
         
         try {
             // Update animation clock
@@ -1134,6 +1184,11 @@ class SimpleGame {
             // Move the player forward
             const moveDistance = delta * this.playerSpeed;
             this.staticPlayerModel.position.z += moveDistance;
+            
+            // Reset position if the player goes too far
+            if (this.staticPlayerModel.position.z > 10) {
+                this.staticPlayerModel.position.z = -30;
+            }
         } catch (error) {
             console.error("Error in animateSimpleStaticPlayer:", error);
         }
