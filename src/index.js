@@ -90,24 +90,104 @@ class SimpleGame {
     }
     
     createWeapon() {
-        // Create a simple weapon
-        const weaponGeometry = new THREE.BoxGeometry(0.2, 0.2, 1);
-        const weaponMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
+        // Create a more realistic M1 Garand rifle
+        const weaponGroup = new THREE.Group();
         
-        this.weapon = new THREE.Mesh(weaponGeometry, weaponMaterial);
+        // Rifle body
+        const rifleBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1, 0.1, 1),
+            new THREE.MeshBasicMaterial({ color: 0x8B4513 }) // Brown
+        );
+        
+        // Rifle stock
+        const rifleStock = new THREE.Mesh(
+            new THREE.BoxGeometry(0.12, 0.15, 0.4),
+            new THREE.MeshBasicMaterial({ color: 0x8B4513 }) // Brown
+        );
+        rifleStock.position.set(0, -0.02, 0.3);
+        
+        // Rifle handle
+        const rifleHandle = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1, 0.2, 0.1),
+            new THREE.MeshBasicMaterial({ color: 0x8B4513 }) // Brown
+        );
+        rifleHandle.position.set(0, -0.15, 0.1);
+        
+        // Rifle barrel
+        const rifleBarrel = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.03, 0.03, 1.2, 8),
+            new THREE.MeshBasicMaterial({ color: 0x444444 }) // Dark gray
+        );
+        rifleBarrel.rotation.x = Math.PI / 2;
+        rifleBarrel.position.set(0, 0, -0.6);
+        
+        // Add all parts to the weapon group
+        weaponGroup.add(rifleBody);
+        weaponGroup.add(rifleStock);
+        weaponGroup.add(rifleHandle);
+        weaponGroup.add(rifleBarrel);
+        
+        // Create muzzle flash (initially hidden)
+        const muzzleFlash = new THREE.Mesh(
+            new THREE.ConeGeometry(0.1, 0.2, 8),
+            new THREE.MeshBasicMaterial({ color: 0xFFFF00, transparent: true, opacity: 0.8 })
+        );
+        muzzleFlash.rotation.x = Math.PI / 2;
+        muzzleFlash.position.set(0, 0, -1.2);
+        muzzleFlash.visible = false;
+        weaponGroup.add(muzzleFlash);
+        this.muzzleFlash = muzzleFlash;
         
         // Position weapon in front of camera
-        this.weapon.position.set(0.3, -0.3, -0.5);
+        weaponGroup.position.set(0.3, -0.3, -0.5);
         
         // Add weapon to camera
-        this.camera.add(this.weapon);
+        this.camera.add(weaponGroup);
+        this.weapon = weaponGroup;
+        
+        // Weapon state
+        this.bulletCount = 8;
+        this.maxBullets = 8;
+        this.canShoot = true;
+        this.isReloading = false;
+        
+        // Update ammo counter
+        this.updateAmmoCounter();
     }
     
     setupEventListeners() {
-        // Lock pointer on click
+        // Lock pointer on click and shoot
         document.addEventListener('click', () => {
             if (!this.controls.isLocked) {
                 this.controls.lock();
+            } else if (this.canShoot && !this.isReloading) {
+                this.shoot();
+            }
+        });
+        
+        // Handle key presses
+        document.addEventListener('keydown', (event) => {
+            switch (event.code) {
+                case 'KeyR':
+                    // Reload weapon
+                    if (!this.isReloading && this.bulletCount < this.maxBullets) {
+                        this.reload();
+                    }
+                    break;
+                    
+                case 'KeyF':
+                    // Toggle aim
+                    this.toggleAim();
+                    break;
+            }
+        });
+        
+        // Handle pointer lock change
+        document.addEventListener('pointerlockchange', () => {
+            // Update UI based on pointer lock state
+            const instructions = document.getElementById('instructions');
+            if (instructions) {
+                instructions.style.display = this.controls.isLocked ? 'none' : 'block';
             }
         });
         
@@ -117,13 +197,265 @@ class SimpleGame {
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
+        
+        // Initialize sound toggle
+        const soundToggle = document.getElementById('sound-toggle');
+        if (soundToggle) {
+            soundToggle.addEventListener('click', (event) => {
+                event.stopPropagation();
+                this.toggleSound();
+            });
+        }
     }
     
     animate() {
         requestAnimationFrame(() => this.animate());
         
+        // Update weapon sway if locked
+        if (this.controls.isLocked && this.weapon) {
+            this.updateWeaponSway();
+        }
+        
         // Render the scene
         this.renderer.render(this.scene, this.camera);
+    }
+    
+    shoot() {
+        if (this.bulletCount <= 0 || !this.canShoot || this.isReloading) {
+            // Play empty click sound
+            if (this.bulletCount <= 0) {
+                try {
+                    audioManager.playSound('emptyClick');
+                } catch (e) {
+                    console.log('Audio not available');
+                }
+            }
+            return;
+        }
+        
+        // Prevent rapid firing
+        this.canShoot = false;
+        
+        // Decrease bullet count
+        this.bulletCount--;
+        
+        // Update ammo counter
+        this.updateAmmoCounter();
+        
+        // Play gunshot sound
+        try {
+            // Play M1 Garand ping if last bullet
+            if (this.bulletCount === 0) {
+                audioManager.playSound('m1GarandPing');
+            } else {
+                audioManager.playSound('gunshot');
+            }
+        } catch (e) {
+            console.log('Audio not available');
+        }
+        
+        // Show muzzle flash
+        if (this.muzzleFlash) {
+            this.muzzleFlash.visible = true;
+            setTimeout(() => {
+                this.muzzleFlash.visible = false;
+            }, 50);
+        }
+        
+        // Create bullet impact
+        this.createBulletImpact();
+        
+        // Add recoil effect
+        this.addRecoilEffect();
+        
+        // Auto reload if empty
+        if (this.bulletCount === 0) {
+            setTimeout(() => this.reload(), 1000);
+        }
+        
+        // Reset shooting ability after delay
+        setTimeout(() => {
+            this.canShoot = true;
+        }, 200);
+    }
+    
+    reload() {
+        if (this.isReloading || this.bulletCount >= this.maxBullets) return;
+        
+        this.isReloading = true;
+        
+        // Play reload sound
+        try {
+            audioManager.playSound('reload');
+        } catch (e) {
+            console.log('Audio not available');
+        }
+        
+        // Reload animation could be added here
+        
+        // Complete reload after delay
+        setTimeout(() => {
+            this.bulletCount = this.maxBullets;
+            this.isReloading = false;
+            this.updateAmmoCounter();
+        }, 2000);
+    }
+    
+    toggleAim() {
+        // Toggle aiming state
+        this.isAiming = !this.isAiming;
+        
+        // Change FOV based on aiming state
+        const targetFOV = this.isAiming ? 45 : 75;
+        
+        // Animate FOV change
+        const fovInterval = setInterval(() => {
+            const step = this.isAiming ? -2 : 2;
+            this.camera.fov += step;
+            
+            if ((this.isAiming && this.camera.fov <= targetFOV) || 
+                (!this.isAiming && this.camera.fov >= targetFOV)) {
+                this.camera.fov = targetFOV;
+                clearInterval(fovInterval);
+            }
+            
+            this.camera.updateProjectionMatrix();
+        }, 16);
+        
+        // Update crosshair
+        const crosshair = document.getElementById('crosshair');
+        if (crosshair) {
+            crosshair.style.opacity = this.isAiming ? '0.3' : '1';
+        }
+        
+        return this.isAiming;
+    }
+    
+    toggleSound() {
+        try {
+            audioManager.toggleMute();
+            
+            // Update sound toggle button
+            const soundToggle = document.getElementById('sound-toggle');
+            if (soundToggle) {
+                if (audioManager.isMuted()) {
+                    soundToggle.textContent = '🔇';
+                    soundToggle.className = 'sound-off';
+                } else {
+                    soundToggle.textContent = '🔊';
+                    soundToggle.className = 'sound-on';
+                }
+            }
+        } catch (e) {
+            console.log('Audio not available');
+        }
+    }
+    
+    updateAmmoCounter() {
+        const ammoCounter = document.getElementById('ammo');
+        if (ammoCounter) {
+            ammoCounter.textContent = `${this.bulletCount}/${this.maxBullets}`;
+        }
+    }
+    
+    createBulletImpact() {
+        // Create a raycaster for bullet trajectory
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(new THREE.Vector2(), this.camera);
+        
+        // Check for intersections with objects in the scene
+        const intersects = raycaster.intersectObjects(this.scene.children, true);
+        
+        if (intersects.length > 0) {
+            // Get the first intersection point
+            const intersection = intersects[0];
+            
+            // Create a simple bullet hole
+            const bulletHole = new THREE.Mesh(
+                new THREE.CircleGeometry(0.05, 8),
+                new THREE.MeshBasicMaterial({ color: 0x000000 })
+            );
+            
+            // Position the bullet hole at the intersection point
+            bulletHole.position.copy(intersection.point);
+            
+            // Orient the bullet hole to face the camera
+            bulletHole.lookAt(this.camera.position);
+            
+            // Add a small offset to prevent z-fighting
+            bulletHole.position.add(intersection.face.normal.multiplyScalar(0.01));
+            
+            // Add the bullet hole to the scene
+            this.scene.add(bulletHole);
+            
+            // Create simple impact particles
+            this.createImpactParticles(intersection.point, intersection.face.normal);
+        }
+    }
+    
+    createImpactParticles(position, normal) {
+        // Create a simple particle system for impact effect
+        const particleCount = 10;
+        const particleGeometry = new THREE.BufferGeometry();
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0xFFFF00,
+            size: 0.05,
+            transparent: true,
+            opacity: 0.8
+        });
+        
+        // Create particles
+        const particles = [];
+        for (let i = 0; i < particleCount; i++) {
+            // Random position around impact point
+            const x = position.x + (Math.random() - 0.5) * 0.2;
+            const y = position.y + (Math.random() - 0.5) * 0.2;
+            const z = position.z + (Math.random() - 0.5) * 0.2;
+            
+            particles.push(x, y, z);
+        }
+        
+        // Set particle positions
+        particleGeometry.setAttribute('position', new THREE.Float32BufferAttribute(particles, 3));
+        
+        // Create particle system
+        const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+        this.scene.add(particleSystem);
+        
+        // Remove particles after a short time
+        setTimeout(() => {
+            this.scene.remove(particleSystem);
+            particleGeometry.dispose();
+            particleMaterial.dispose();
+        }, 500);
+    }
+    
+    addRecoilEffect() {
+        // Simple recoil effect
+        if (this.weapon) {
+            // Store original position
+            const originalPosition = this.weapon.position.clone();
+            
+            // Apply recoil
+            this.weapon.position.z += 0.05;
+            
+            // Return to original position
+            setTimeout(() => {
+                this.weapon.position.copy(originalPosition);
+            }, 100);
+        }
+    }
+    
+    updateWeaponSway() {
+        if (!this.weapon) return;
+        
+        // Add subtle weapon sway
+        const time = Date.now() * 0.001;
+        const swayX = Math.sin(time) * 0.002;
+        const swayY = Math.cos(time * 0.5) * 0.002;
+        
+        this.weapon.position.x = 0.3 + swayX;
+        this.weapon.position.y = -0.3 + swayY;
     }
 }
 
