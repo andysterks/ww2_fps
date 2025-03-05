@@ -2090,21 +2090,17 @@ class SimpleGame {
         }
     }
     
-    // Method to match player speed to static player
+    // Method to configure player speeds
     matchPlayerSpeeds() {
         // Reset to default values
         this.playerSpeed = 2.0;
         this.sprintMultiplier = 2.0;
         
-        // Reset velocity to prevent lingering momentum
-        this.velocity.x = 0;
-        this.velocity.z = 0;
-        
         console.log("Player and static player speeds configured.");
         console.log("Base speed: 2.0 (used by static player at all times)");
         console.log("Sprint multiplier: 2.0x - Hold SHIFT to sprint (affects only player, not static player)");
         console.log("Movements are now decoupled - static player maintains constant speed");
-        console.log("Drifting has been eliminated - player will stop immediately when keys are released");
+        console.log("Movement system: Direct control - player moves immediately in response to WASD keys");
         
         return true;
     }
