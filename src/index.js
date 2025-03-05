@@ -24,6 +24,103 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Player class to manage individual player instances
+class Player {
+    constructor(id, game, isLocalPlayer = false, initialPosition = { x: 0, y: 0, z: 0 }) {
+        this.id = id;
+        this.game = game;
+        this.isLocalPlayer = isLocalPlayer;
+        this.position = new THREE.Vector3(initialPosition.x, initialPosition.y, initialPosition.z);
+        this.rotation = new THREE.Euler(0, 0, 0);
+        this.model = null;
+        this.moveForward = false;
+        this.moveBackward = false;
+        this.moveLeft = false;
+        this.moveRight = false;
+        this.isSprinting = false;
+        this.animationClock = 0;
+    }
+
+    // Create the player model (German soldier)
+    createModel() {
+        // Create the model at the player's position
+        this.model = this.game.createStaticPlayerModel(
+            this.position.x,
+            this.position.y,
+            this.position.z,
+            this.id // Pass ID to make the model unique
+        );
+        
+        // If this is the local player, hide the model since we're in first person
+        if (this.isLocalPlayer) {
+            this.model.visible = false;
+        }
+        
+        return this.model;
+    }
+
+    // Update player position and rotation based on controls (for local player)
+    // or based on network data (for remote players)
+    update(delta) {
+        if (this.isLocalPlayer) {
+            // Local player's position is controlled by the camera/controls
+            // We just need to update our stored position for network sync
+            const cameraPosition = this.game.camera.position.clone();
+            const controlsDirection = this.game.controls.getDirection(new THREE.Vector3());
+            
+            this.position.copy(cameraPosition);
+            this.rotation.y = Math.atan2(controlsDirection.x, controlsDirection.z);
+            
+            // No need to update the model position as it's hidden for local player
+        } else {
+            // For remote players, animate the model
+            if (this.model) {
+                // Update animation clock
+                this.animationClock += delta * this.game.playerSpeed;
+                
+                // Calculate leg and arm swing based on sine wave
+                const legSwing = Math.sin(this.animationClock * Math.PI) * 0.4;
+                const armSwing = Math.sin(this.animationClock * Math.PI) * 0.3;
+                
+                // Apply rotations to legs
+                if (this.model.leftLegGroup) {
+                    this.model.leftLegGroup.rotation.x = legSwing;
+                }
+                if (this.model.rightLegGroup) {
+                    this.model.rightLegGroup.rotation.x = -legSwing;
+                }
+                
+                // Apply rotations to arms (opposite to legs for natural walking)
+                if (this.model.leftArmGroup) {
+                    this.model.leftArmGroup.rotation.x = -armSwing;
+                }
+                if (this.model.rightArmGroup) {
+                    this.model.rightArmGroup.rotation.x = armSwing;
+                }
+                
+                // Update model position and rotation
+                this.model.position.copy(this.position);
+                this.model.rotation.y = this.rotation.y;
+            }
+        }
+    }
+    
+    // Set movement flags based on input (for local player)
+    setMovementFlags(forward, backward, left, right, sprint) {
+        this.moveForward = forward;
+        this.moveBackward = backward;
+        this.moveLeft = left;
+        this.moveRight = right;
+        this.isSprinting = sprint;
+    }
+    
+    // Update player position based on network data (for remote players)
+    updateFromNetwork(position, rotation) {
+        this.position.set(position.x, position.y, position.z);
+        this.rotation.set(rotation.x, rotation.y, rotation.z);
+    }
+}
+
 class SimpleGame {
     constructor() {
         try {
@@ -76,8 +173,17 @@ class SimpleGame {
             // Debug mode
             this.debugMode = true;
             
+            // Players collection
+            this.players = new Map();
+            
             // Create a simple test environment
             this.createSimpleTestEnvironment();
+            
+            // Create local player
+            this.createLocalPlayer();
+            
+            // Create some test remote players
+            this.createTestRemotePlayers();
             
             // Set up event listeners
             this.setupEventListeners();
@@ -85,10 +191,90 @@ class SimpleGame {
             // Start animation loop
             this.animate();
             
+            // Initialize network (placeholder)
+            this.initNetwork();
+            
             console.log("Game initialized successfully");
         } catch (error) {
             console.error("Error initializing game:", error);
         }
+    }
+    
+    // Create the local player
+    createLocalPlayer() {
+        const localPlayerId = 'local-player';
+        const localPlayer = new Player(localPlayerId, this, true, { x: 0, y: 0, z: 0 });
+        localPlayer.createModel();
+        this.players.set(localPlayerId, localPlayer);
+        this.localPlayer = localPlayer;
+        
+        console.log("Local player created with ID:", localPlayerId);
+    }
+    
+    // Create some test remote players (for development)
+    createTestRemotePlayers() {
+        // Create 3 test remote players at different positions
+        const positions = [
+            { x: 5, y: 0, z: -15 },
+            { x: -5, y: 0, z: -10 },
+            { x: 0, y: 0, z: -20 }
+        ];
+        
+        positions.forEach((pos, index) => {
+            const playerId = `remote-player-${index}`;
+            const remotePlayer = new Player(playerId, this, false, pos);
+            remotePlayer.createModel();
+            this.players.set(playerId, remotePlayer);
+            
+            console.log("Remote player created with ID:", playerId);
+        });
+    }
+    
+    // Initialize network functionality (placeholder)
+    initNetwork() {
+        console.log("Network functionality initialized (placeholder)");
+        // This would be replaced with actual WebSocket or WebRTC implementation
+    }
+    
+    // Add a new remote player
+    addRemotePlayer(playerId, position) {
+        if (this.players.has(playerId)) {
+            console.warn(`Player with ID ${playerId} already exists`);
+            return;
+        }
+        
+        const remotePlayer = new Player(playerId, this, false, position);
+        remotePlayer.createModel();
+        this.players.set(playerId, remotePlayer);
+        
+        console.log(`Remote player ${playerId} added at position:`, position);
+    }
+    
+    // Remove a remote player
+    removeRemotePlayer(playerId) {
+        if (!this.players.has(playerId)) {
+            console.warn(`Player with ID ${playerId} does not exist`);
+            return;
+        }
+        
+        const player = this.players.get(playerId);
+        if (player.model) {
+            this.scene.remove(player.model);
+        }
+        
+        this.players.delete(playerId);
+        console.log(`Remote player ${playerId} removed`);
+    }
+    
+    // Update a remote player's position and rotation
+    updateRemotePlayer(playerId, position, rotation) {
+        if (!this.players.has(playerId)) {
+            console.warn(`Player with ID ${playerId} does not exist`);
+            return;
+        }
+        
+        const player = this.players.get(playerId);
+        player.updateFromNetwork(position, rotation);
     }
     
     createSimpleTestEnvironment() {
@@ -121,254 +307,10 @@ class SimpleGame {
         box.castShadow = true;
         this.scene.add(box);
         
-        // Create a static player model
-        this.createSimpleStaticPlayer(0, 0, -10);
+        // Note: We no longer create a static player model here
+        // Players are now created through the Player class in createLocalPlayer and createTestRemotePlayers
         
         console.log("Simple test environment created");
-    }
-    
-    // Simplified static player model
-    createSimpleStaticPlayer(x, y, z) {
-        console.log("Creating simple static player");
-        
-        // Create a group for the player model
-        const playerGroup = new THREE.Group();
-        
-        // Define materials
-        const uniformMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x4D5D53, // Field gray
-            roughness: 0.4,
-            metalness: 0.1
-        });
-        
-        const helmetMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x333333, // Dark gray
-            roughness: 0.2,
-            metalness: 0.3
-        });
-        
-        const skinMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0xE0AC69, // Light skin tone
-            roughness: 0.3,
-            metalness: 0.1
-        });
-        
-        const leatherMaterial = new THREE.MeshStandardMaterial({
-            color: 0x4A3C2A, // Brown leather
-            roughness: 0.5,
-            metalness: 0.1
-        });
-        
-        // Create body parts
-        // Head and helmet
-        const headGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.25, 16);
-        const head = new THREE.Mesh(headGeometry, skinMaterial);
-        head.position.y = 1.6;
-        head.castShadow = true;
-        playerGroup.add(head);
-        
-        // Add facial features
-        // Eyes
-        const eyeGeometry = new THREE.SphereGeometry(0.03, 8, 8);
-        const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 });
-        
-        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        leftEye.position.set(-0.08, 1.65, 0.18);
-        playerGroup.add(leftEye);
-        
-        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        rightEye.position.set(0.08, 1.65, 0.18);
-        playerGroup.add(rightEye);
-        
-        // Mouth
-        const mouthGeometry = new THREE.BoxGeometry(0.1, 0.02, 0.01);
-        const mouthMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-        const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
-        mouth.position.set(0, 1.55, 0.2);
-        playerGroup.add(mouth);
-        
-        // German Stahlhelm helmet
-        const helmetGeometry = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
-        const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
-        helmet.scale.set(1.1, 0.8, 1.1);
-        helmet.position.y = 1.78;
-        helmet.position.z = -0.05;
-        helmet.castShadow = true;
-        playerGroup.add(helmet);
-        
-        // Helmet rim
-        const rimGeometry = new THREE.TorusGeometry(0.25, 0.05, 8, 24, Math.PI * 1.2);
-        const rim = new THREE.Mesh(rimGeometry, helmetMaterial);
-        rim.position.y = 1.7;
-        rim.position.z = -0.05;
-        rim.rotation.x = Math.PI / 2;
-        rim.castShadow = true;
-        playerGroup.add(rim);
-        
-        // Torso
-        const torsoGeometry = new THREE.BoxGeometry(0.4, 0.5, 0.2);
-        const torso = new THREE.Mesh(torsoGeometry, uniformMaterial);
-        torso.position.y = 1.25;
-        torso.castShadow = true;
-        playerGroup.add(torso);
-        
-        // Add uniform details - collar
-        const collarGeometry = new THREE.BoxGeometry(0.42, 0.08, 0.22);
-        const collar = new THREE.Mesh(collarGeometry, uniformMaterial);
-        collar.position.y = 1.5;
-        collar.castShadow = true;
-        playerGroup.add(collar);
-        
-        // Add insignia - eagle
-        const eagleGeometry = new THREE.PlaneGeometry(0.15, 0.08);
-        const eagleMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0xCCCCCC,
-            roughness: 0.4,
-            metalness: 0.6,
-            side: THREE.DoubleSide
-        });
-        const eagle = new THREE.Mesh(eagleGeometry, eagleMaterial);
-        eagle.position.set(0, 1.4, 0.11);
-        eagle.castShadow = true;
-        playerGroup.add(eagle);
-        
-        // Belt
-        const beltGeometry = new THREE.BoxGeometry(0.42, 0.08, 0.22);
-        const belt = new THREE.Mesh(beltGeometry, leatherMaterial);
-        belt.position.y = 1.0;
-        belt.castShadow = true;
-        playerGroup.add(belt);
-        
-        // Create leg groups for animation
-        const leftLegGroup = new THREE.Group();
-        const rightLegGroup = new THREE.Group();
-        leftLegGroup.position.set(-0.12, 0.9, 0);
-        rightLegGroup.position.set(0.12, 0.9, 0);
-        
-        // Legs
-        const legGeometry = new THREE.BoxGeometry(0.18, 0.5, 0.18);
-        
-        const leftLeg = new THREE.Mesh(legGeometry, uniformMaterial);
-        leftLeg.position.set(0, -0.3, 0);
-        leftLeg.castShadow = true;
-        leftLegGroup.add(leftLeg);
-        
-        const rightLeg = new THREE.Mesh(legGeometry, uniformMaterial);
-        rightLeg.position.set(0, -0.3, 0);
-        rightLeg.castShadow = true;
-        rightLegGroup.add(rightLeg);
-        
-        // Boots
-        const bootGeometry = new THREE.BoxGeometry(0.2, 0.1, 0.22);
-        const bootMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x111111,
-            roughness: 0.3,
-            metalness: 0.2
-        });
-        
-        const leftBoot = new THREE.Mesh(bootGeometry, bootMaterial);
-        leftBoot.position.set(0, -0.6, 0.02);
-        leftBoot.castShadow = true;
-        leftLegGroup.add(leftBoot);
-        
-        const rightBoot = new THREE.Mesh(bootGeometry, bootMaterial);
-        rightBoot.position.set(0, -0.6, 0.02);
-        rightBoot.castShadow = true;
-        rightLegGroup.add(rightBoot);
-        
-        // Create arm groups for animation
-        const leftArmGroup = new THREE.Group();
-        const rightArmGroup = new THREE.Group();
-        leftArmGroup.position.set(-0.28, 1.25, 0);
-        rightArmGroup.position.set(0.28, 1.25, 0);
-        
-        // Arms
-        const armGeometry = new THREE.BoxGeometry(0.15, 0.45, 0.15);
-        
-        const leftArm = new THREE.Mesh(armGeometry, uniformMaterial);
-        leftArm.position.set(0, 0, 0);
-        leftArm.castShadow = true;
-        leftArmGroup.add(leftArm);
-        
-        const rightArm = new THREE.Mesh(armGeometry, uniformMaterial);
-        rightArm.position.set(0, 0, 0);
-        rightArm.castShadow = true;
-        rightArmGroup.add(rightArm);
-        
-        // Hands
-        const handGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.12, 8);
-        
-        const leftHand = new THREE.Mesh(handGeometry, skinMaterial);
-        leftHand.rotation.x = Math.PI / 2;
-        leftHand.position.set(0, -0.25, 0);
-        leftHand.castShadow = true;
-        leftArmGroup.add(leftHand);
-        
-        const rightHand = new THREE.Mesh(handGeometry, skinMaterial);
-        rightHand.rotation.x = Math.PI / 2;
-        rightHand.position.set(0, -0.25, 0);
-        rightHand.castShadow = true;
-        rightArmGroup.add(rightHand);
-        
-        // Add equipment - bread bag
-        const breadBagGeometry = new THREE.BoxGeometry(0.15, 0.2, 0.1);
-        const breadBag = new THREE.Mesh(breadBagGeometry, leatherMaterial);
-        breadBag.position.set(-0.2, 1.0, 0.15);
-        breadBag.castShadow = true;
-        playerGroup.add(breadBag);
-        
-        // Add canteen
-        const canteenGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.2, 8);
-        const canteen = new THREE.Mesh(canteenGeometry, new THREE.MeshStandardMaterial({ color: 0x5D4037 }));
-        canteen.position.set(0.2, 1.0, 0.15);
-        canteen.castShadow = true;
-        playerGroup.add(canteen);
-        
-        // Add rifle (simplified Kar98k)
-        const rifleGroup = new THREE.Group();
-        
-        // Rifle stock
-        const stockGeometry = new THREE.BoxGeometry(0.05, 0.08, 0.6);
-        const stock = new THREE.Mesh(stockGeometry, new THREE.MeshStandardMaterial({ color: 0x5C4033 }));
-        stock.position.z = 0.2;
-        rifleGroup.add(stock);
-        
-        // Rifle barrel
-        const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.7, 8);
-        const barrel = new THREE.Mesh(barrelGeometry, new THREE.MeshStandardMaterial({ color: 0x333333 }));
-        barrel.rotation.x = Math.PI / 2;
-        barrel.position.z = -0.15;
-        rifleGroup.add(barrel);
-        
-        // Position rifle in right hand
-        rifleGroup.position.set(0, -0.25, 0.1);
-        rifleGroup.rotation.x = -Math.PI / 4;
-        rightArmGroup.add(rifleGroup);
-        
-        // Add limbs to player group
-        playerGroup.add(leftLegGroup);
-        playerGroup.add(rightLegGroup);
-        playerGroup.add(leftArmGroup);
-        playerGroup.add(rightArmGroup);
-        
-        // Store references for animation
-        playerGroup.leftLegGroup = leftLegGroup;
-        playerGroup.rightLegGroup = rightLegGroup;
-        playerGroup.leftArmGroup = leftArmGroup;
-        playerGroup.rightArmGroup = rightArmGroup;
-        
-        // Position the player
-        playerGroup.position.set(x, y, z);
-        playerGroup.rotation.y = Math.PI; // Face toward the player
-        
-        // Add to scene
-        this.scene.add(playerGroup);
-        
-        // Store reference to the player model
-        this.staticPlayerModel = playerGroup;
-        
-        console.log("Simple static player created");
-        return playerGroup;
     }
     
     createEnvironment() {
@@ -1135,6 +1077,17 @@ class SimpleGame {
             // Check if any movement keys are pressed
             const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
             
+            // Update local player movement flags
+            if (this.localPlayer) {
+                this.localPlayer.setMovementFlags(
+                    this.moveForward,
+                    this.moveBackward,
+                    this.moveLeft,
+                    this.moveRight,
+                    this.isSprinting
+                );
+            }
+            
             // Basic movement implementation
             if (isMoving) {
                 // Calculate the base movement speed
@@ -1161,8 +1114,10 @@ class SimpleGame {
                 }
             }
             
-            // Animate static player with constant speed
-            this.animateSimpleStaticPlayer(delta);
+            // Update all players
+            this.players.forEach(player => {
+                player.update(delta);
+            });
             
             // Update debug info
             if (this.debugMode) {
@@ -1176,54 +1131,6 @@ class SimpleGame {
             this.renderer.render(this.scene, this.camera);
         } catch (error) {
             console.error("Error in animate method:", error);
-        }
-    }
-    
-    // Simplified animation method
-    animateSimpleStaticPlayer(delta, speedMultiplier = 1.0) {
-        if (!this.staticPlayerModel) {
-            console.error("No static player model found for animation");
-            return;
-        }
-        
-        try {
-            // Always use base speed for static player, ignoring any sprint multiplier
-            const staticPlayerSpeed = this.playerSpeed;
-            
-            // Update animation clock - use constant speed for animation
-            this.animationClock += delta * staticPlayerSpeed;
-            
-            // Calculate leg and arm swing based on sine wave
-            // Use constant animation speed regardless of player sprint
-            const legSwing = Math.sin(this.animationClock * Math.PI) * 0.4;
-            const armSwing = Math.sin(this.animationClock * Math.PI) * 0.3;
-            
-            // Apply rotations to legs
-            if (this.staticPlayerModel.leftLegGroup) {
-                this.staticPlayerModel.leftLegGroup.rotation.x = legSwing;
-            }
-            if (this.staticPlayerModel.rightLegGroup) {
-                this.staticPlayerModel.rightLegGroup.rotation.x = -legSwing;
-            }
-            
-            // Apply rotations to arms (opposite to legs for natural walking)
-            if (this.staticPlayerModel.leftArmGroup) {
-                this.staticPlayerModel.leftArmGroup.rotation.x = -armSwing;
-            }
-            if (this.staticPlayerModel.rightArmGroup) {
-                this.staticPlayerModel.rightArmGroup.rotation.x = armSwing;
-            }
-            
-            // Move the player forward - use constant speed regardless of player sprint
-            const moveDistance = delta * staticPlayerSpeed;
-            this.staticPlayerModel.position.z += moveDistance;
-            
-            // Reset position if the player goes too far
-            if (this.staticPlayerModel.position.z > 10) {
-                this.staticPlayerModel.position.z = -30;
-            }
-        } catch (error) {
-            console.error("Error in animateSimpleStaticPlayer:", error);
         }
     }
     
@@ -1258,6 +1165,18 @@ class SimpleGame {
                 <div>Static Player Speed: ${staticPlayerSpeed.toFixed(1)} (constant)</div>
                 <div>Movement System: Direct control</div>
             `;
+        }
+        
+        // Add player count to debug info
+        if (this.debugInfoElement) {
+            const playerCount = this.players.size;
+            const localPlayerPos = this.localPlayer ? 
+                `(${this.localPlayer.position.x.toFixed(2)}, ${this.localPlayer.position.y.toFixed(2)}, ${this.localPlayer.position.z.toFixed(2)})` : 
+                'unknown';
+            
+            // Add to existing debug info
+            this.debugInfoElement.innerHTML += `<br>Players: ${playerCount}`;
+            this.debugInfoElement.innerHTML += `<br>Local Player Position: ${localPlayerPos}`;
         }
     }
     
@@ -1574,7 +1493,9 @@ class SimpleGame {
         this.weapon.rotation.z += (targetRotation.z - this.weapon.rotation.z) * this.aimTransitionSpeed * 0.016;
     }
     
-    createStaticPlayerModel(x, y, z) {
+    createStaticPlayerModel(x, y, z, playerId) {
+        console.log(`Creating player model for ${playerId} at position:`, { x, y, z });
+        
         // Create a group for the player model
         const playerGroup = new THREE.Group();
         
@@ -1940,9 +1861,7 @@ class SimpleGame {
         // Add to scene
         this.scene.add(playerGroup);
         
-        // Store reference to the player model
-        this.staticPlayerModel = playerGroup;
-        
+        // Return the player model instead of storing it directly
         return playerGroup;
     }
 
