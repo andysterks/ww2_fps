@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { audioManager } from './audio.js';
 
 // Initialize the game when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -23,6 +22,18 @@ class SimpleGame {
         
         // Player controls
         this.controls = new PointerLockControls(this.camera, document.body);
+        
+        // Movement variables
+        this.moveForward = false;
+        this.moveBackward = false;
+        this.moveLeft = false;
+        this.moveRight = false;
+        this.isSprinting = false;
+        this.velocity = new THREE.Vector3();
+        this.direction = new THREE.Vector3();
+        this.prevTime = performance.now();
+        this.playerSpeed = 10.0;
+        this.sprintMultiplier = 1.5;
         
         // Set initial position
         this.camera.position.set(0, 1.8, 5);
@@ -165,19 +176,74 @@ class SimpleGame {
             }
         });
         
-        // Handle key presses
+        // Handle key presses for movement and actions
         document.addEventListener('keydown', (event) => {
+            if (this.controls.isLocked) {
+                switch (event.code) {
+                    case 'KeyW':
+                    case 'ArrowUp':
+                        this.moveForward = true;
+                        break;
+                        
+                    case 'KeyS':
+                    case 'ArrowDown':
+                        this.moveBackward = true;
+                        break;
+                        
+                    case 'KeyA':
+                    case 'ArrowLeft':
+                        this.moveLeft = true;
+                        break;
+                        
+                    case 'KeyD':
+                    case 'ArrowRight':
+                        this.moveRight = true;
+                        break;
+                        
+                    case 'ShiftLeft':
+                        this.isSprinting = true;
+                        break;
+                        
+                    case 'KeyR':
+                        // Reload weapon
+                        if (!this.isReloading && this.bulletCount < this.maxBullets) {
+                            this.reload();
+                        }
+                        break;
+                        
+                    case 'KeyF':
+                        // Toggle aim
+                        this.toggleAim();
+                        break;
+                }
+            }
+        });
+        
+        // Handle key releases for movement
+        document.addEventListener('keyup', (event) => {
             switch (event.code) {
-                case 'KeyR':
-                    // Reload weapon
-                    if (!this.isReloading && this.bulletCount < this.maxBullets) {
-                        this.reload();
-                    }
+                case 'KeyW':
+                case 'ArrowUp':
+                    this.moveForward = false;
                     break;
                     
-                case 'KeyF':
-                    // Toggle aim
-                    this.toggleAim();
+                case 'KeyS':
+                case 'ArrowDown':
+                    this.moveBackward = false;
+                    break;
+                    
+                case 'KeyA':
+                case 'ArrowLeft':
+                    this.moveLeft = false;
+                    break;
+                    
+                case 'KeyD':
+                case 'ArrowRight':
+                    this.moveRight = false;
+                    break;
+                    
+                case 'ShiftLeft':
+                    this.isSprinting = false;
                     break;
             }
         });
@@ -188,6 +254,15 @@ class SimpleGame {
             const instructions = document.getElementById('instructions');
             if (instructions) {
                 instructions.style.display = this.controls.isLocked ? 'none' : 'block';
+            }
+            
+            // Reset movement when pointer is unlocked
+            if (!this.controls.isLocked) {
+                this.moveForward = false;
+                this.moveBackward = false;
+                this.moveLeft = false;
+                this.moveRight = false;
+                this.isSprinting = false;
             }
         });
         
@@ -211,9 +286,40 @@ class SimpleGame {
     animate() {
         requestAnimationFrame(() => this.animate());
         
-        // Update weapon sway if locked
-        if (this.controls.isLocked && this.weapon) {
-            this.updateWeaponSway();
+        // Only update if controls are locked
+        if (this.controls.isLocked) {
+            // Calculate delta time
+            const time = performance.now();
+            const delta = (time - this.prevTime) / 1000; // Convert to seconds
+            
+            // Update velocity with friction
+            this.velocity.x -= this.velocity.x * 10.0 * delta;
+            this.velocity.z -= this.velocity.z * 10.0 * delta;
+            
+            // Set movement direction
+            this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+            this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
+            this.direction.normalize(); // Ensure consistent movement in all directions
+            
+            // Calculate movement speed (with sprint)
+            const speedMultiplier = this.isSprinting ? this.sprintMultiplier : 1.0;
+            const moveSpeed = this.playerSpeed * speedMultiplier * delta;
+            
+            // Apply movement to velocity
+            if (this.moveForward || this.moveBackward) this.velocity.z -= this.direction.z * moveSpeed;
+            if (this.moveLeft || this.moveRight) this.velocity.x -= this.direction.x * moveSpeed;
+            
+            // Move the player
+            this.controls.moveRight(-this.velocity.x);
+            this.controls.moveForward(-this.velocity.z);
+            
+            // Update weapon sway
+            if (this.weapon) {
+                this.updateWeaponSway();
+            }
+            
+            // Store current time for next frame
+            this.prevTime = time;
         }
         
         // Render the scene
