@@ -148,35 +148,14 @@ class SimpleGame {
     }
     
     createWeapon() {
+        // Create weapon group
         const weaponGroup = new THREE.Group();
         
-        // Common material properties for all weapon parts
-        const metalMaterial = new THREE.MeshPhongMaterial({ 
+        // Create materials with proper depth settings
+        const metalMaterial = new THREE.MeshPhongMaterial({
             color: 0x2c2c2c,
+            specular: 0x111111,
             shininess: 30,
-            specular: 0x444444,
-            transparent: false,
-            opacity: 1.0,
-            side: THREE.DoubleSide,
-            depthWrite: true,
-            depthTest: true
-        });
-
-        const woodMaterial = new THREE.MeshPhongMaterial({ 
-            color: 0x4a2a0a,
-            shininess: 10,
-            specular: 0x222222,
-            transparent: false,
-            opacity: 1.0,
-            side: THREE.DoubleSide,
-            depthWrite: true,
-            depthTest: true
-        });
-
-        const blackMaterial = new THREE.MeshPhongMaterial({ 
-            color: 0x000000,
-            shininess: 20,
-            specular: 0x222222,
             transparent: false,
             opacity: 1.0,
             side: THREE.DoubleSide,
@@ -184,102 +163,145 @@ class SimpleGame {
             depthTest: true
         });
         
-        // Rifle body (receiver)
+        const woodMaterial = new THREE.MeshPhongMaterial({
+            color: 0x4a2a0a,
+            specular: 0x222222,
+            shininess: 10,
+            transparent: false,
+            opacity: 1.0,
+            side: THREE.DoubleSide,
+            depthWrite: true,
+            depthTest: true
+        });
+        
+        const blackMaterial = new THREE.MeshPhongMaterial({
+            color: 0x000000,
+            specular: 0x222222,
+            shininess: 30,
+            transparent: false,
+            opacity: 1.0,
+            side: THREE.DoubleSide,
+            depthWrite: true,
+            depthTest: true
+        });
+        
+        // Create rifle body
         const rifleBody = new THREE.Mesh(
             new THREE.BoxGeometry(0.08, 0.12, 0.9),
             metalMaterial.clone()
         );
-        rifleBody.renderOrder = 1;
+        rifleBody.position.set(0, 0, 0);
         rifleBody.castShadow = true;
         rifleBody.receiveShadow = true;
+        rifleBody.renderOrder = 1;
         
-        // Rifle stock
+        // Create rifle stock
         const rifleStock = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1, 0.18, 0.7),
+            new THREE.BoxGeometry(0.08, 0.15, 0.5),
             woodMaterial.clone()
         );
-        rifleStock.position.set(0, -0.03, 0.35);
-        rifleStock.renderOrder = 1;
+        rifleStock.position.set(0, -0.02, 0.4);
         rifleStock.castShadow = true;
         rifleStock.receiveShadow = true;
+        rifleStock.renderOrder = 1;
         
         // Create iron sights group
         const ironSightsGroup = new THREE.Group();
         
-        // Front sight protective wings
-        const leftWing = new THREE.Mesh(
-            new THREE.BoxGeometry(0.02, 0.04, 0.02),
-            metalMaterial.clone()
-        );
-        leftWing.position.set(-0.015, 0.09, -0.6);
-        leftWing.renderOrder = 2;
-        leftWing.castShadow = true;
-        
-        const rightWing = new THREE.Mesh(
-            new THREE.BoxGeometry(0.02, 0.04, 0.02),
-            metalMaterial.clone()
-        );
-        rightWing.position.set(0.015, 0.09, -0.6);
-        rightWing.renderOrder = 2;
-        rightWing.castShadow = true;
-        
         // Front sight post
         const frontSightPost = new THREE.Mesh(
-            new THREE.BoxGeometry(0.002, 0.035, 0.002),
+            new THREE.BoxGeometry(0.004, 0.03, 0.004),
             blackMaterial.clone()
         );
-        frontSightPost.position.set(0, 0.095, -0.6);
+        frontSightPost.position.set(0, 0.09, -0.4);
         frontSightPost.renderOrder = 3;
         frontSightPost.castShadow = true;
         
-        // Front sight base
+        // Front sight protective wings
         const frontSightBase = new THREE.Mesh(
             new THREE.BoxGeometry(0.04, 0.02, 0.02),
             metalMaterial.clone()
         );
-        frontSightBase.position.set(0, 0.07, -0.6);
+        frontSightBase.position.set(0, 0.075, -0.4);
         frontSightBase.renderOrder = 2;
         frontSightBase.castShadow = true;
         
-        // Rear sight housing (now cylindrical)
-        const rearSightHousing = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.02, 0.02, 0.04, 16),
+        // Left wing
+        const leftWing = new THREE.Mesh(
+            new THREE.BoxGeometry(0.005, 0.03, 0.02),
             metalMaterial.clone()
         );
-        rearSightHousing.rotation.x = Math.PI / 2;
-        rearSightHousing.position.set(0, 0.09, 0.1);
-        rearSightHousing.renderOrder = 2;
-        rearSightHousing.castShadow = true;
-
-        // Rear sight aperture (peep sight)
+        leftWing.position.set(-0.02, 0.09, -0.4);
+        leftWing.renderOrder = 2;
+        leftWing.castShadow = true;
+        
+        // Right wing
+        const rightWing = new THREE.Mesh(
+            new THREE.BoxGeometry(0.005, 0.03, 0.02),
+            metalMaterial.clone()
+        );
+        rightWing.position.set(0.02, 0.09, -0.4);
+        rightWing.renderOrder = 2;
+        rightWing.castShadow = true;
+        
+        // Create a proper rear sight assembly
+        // Main rear sight housing (cylindrical base)
+        const rearSightBase = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.025, 0.025, 0.04, 16),
+            metalMaterial.clone()
+        );
+        rearSightBase.rotation.x = Math.PI / 2;
+        rearSightBase.position.set(0, 0.09, 0.1);
+        rearSightBase.renderOrder = 2;
+        rearSightBase.castShadow = true;
+        
+        // Create the aperture ring using a custom geometry to ensure it's hollow
+        const apertureMaterial = new THREE.MeshPhongMaterial({
+            color: 0x000000,
+            specular: 0x222222,
+            shininess: 30,
+            transparent: false,
+            opacity: 1.0,
+            side: THREE.DoubleSide,
+            depthWrite: true,
+            depthTest: true
+        });
+        
+        // Create a hollow aperture using a torus
         const rearSightAperture = new THREE.Mesh(
-            new THREE.TorusGeometry(0.004, 0.002, 8, 24),
-            blackMaterial.clone()
+            new THREE.TorusGeometry(0.008, 0.0025, 16, 32),
+            apertureMaterial
         );
         rearSightAperture.rotation.x = Math.PI / 2;
         rearSightAperture.position.set(0, 0.09, 0.1);
         rearSightAperture.renderOrder = 3;
         rearSightAperture.castShadow = true;
-
+        
         // Add adjustment knobs on sides
         const leftKnob = new THREE.Mesh(
             new THREE.CylinderGeometry(0.008, 0.008, 0.01, 8),
             metalMaterial.clone()
         );
         leftKnob.rotation.z = Math.PI / 2;
-        leftKnob.position.set(-0.025, 0.09, 0.1);
+        leftKnob.position.set(-0.03, 0.09, 0.1);
         leftKnob.renderOrder = 2;
         leftKnob.castShadow = true;
-
-        const rightKnob = leftKnob.clone();
-        rightKnob.position.x = 0.025;
+        
+        const rightKnob = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.008, 0.008, 0.01, 8),
+            metalMaterial.clone()
+        );
+        rightKnob.rotation.z = Math.PI / 2;
+        rightKnob.position.set(0.03, 0.09, 0.1);
+        rightKnob.renderOrder = 2;
+        rightKnob.castShadow = true;
         
         // Add sights to group
-        ironSightsGroup.add(leftWing);
-        ironSightsGroup.add(rightWing);
         ironSightsGroup.add(frontSightPost);
         ironSightsGroup.add(frontSightBase);
-        ironSightsGroup.add(rearSightHousing);
+        ironSightsGroup.add(leftWing);
+        ironSightsGroup.add(rightWing);
+        ironSightsGroup.add(rearSightBase);
         ironSightsGroup.add(rearSightAperture);
         ironSightsGroup.add(leftKnob);
         ironSightsGroup.add(rightKnob);
@@ -289,7 +311,7 @@ class SimpleGame {
         weaponGroup.add(rifleStock);
         weaponGroup.add(ironSightsGroup);
         
-        // Store iron sights reference
+        // Store reference to iron sights for toggling visibility
         this.ironSights = ironSightsGroup;
         
         // Define positions with adjusted z-depth
@@ -297,12 +319,12 @@ class SimpleGame {
         this.weaponDefaultRotation = new THREE.Vector3(0, Math.PI / 12, 0);
         
         // Adjusted aim position for proper sight picture
-        this.weaponAimPosition = new THREE.Vector3(0, -0.0485, -0.3);
+        this.weaponAimPosition = new THREE.Vector3(0, -0.0455, -0.25);
         this.weaponAimRotation = new THREE.Vector3(0, 0, 0);
         
         // Position weapon in hip-fire position
         weaponGroup.position.copy(this.weaponDefaultPosition);
-        weaponGroup.rotation.copy(this.weaponDefaultRotation);
+        weaponGroup.rotation.setFromVector3(this.weaponDefaultRotation);
         
         // Add weapon to camera
         this.camera.add(weaponGroup);
@@ -313,7 +335,7 @@ class SimpleGame {
         // Add aiming properties
         this.aimTransitionSpeed = 8.0;
         this.defaultFOV = 75;
-        this.aimFOV = 50; // Narrower FOV when aiming to match sight picture
+        this.aimFOV = 65; // Wider FOV to better see through sights
         this.isAimingDownSights = false;
     }
     
@@ -611,19 +633,27 @@ class SimpleGame {
     toggleAim() {
         this.isAimingDownSights = !this.isAimingDownSights;
         
-        // Update FOV smoothly
-        const targetFOV = this.isAimingDownSights ? this.aimFOV : this.defaultFOV;
         const fovTransition = () => {
             const currentFOV = this.camera.fov;
-            const fovDiff = targetFOV - currentFOV;
+            const targetFOV = this.isAimingDownSights ? this.aimFOV : this.defaultFOV;
             
-            if (Math.abs(fovDiff) > 0.01) {
-                this.camera.fov += fovDiff * 0.1;
+            // Smoothly transition FOV
+            if (Math.abs(currentFOV - targetFOV) > 0.1) {
+                this.camera.fov += (targetFOV - currentFOV) * 0.1;
                 this.camera.updateProjectionMatrix();
                 requestAnimationFrame(fovTransition);
+            } else {
+                this.camera.fov = targetFOV;
+                this.camera.updateProjectionMatrix();
             }
         };
+        
         fovTransition();
+        
+        // Update debug info
+        if (this.debugMode) {
+            this.updateDebugInfo();
+        }
     }
     
     toggleSound() {
