@@ -749,10 +749,10 @@ class SimpleGame {
             
             console.log('Connecting to server at:', serverUrl);
             
-            // Create socket instance
+            // Create socket instance with updated configuration
             this.socket = io(serverUrl, {
                 path: '/socket.io/',
-                transports: ['websocket', 'polling'],
+                transports: ['polling', 'websocket'],
                 upgrade: true,
                 rememberUpgrade: true,
                 reconnection: true,
@@ -760,14 +760,18 @@ class SimpleGame {
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
                 timeout: 20000,
-                autoConnect: true,
-                forceNew: true
+                autoConnect: true
             });
             
             // Debug connection state
             this.socket.on('connect_error', (error) => {
                 console.error('Connection error:', error);
-                console.log('Current transport:', this.socket.io.engine.transport.name);
+                console.log('Current transport:', this.socket.io.engine?.transport?.name);
+                console.log('Connection details:', {
+                    url: serverUrl,
+                    protocol: window.location.protocol,
+                    hostname: window.location.hostname
+                });
             });
 
             this.socket.on('connect_timeout', () => {
@@ -794,15 +798,13 @@ class SimpleGame {
                     }
                 });
                 
-                // Send initial player data
-                this.sendNetworkUpdate();
-                
                 // Request current players list from server
                 this.socket.emit('request-players');
             });
             
-            this.socket.on('current-players', (players) => {
-                console.log('Received current players:', players);
+            // Handle receiving current players list
+            this.socket.on('players-list', (players) => {
+                console.log('Received players list:', players);
                 players.forEach(player => {
                     if (player.id !== this.socket.id && !this.players.has(player.id)) {
                         this.addRemotePlayer(player.id, player.position);
@@ -810,61 +812,39 @@ class SimpleGame {
                 });
             });
             
+            // Handle new player joining
             this.socket.on('player-joined', (data) => {
-                console.log('Player joined:', data.id);
-                this.addRemotePlayer(data.id, data.position);
-            });
-            
-            this.socket.on('player-left', (data) => {
-                console.log('Player left:', data.id);
-                this.removePlayer(data.id);
-            });
-            
-            this.socket.on('player-update', (message) => {
-                // Update an existing player
-                const player = this.players.get(message.id);
-                if (player) {
-                    // Log the position update for debugging
-                    console.log(`Received position update for player ${message.id}:`, message.position);
-                    
-                    // Update the player's position and rotation
-                    player.updateFromNetwork(message.position, message.rotation);
-                    
-                    // Update movement flags
-                    player.setMovementFlags(
-                        message.moveForward,
-                        message.moveBackward,
-                        message.moveLeft,
-                        message.moveRight,
-                        message.isSprinting
-                    );
-                } else {
-                    // If we don't have this player yet, add them
-                    console.log(`Received update for unknown player ${message.id}, adding them`);
-                    this.addRemotePlayer(message.id, message.position);
-                    
-                    // Update their rotation and movement flags
-                    const newPlayer = this.players.get(message.id);
-                    if (newPlayer) {
-                        newPlayer.updateFromNetwork(message.position, message.rotation);
-                        newPlayer.setMovementFlags(
-                            message.moveForward,
-                            message.moveBackward,
-                            message.moveLeft,
-                            message.moveRight,
-                            message.isSprinting
-                        );
-                    }
+                console.log('Player joined:', data);
+                if (data.id !== this.socket.id && !this.players.has(data.id)) {
+                    this.addRemotePlayer(data.id, data.position || { x: 0, y: 0, z: 0 });
                 }
             });
             
-            // Set network update interval (milliseconds)
-            this.networkUpdateInterval = 16; // Increased frequency (approximately 60fps) for smoother movement
-            this.lastNetworkUpdate = 0;
+            // Handle player leaving
+            this.socket.on('player-left', (data) => {
+                console.log('Player left:', data);
+                this.removePlayer(data.id);
+            });
             
-            // Add interpolation settings
-            this.interpolationDelay = 100; // ms
-            this.positionBuffer = new Map(); // Store position updates for interpolation
+            // Handle player updates
+            this.socket.on('player-update', (data) => {
+                const player = this.players.get(data.id);
+                if (player && !player.isLocal) {
+                    console.log(`Updating player ${data.id} position:`, data.position);
+                    player.updateFromNetwork(data.position, data.rotation);
+                    player.setMovementFlags(
+                        data.moveForward,
+                        data.moveBackward,
+                        data.moveLeft,
+                        data.moveRight,
+                        data.isSprinting
+                    );
+                }
+            });
+            
+            // Send initial player data
+            this.sendNetworkUpdate();
+            
         } catch (error) {
             console.error("Error initializing network:", error);
         }

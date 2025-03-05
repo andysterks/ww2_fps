@@ -9,7 +9,7 @@ const httpServer = createServer(app);
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, '../dist')));
 
-// Initialize Socket.IO
+// Initialize Socket.IO with updated configuration
 const io = new Server(httpServer, {
     path: '/socket.io/',
     serveClient: false,
@@ -17,10 +17,10 @@ const io = new Server(httpServer, {
     pingTimeout: 5000,
     connectTimeout: 20000,
     cors: {
-        origin: process.env.NODE_ENV === 'production' ? false : ["http://localhost:8080", "http://127.0.0.1:8080"],
+        origin: "*",
         methods: ["GET", "POST"]
     },
-    transports: ['websocket', 'polling']
+    transports: ['polling', 'websocket']
 });
 
 // Store connected players
@@ -30,30 +30,46 @@ const players = new Map();
 io.on('connection', (socket) => {
     console.log(`Player connected: ${socket.id}`);
     
-    // Send current players list to new player
+    // Initialize player data
+    players.set(socket.id, {
+        id: socket.id,
+        position: { x: 0, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+        moveForward: false,
+        moveBackward: false,
+        moveLeft: false,
+        moveRight: false,
+        isSprinting: false
+    });
+    
+    // Send current players list when requested
     socket.on('request-players', () => {
+        console.log('Player requested players list');
         const playersList = Array.from(players.entries()).map(([id, data]) => ({
             id,
             ...data
         }));
+        console.log('Sending players list:', playersList);
         socket.emit('players-list', playersList);
     });
     
     // Handle player updates
     socket.on('player-update', (data) => {
-        // Update player data
-        players.set(socket.id, data);
-        
-        // Broadcast to all other players
-        socket.broadcast.emit('player-update', {
-            id: socket.id,
-            ...data
-        });
+        // Update player data in our records
+        const player = players.get(socket.id);
+        if (player) {
+            Object.assign(player, data);
+            
+            // Broadcast to all other players
+            socket.broadcast.emit('player-update', {
+                id: socket.id,
+                ...data
+            });
+        }
     });
     
     // Handle player actions (shooting, etc.)
     socket.on('player-action', (data) => {
-        // Broadcast the action to all other players
         socket.broadcast.emit('player-action', {
             id: socket.id,
             ...data
@@ -68,17 +84,14 @@ io.on('connection', (socket) => {
         players.delete(socket.id);
         
         // Notify other players
-        io.emit('player-left', socket.id);
-    });
-    
-    // Error handling
-    socket.on('error', (error) => {
-        console.error(`Socket ${socket.id} error:`, error);
+        io.emit('player-left', { id: socket.id });
     });
     
     // Notify other players about the new player
     socket.broadcast.emit('player-joined', {
-        id: socket.id
+        id: socket.id,
+        position: players.get(socket.id).position,
+        rotation: players.get(socket.id).rotation
     });
 });
 
