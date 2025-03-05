@@ -866,37 +866,41 @@ class SimpleGame {
     animateStaticPlayer(delta) {
         if (!this.staticPlayerModel || !this.staticPlayerMoving) return;
         
-        // Update animation clock
-        this.animationClock += delta * this.walkingSpeed;
-        
-        // Calculate leg and arm swing based on sine wave
-        const legSwing = Math.sin(this.animationClock * Math.PI) * 0.4;
-        const armSwing = Math.sin(this.animationClock * Math.PI) * 0.3;
-        
-        // Apply rotations to legs
-        if (this.staticPlayerModel.leftLegGroup) {
-            this.staticPlayerModel.leftLegGroup.rotation.x = legSwing;
-        }
-        if (this.staticPlayerModel.rightLegGroup) {
-            this.staticPlayerModel.rightLegGroup.rotation.x = -legSwing;
-        }
-        
-        // Apply rotations to arms (opposite to legs for natural walking)
-        if (this.staticPlayerModel.leftArmGroup) {
-            this.staticPlayerModel.leftArmGroup.rotation.x = -armSwing;
-        }
-        if (this.staticPlayerModel.rightArmGroup) {
-            this.staticPlayerModel.rightArmGroup.rotation.x = armSwing;
-        }
-        
-        // Move the player forward
-        if (this.staticPlayerModel) {
-            // Calculate movement distance based on player speed
-            const moveDistance = delta * this.playerSpeed;
+        try {
+            // Update animation clock
+            this.animationClock += delta * this.walkingSpeed;
             
-            // Move in the direction the player is facing
-            this.staticPlayerModel.position.x += this.staticPlayerDirection.x * moveDistance;
-            this.staticPlayerModel.position.z += this.staticPlayerDirection.z * moveDistance;
+            // Calculate leg and arm swing based on sine wave
+            const legSwing = Math.sin(this.animationClock * Math.PI) * 0.4;
+            const armSwing = Math.sin(this.animationClock * Math.PI) * 0.3;
+            
+            // Apply rotations to legs
+            if (this.staticPlayerModel.leftLegGroup) {
+                this.staticPlayerModel.leftLegGroup.rotation.x = legSwing;
+            }
+            if (this.staticPlayerModel.rightLegGroup) {
+                this.staticPlayerModel.rightLegGroup.rotation.x = -legSwing;
+            }
+            
+            // Apply rotations to arms (opposite to legs for natural walking)
+            if (this.staticPlayerModel.leftArmGroup) {
+                this.staticPlayerModel.leftArmGroup.rotation.x = -armSwing;
+            }
+            if (this.staticPlayerModel.rightArmGroup) {
+                this.staticPlayerModel.rightArmGroup.rotation.x = armSwing;
+            }
+            
+            // Move the player forward
+            if (this.staticPlayerModel) {
+                // Calculate movement distance based on player speed
+                const moveDistance = delta * this.playerSpeed;
+                
+                // Move in the direction the player is facing
+                this.staticPlayerModel.position.x += this.staticPlayerDirection.x * moveDistance;
+                this.staticPlayerModel.position.z += this.staticPlayerDirection.z * moveDistance;
+            }
+        } catch (error) {
+            console.error("Error in animateStaticPlayer:", error);
         }
     }
     
@@ -1432,6 +1436,7 @@ class SimpleGame {
         }));
         rifleBody.position.set(0, 0, 0);
         rifleBody.castShadow = true;
+        rifleGroup.add(rifleBody);
         
         // Rifle barrel
         const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.6, 8);
@@ -1443,6 +1448,7 @@ class SimpleGame {
         barrel.rotation.x = Math.PI / 2;
         barrel.position.set(0, 0.03, -0.3);
         barrel.castShadow = true;
+        rifleGroup.add(barrel);
         
         // Rifle stock
         const rifleStockGeometry = new THREE.BoxGeometry(0.08, 0.1, 0.3);
@@ -1453,6 +1459,7 @@ class SimpleGame {
         }));
         rifleStock.position.set(0, -0.02, 0.3);
         rifleStock.castShadow = true;
+        rifleGroup.add(rifleStock);
         
         // Rifle bolt
         const boltGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.1, 8);
@@ -1464,11 +1471,6 @@ class SimpleGame {
         bolt.rotation.z = Math.PI / 2;
         bolt.position.set(0.06, 0.03, 0.1);
         bolt.castShadow = true;
-        
-        // Add rifle parts to rifle group
-        rifleGroup.add(rifleBody);
-        rifleGroup.add(barrel);
-        rifleGroup.add(rifleStock);
         rifleGroup.add(bolt);
         
         // Position rifle in right hand
