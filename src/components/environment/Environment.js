@@ -64,29 +64,101 @@ export class Environment {
         // Sun position for bright daytime
         const sun = new THREE.Vector3();
         const uniforms = sky.material.uniforms;
-        uniforms['turbidity'].value = 8; // Clearer sky
-        uniforms['rayleigh'].value = 1; // More blue sky
+        uniforms['turbidity'].value = 2.5; // Less atmospheric turbidity for clearer blue
+        uniforms['rayleigh'].value = 2.5; // Increased for deeper blue
         uniforms['mieCoefficient'].value = 0.005;
         uniforms['mieDirectionalG'].value = 0.8;
         
-        // Position sun higher in the sky for daytime
-        const phi = THREE.MathUtils.degToRad(60); // Sun higher in sky (60 degrees)
+        // Position sun for nice daytime lighting
+        const phi = THREE.MathUtils.degToRad(65);
         const theta = THREE.MathUtils.degToRad(180);
         sun.setFromSphericalCoords(1, phi, theta);
         uniforms['sunPosition'].value.copy(sun);
         
-        // Lighter fog for daytime
-        this.scene.fog = new THREE.FogExp2(0xE6E6FA, 0.0015); // Lighter lavender fog
+        // Create clouds
+        this.createClouds();
+        
+        // Light blue fog for distance
+        this.scene.fog = new THREE.FogExp2(0xAEDEF4, 0.0008);
+    }
+    
+    createClouds() {
+        const cloudCount = 20;
+        const cloudGeometry = new THREE.PlaneGeometry(50, 50);
+        
+        // Create cloud texture
+        const cloudTexture = this.createCloudTexture();
+        
+        const cloudMaterial = new THREE.MeshStandardMaterial({
+            map: cloudTexture,
+            transparent: true,
+            opacity: 0.8,
+            side: THREE.DoubleSide
+        });
+        
+        // Create multiple cloud layers
+        for (let i = 0; i < cloudCount; i++) {
+            const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial.clone());
+            
+            // Random position in sky
+            cloud.position.set(
+                (Math.random() - 0.5) * 500, // Spread clouds around
+                80 + Math.random() * 40,     // Vary cloud height
+                (Math.random() - 0.5) * 500  // Spread clouds around
+            );
+            
+            // Random rotation and scale for variety
+            cloud.rotation.x = -Math.PI / 2; // Lay flat
+            cloud.rotation.z = Math.random() * Math.PI; // Random rotation
+            const scale = 1 + Math.random() * 2;
+            cloud.scale.set(scale, scale, 1);
+            
+            this.scene.add(cloud);
+        }
+    }
+    
+    createCloudTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        
+        const context = canvas.getContext('2d');
+        
+        // Create cloud-like gradient
+        const gradient = context.createRadialGradient(64, 64, 0, 64, 64, 64);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.6)');
+        gradient.addColorStop(0.6, 'rgba(255, 255, 255, 0.2)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, 128, 128);
+        
+        // Add some noise for texture
+        for (let i = 0; i < 1000; i++) {
+            const x = Math.random() * 128;
+            const y = Math.random() * 128;
+            const radius = Math.random() * 2;
+            
+            context.beginPath();
+            context.arc(x, y, radius, 0, Math.PI * 2);
+            context.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.03})`;
+            context.fill();
+        }
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        return texture;
     }
     
     createLighting() {
-        // Brighter ambient light for daytime
-        const ambientLight = new THREE.AmbientLight(0x90A4AE, 1.8); // Brighter, slightly blue-tinted
+        // Bright ambient light for daytime
+        const ambientLight = new THREE.AmbientLight(0x6699CC, 1.0); // Sky blue tint
         this.scene.add(ambientLight);
         
         // Directional light (sun)
-        const sunLight = new THREE.DirectionalLight(0xFFFAF0, 3.0); // Brighter warm sunlight
-        sunLight.position.set(50, 150, 50); // Higher sun position
+        const sunLight = new THREE.DirectionalLight(0xFFFFE0, 2.5); // Slightly warm sunlight
+        sunLight.position.set(50, 150, 50);
         sunLight.castShadow = true;
         
         // Improve shadow quality
@@ -104,9 +176,9 @@ export class Environment {
         
         // Add hemisphere light for better ambient lighting
         const hemiLight = new THREE.HemisphereLight(
-            0x90A4AE, // Sky color - light blue-grey
-            0x7CB342, // Ground color - light green
-            1.2 // Brighter intensity
+            0x6699CC, // Sky color - blue
+            0x90A959, // Ground color - warm green
+            1.0
         );
         hemiLight.position.set(0, 100, 0);
         this.scene.add(hemiLight);
@@ -383,7 +455,18 @@ export class Environment {
     }
     
     update(deltaTime) {
-        // Update any dynamic environment elements here
+        // Animate clouds
+        this.scene.traverse((object) => {
+            if (object.isMesh && object.material.transparent) {
+                // Simple cloud movement
+                object.position.x += deltaTime * 0.5; // Slow drift
+                
+                // Reset cloud position when it moves too far
+                if (object.position.x > 250) {
+                    object.position.x = -250;
+                }
+            }
+        });
     }
     
     getCollidableObjects() {
