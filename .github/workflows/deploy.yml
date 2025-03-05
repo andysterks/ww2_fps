@@ -29,6 +29,15 @@ jobs:
           username: ${{ secrets.DROPLET_USERNAME }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
+            # Install Node.js if not already installed
+            if ! command -v node &> /dev/null; then
+              curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+
+            # Install PM2 globally
+            sudo npm install -g pm2
+
             # Create directory if it doesn't exist
             sudo mkdir -p /var/www/ww2-fps
             sudo chown -R $USER:$USER /var/www/ww2-fps
@@ -38,13 +47,13 @@ jobs:
               # First time setup
               cd /var/www/ww2-fps
               git clone https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }} .
-              npm install -g pm2
               npm install
             else
               # Subsequent deployments
               cd /var/www/ww2-fps
               git fetch origin main
               git reset --hard origin/main
+              npm install
             fi
 
             # Make deploy script executable
