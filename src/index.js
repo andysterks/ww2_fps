@@ -749,18 +749,29 @@ class SimpleGame {
             
             console.log('Connecting to server at:', serverUrl);
             this.socket = io(serverUrl, {
-                transports: ['websocket', 'polling'], // Allow fallback to polling
+                transports: ['websocket', 'polling'],
                 path: '/socket.io',
                 reconnection: true,
                 reconnectionAttempts: 5,
                 reconnectionDelay: 1000,
                 timeout: 20000,
-                autoConnect: true
+                autoConnect: true,
+                forceNew: true,
+                query: {
+                    clientTime: Date.now()
+                }
             });
             
             // Set up event listeners for socket.io
             this.socket.on('connect', () => {
                 console.log('Connected to server with ID:', this.socket.id);
+                
+                // Remove any existing test players
+                this.players.forEach((player, id) => {
+                    if (id !== 'local-player' && !player.isLocal) {
+                        this.removePlayer(id);
+                    }
+                });
                 
                 // Send initial player data
                 this.sendNetworkUpdate();
@@ -772,7 +783,7 @@ class SimpleGame {
             this.socket.on('current-players', (players) => {
                 console.log('Received current players:', players);
                 players.forEach(player => {
-                    if (player.id !== this.socket.id) {
+                    if (player.id !== this.socket.id && !this.players.has(player.id)) {
                         this.addRemotePlayer(player.id, player.position);
                     }
                 });

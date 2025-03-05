@@ -52,14 +52,18 @@ const server = require('http').createServer(app);
 // Create Socket.IO server with updated configuration
 const io = new Server(server, {
     cors: {
-        origin: '*',
-        methods: ['GET', 'POST'],
-        credentials: true
+        origin: "*",
+        methods: ["GET", "POST"],
+        credentials: true,
+        transports: ['websocket', 'polling']
     },
+    allowEIO3: true,
     path: '/socket.io',
-    transports: ['websocket'],
+    serveClient: true,
     pingTimeout: 60000,
-    pingInterval: 25000
+    pingInterval: 25000,
+    connectTimeout: 30000,
+    maxHttpBufferSize: 1e8
 });
 
 // Store connected players
@@ -69,13 +73,10 @@ console.log('Socket.IO server initialized');
 
 // Handle new connections
 io.on('connection', (socket) => {
-    // Generate a unique ID for this player
-    const playerId = uuidv4();
-    
-    console.log(`New player connected: ${playerId}`);
+    console.log(`New player connected: ${socket.id}`);
     
     // Store the player connection
-    players.set(playerId, {
+    players.set(socket.id, {
         socket,
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0 },
@@ -89,12 +90,22 @@ io.on('connection', (socket) => {
     
     // Send the player their ID
     socket.emit('init', {
-        id: playerId
+        id: socket.id
+    });
+    
+    // Handle request for current players list
+    socket.on('request-players', () => {
+        const playersList = Array.from(players.entries()).map(([id, data]) => ({
+            id,
+            position: data.position,
+            rotation: data.rotation
+        }));
+        socket.emit('current-players', playersList);
     });
     
     // Send the new player information about all existing players
     players.forEach((player, id) => {
-        if (id !== playerId) {
+        if (id !== socket.id) {
             socket.emit('player-joined', {
                 id,
                 position: player.position,
@@ -105,15 +116,15 @@ io.on('connection', (socket) => {
     
     // Broadcast to all other players that a new player has joined
     socket.broadcast.emit('player-joined', {
-        id: playerId,
-        position: players.get(playerId).position,
-        rotation: players.get(playerId).rotation
+        id: socket.id,
+        position: players.get(socket.id).position,
+        rotation: players.get(socket.id).rotation
     });
     
     // Handle updates from this player
     socket.on('player-update', (data) => {
         try {
-            const player = players.get(playerId);
+            const player = players.get(socket.id);
             if (player) {
                 player.position = data.position;
                 player.rotation = data.rotation;
@@ -126,14 +137,15 @@ io.on('connection', (socket) => {
                 
                 // Broadcast the update to all other players
                 socket.broadcast.emit('player-update', {
-                    id: playerId,
+                    id: socket.id,
                     position: data.position,
                     rotation: data.rotation,
                     moveForward: data.moveForward,
                     moveBackward: data.moveBackward,
                     moveLeft: data.moveLeft,
                     moveRight: data.moveRight,
-                    isSprinting: data.isSprinting
+                    isSprinting: data.isSprinting,
+                    timestamp: Date.now()
                 });
             }
         } catch (error) {
@@ -143,14 +155,14 @@ io.on('connection', (socket) => {
     
     // Handle disconnection
     socket.on('disconnect', () => {
-        console.log(`Player disconnected: ${playerId}`);
+        console.log(`Player disconnected: ${socket.id}`);
         
         // Remove the player
-        players.delete(playerId);
+        players.delete(socket.id);
         
         // Broadcast to all other players that this player has left
         io.emit('player-left', {
-            id: playerId
+            id: socket.id
         });
     });
 });
@@ -180,5 +192,5 @@ setInterval(() => {
 
 // Start the server
 server.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
+    console.log(`Server running at http://localhost:${port}`);
 });
