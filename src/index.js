@@ -1,10 +1,131 @@
-import Game from './Game';
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { audioManager } from './audio.js';
 
 // Initialize the game when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Create game instance
-    const game = new Game();
+    // Create a simple Three.js scene directly
+    const simpleGame = new SimpleGame();
 });
+
+class SimpleGame {
+    constructor() {
+        // Core Three.js components
+        this.scene = new THREE.Scene();
+        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        
+        // Configure renderer
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.setClearColor(0x87CEEB); // Sky blue
+        document.getElementById('game-container').appendChild(this.renderer.domElement);
+        
+        // Player controls
+        this.controls = new PointerLockControls(this.camera, document.body);
+        
+        // Set initial position
+        this.camera.position.set(0, 1.8, 5);
+        this.controls.getObject().position.set(0, 1.8, 5);
+        
+        // Create environment
+        this.createEnvironment();
+        
+        // Create weapon
+        this.createWeapon();
+        
+        // Set up event listeners
+        this.setupEventListeners();
+        
+        // Start animation loop
+        this.animate();
+    }
+    
+    createEnvironment() {
+        // Set sky color
+        this.scene.background = new THREE.Color(0x87CEEB);
+        
+        // Create a ground plane
+        const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
+        const groundMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x4CAF50, // Green
+            side: THREE.DoubleSide
+        });
+        
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = 0;
+        this.scene.add(ground);
+        
+        // Create a street
+        const streetGeometry = new THREE.PlaneGeometry(10, 1000);
+        const streetMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x444444, // Dark gray
+            side: THREE.DoubleSide
+        });
+        
+        const street = new THREE.Mesh(streetGeometry, streetMaterial);
+        street.rotation.x = -Math.PI / 2;
+        street.position.y = 0.01; // Slightly above ground
+        this.scene.add(street);
+        
+        // Add buildings
+        this.addBuilding(0xFF0000, -15, 0, -20); // Red building
+        this.addBuilding(0x0000FF, 15, 0, -20);  // Blue building
+        this.addBuilding(0xFFFF00, 0, 0, -40);   // Yellow building
+        
+        // Add ambient light
+        const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.0);
+        this.scene.add(ambientLight);
+    }
+    
+    addBuilding(color, x, y, z) {
+        const buildingGeometry = new THREE.BoxGeometry(10, 10, 10);
+        const buildingMaterial = new THREE.MeshBasicMaterial({ color: color });
+        
+        const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+        building.position.set(x, y + 5, z);
+        
+        this.scene.add(building);
+    }
+    
+    createWeapon() {
+        // Create a simple weapon
+        const weaponGeometry = new THREE.BoxGeometry(0.2, 0.2, 1);
+        const weaponMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
+        
+        this.weapon = new THREE.Mesh(weaponGeometry, weaponMaterial);
+        
+        // Position weapon in front of camera
+        this.weapon.position.set(0.3, -0.3, -0.5);
+        
+        // Add weapon to camera
+        this.camera.add(this.weapon);
+    }
+    
+    setupEventListeners() {
+        // Lock pointer on click
+        document.addEventListener('click', () => {
+            if (!this.controls.isLocked) {
+                this.controls.lock();
+            }
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            this.camera.aspect = window.innerWidth / window.innerHeight;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    }
+    
+    animate() {
+        requestAnimationFrame(() => this.animate());
+        
+        // Render the scene
+        this.renderer.render(this.scene, this.camera);
+    }
+}
 
 /* 
 Old monolithic implementation - replaced with modular architecture
