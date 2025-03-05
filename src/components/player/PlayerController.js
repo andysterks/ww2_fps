@@ -42,7 +42,10 @@ class PlayerController {
         
         // Initialize controls
         this.controls = new PointerLockControls(this.camera, document.body);
-        this.camera.position.y = this.playerHeight;
+        
+        // Set initial position to see the environment better
+        this.camera.position.set(0, this.playerHeight, 5);
+        this.controls.getObject().position.set(0, this.playerHeight, 5);
         
         // Set up event listeners
         this.setupEventListeners();

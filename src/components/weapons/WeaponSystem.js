@@ -57,32 +57,65 @@ class WeaponSystem {
     }
     
     loadWeaponModel() {
-        const loader = new GLTFLoader();
+        // Create a simple M1 Garand model using basic geometries
+        this.weapon = this.createSimpleM1Garand();
         
-        // Load M1 Garand model
-        loader.load('/models/m1_garand/scene.gltf', (gltf) => {
-            this.weapon = gltf.scene;
-            
-            // Scale and position the weapon
-            this.weapon.scale.set(0.3, 0.3, 0.3);
-            this.weapon.position.set(0.25, -0.25, -0.5);
-            this.weapon.rotation.y = Math.PI / 8;
-            
-            // Add weapon to scene
-            this.weaponScene.add(this.weapon);
-            
-            // Create muzzle flash
-            this.createMuzzleFlash();
-        });
+        // Scale and position the weapon
+        this.weapon.position.set(0.25, -0.25, -0.5);
+        this.weapon.rotation.y = Math.PI / 8;
+        
+        // Add weapon to scene
+        this.weaponScene.add(this.weapon);
+        
+        // Create muzzle flash
+        this.createMuzzleFlash();
+    }
+    
+    createSimpleM1Garand() {
+        const weaponGroup = new THREE.Group();
+        
+        // Main rifle body
+        const rifleBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1, 0.05, 0.6),
+            new THREE.MeshStandardMaterial({ color: 0x5c3a21 }) // Brown wood color
+        );
+        weaponGroup.add(rifleBody);
+        
+        // Barrel
+        const barrel = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.015, 0.015, 0.7, 8),
+            new THREE.MeshStandardMaterial({ color: 0x444444 }) // Dark metal color
+        );
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.z = -0.35;
+        barrel.position.y = 0.01;
+        weaponGroup.add(barrel);
+        
+        // Trigger guard
+        const triggerGuard = new THREE.Mesh(
+            new THREE.TorusGeometry(0.02, 0.005, 8, 16, Math.PI),
+            new THREE.MeshStandardMaterial({ color: 0x444444 })
+        );
+        triggerGuard.rotation.x = Math.PI / 2;
+        triggerGuard.position.y = -0.02;
+        triggerGuard.position.z = 0.1;
+        weaponGroup.add(triggerGuard);
+        
+        // Trigger
+        const trigger = new THREE.Mesh(
+            new THREE.BoxGeometry(0.005, 0.02, 0.01),
+            new THREE.MeshStandardMaterial({ color: 0x222222 })
+        );
+        trigger.position.y = -0.03;
+        trigger.position.z = 0.1;
+        weaponGroup.add(trigger);
+        
+        return weaponGroup;
     }
     
     createMuzzleFlash() {
-        // Create muzzle flash sprite
-        const textureLoader = new THREE.TextureLoader();
-        const flashTexture = textureLoader.load('/textures/muzzle_flash.png');
-        
+        // Create muzzle flash sprite without texture
         const flashMaterial = new THREE.SpriteMaterial({
-            map: flashTexture,
             color: 0xffff00,
             transparent: true,
             blending: THREE.AdditiveBlending,
@@ -172,7 +205,7 @@ class WeaponSystem {
         if (!this.canShoot || now - this.lastShotTime < this.shootingCooldown) {
             // Play empty click sound if out of ammo
             if (this.bulletCount <= 0) {
-                audioManager.playSound('empty_click');
+                audioManager.play('empty');
             }
             return false;
         }
@@ -190,10 +223,10 @@ class WeaponSystem {
         // Play appropriate sound
         if (this.bulletCount === 0) {
             // Play M1 Garand ping on last round
-            audioManager.playSound('garand_ping');
+            audioManager.play('ping');
         } else {
             // Play normal gunshot
-            audioManager.playSound('gunshot');
+            audioManager.play('gunshot');
         }
         
         // Show muzzle flash
@@ -230,33 +263,33 @@ class WeaponSystem {
         if (intersects.length > 0) {
             const hit = intersects[0];
             
-            // Create bullet hole
-            const bulletHoleTexture = new THREE.TextureLoader().load('/textures/bullet_hole.png');
-            const bulletHoleMaterial = new THREE.SpriteMaterial({
-                map: bulletHoleTexture,
+            // Create bullet hole using a simple circle mesh instead of texture
+            const bulletHoleMaterial = new THREE.MeshBasicMaterial({
+                color: 0x000000,
                 transparent: true,
-                opacity: 0.8
+                opacity: 0.8,
+                side: THREE.DoubleSide
             });
             
-            const bulletHole = new THREE.Sprite(bulletHoleMaterial);
-            bulletHole.scale.set(0.1, 0.1, 0.1);
+            const bulletHole = new THREE.Mesh(
+                new THREE.CircleGeometry(0.03, 8),
+                bulletHoleMaterial
+            );
             
             // Position slightly off the surface to prevent z-fighting
             bulletHole.position.copy(hit.point);
             bulletHole.position.add(hit.face.normal.multiplyScalar(0.01));
             
-            // Orient to face the camera
-            const lookAt = new THREE.Vector3().copy(hit.point).add(hit.face.normal);
-            bulletHole.lookAt(lookAt);
+            // Orient to face normal
+            bulletHole.lookAt(new THREE.Vector3().copy(hit.point).add(hit.face.normal));
             
             // Add to scene
             this.mainScene.add(bulletHole);
             
-            // Create impact particles
-            this.createImpactParticles(hit.point, hit.face.normal);
+            // Create simple impact particles
+            this.createSimpleImpactParticles(hit.point, hit.face.normal);
             
-            // Play impact sound
-            audioManager.playSound('bullet_impact');
+            // No need for impact sound for now as we don't have the audio file
         }
     }
     
@@ -336,10 +369,86 @@ class WeaponSystem {
         animateParticles();
     }
     
+    createSimpleImpactParticles(position, normal) {
+        // Create a simpler version of impact particles
+        const particleCount = 10;
+        const particleGeometry = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        
+        // Create particle material
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0xffaa00,
+            size: 0.05,
+            blending: THREE.AdditiveBlending,
+            transparent: true
+        });
+        
+        // Set initial positions
+        for (let i = 0; i < particleCount; i++) {
+            particlePositions[i * 3] = position.x;
+            particlePositions[i * 3 + 1] = position.y;
+            particlePositions[i * 3 + 2] = position.z;
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        
+        // Create particle system
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        this.mainScene.add(particles);
+        
+        // Create velocity array for particles
+        const velocities = [];
+        for (let i = 0; i < particleCount; i++) {
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.3,
+                (Math.random() - 0.5) * 0.3 + 0.2, // Slight upward bias
+                (Math.random() - 0.5) * 0.3
+            );
+            
+            // Adjust velocity to spray outward from impact
+            velocity.add(normal.clone().multiplyScalar(0.1));
+            velocities.push(velocity);
+        }
+        
+        // Animate particles
+        const startTime = performance.now();
+        const animateParticles = () => {
+            const positions = particles.geometry.attributes.position.array;
+            const elapsed = performance.now() - startTime;
+            
+            // Update particle positions
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] += velocities[i].x;
+                positions[i * 3 + 1] += velocities[i].y - 0.01; // Add gravity
+                positions[i * 3 + 2] += velocities[i].z;
+                
+                // Slow down particles
+                velocities[i].multiplyScalar(0.9);
+            }
+            
+            particles.geometry.attributes.position.needsUpdate = true;
+            
+            // Fade out particles
+            particles.material.opacity = 1.0 - elapsed / 500;
+            
+            // Remove particles after 0.5 seconds
+            if (elapsed < 500) {
+                requestAnimationFrame(animateParticles);
+            } else {
+                this.mainScene.remove(particles);
+                particles.geometry.dispose();
+                particles.material.dispose();
+            }
+        };
+        
+        // Start animation
+        requestAnimationFrame(animateParticles);
+    }
+    
     reload() {
         if (this.bulletCount < 8) {
             // Play reload sound
-            audioManager.playSound('reload');
+            audioManager.play('reload');
             
             // Reload animation and timing
             this.canShoot = false;
