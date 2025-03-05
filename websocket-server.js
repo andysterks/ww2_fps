@@ -163,7 +163,7 @@ if (cluster.isMaster) {
     }, 10000); // Check every 10 seconds
 
     // Start the server
-    const PORT = 3001;
+    const PORT = 3000;
     server.listen(PORT, () => {
         console.log(`WebSocket server running on port ${PORT} - Worker ${process.pid}`);
     });
