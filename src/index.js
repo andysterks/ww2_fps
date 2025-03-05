@@ -114,67 +114,73 @@ class SimpleGame {
     }
     
     createWeapon() {
-        // Create a more realistic M1 Garand rifle
+        // Create a more realistic M1 Garand rifle with visible iron sights
         const weaponGroup = new THREE.Group();
         
         // Rifle body (receiver)
         const rifleBody = new THREE.Mesh(
             new THREE.BoxGeometry(0.08, 0.08, 0.6),
-            new THREE.MeshBasicMaterial({ color: 0x444444 }) // Dark gray for metal parts
+            new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.7 }) // Dark gray for metal parts
         );
         
         // Rifle stock
         const rifleStock = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1, 0.12, 0.5),
-            new THREE.MeshBasicMaterial({ color: 0x8B4513 }) // Brown wood
+            new THREE.BoxGeometry(0.12, 0.14, 0.5),
+            new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.9 }) // Brown wood
         );
         rifleStock.position.set(0, -0.02, 0.3);
         
         // Rifle handle/grip
         const rifleHandle = new THREE.Mesh(
-            new THREE.BoxGeometry(0.08, 0.18, 0.1),
-            new THREE.MeshBasicMaterial({ color: 0x8B4513 }) // Brown wood
+            new THREE.BoxGeometry(0.1, 0.2, 0.12),
+            new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.9 }) // Brown wood
         );
-        rifleHandle.position.set(0, -0.13, 0.1);
+        rifleHandle.position.set(0, -0.15, 0.1);
         
         // Rifle barrel
         const rifleBarrel = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.02, 0.02, 0.9, 8),
-            new THREE.MeshBasicMaterial({ color: 0x444444 }) // Dark gray for metal
+            new THREE.CylinderGeometry(0.025, 0.025, 1.0, 8),
+            new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.5 }) // Dark gray for metal
         );
         rifleBarrel.rotation.x = Math.PI / 2;
         rifleBarrel.position.set(0, 0, -0.5);
         
-        // Front sight post
+        // Create a separate group for iron sights that will be visible in aim mode
+        this.ironSightsGroup = new THREE.Group();
+        
+        // Front sight post - LARGER and more visible
         const frontSight = new THREE.Mesh(
-            new THREE.BoxGeometry(0.01, 0.05, 0.01),
-            new THREE.MeshBasicMaterial({ color: 0x222222 }) // Almost black
+            new THREE.BoxGeometry(0.01, 0.08, 0.01),
+            new THREE.MeshBasicMaterial({ color: 0x000000 }) // Black
         );
-        frontSight.position.set(0, 0.05, -0.9);
+        frontSight.position.set(0, 0.08, -0.95);
+        this.ironSightsGroup.add(frontSight);
         
-        // Rear sight aperture
+        // Rear sight base - LARGER and more visible
         const rearSightBase = new THREE.Mesh(
-            new THREE.BoxGeometry(0.08, 0.02, 0.04),
-            new THREE.MeshBasicMaterial({ color: 0x222222 }) // Almost black
+            new THREE.BoxGeometry(0.1, 0.03, 0.05),
+            new THREE.MeshBasicMaterial({ color: 0x000000 }) // Black
         );
-        rearSightBase.position.set(0, 0.05, -0.1);
+        rearSightBase.position.set(0, 0.07, -0.1);
+        this.ironSightsGroup.add(rearSightBase);
         
-        // Rear sight aperture hole
+        // Rear sight aperture - LARGER and more visible
         const rearSightAperture = new THREE.Mesh(
-            new THREE.RingGeometry(0.01, 0.02, 16),
-            new THREE.MeshBasicMaterial({ color: 0x111111 }) // Black
+            new THREE.RingGeometry(0.015, 0.03, 16),
+            new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide }) // Black
         );
         rearSightAperture.rotation.x = Math.PI / 2;
-        rearSightAperture.position.set(0, 0.06, -0.1);
+        rearSightAperture.position.set(0, 0.07, -0.1);
+        this.ironSightsGroup.add(rearSightAperture);
+        
+        // Add the iron sights group to the weapon
+        weaponGroup.add(this.ironSightsGroup);
         
         // Add all parts to the weapon group
         weaponGroup.add(rifleBody);
         weaponGroup.add(rifleStock);
         weaponGroup.add(rifleHandle);
         weaponGroup.add(rifleBarrel);
-        weaponGroup.add(frontSight);
-        weaponGroup.add(rearSightBase);
-        weaponGroup.add(rearSightAperture);
         
         // Create muzzle flash (initially hidden)
         const muzzleFlash = new THREE.Mesh(
@@ -182,7 +188,7 @@ class SimpleGame {
             new THREE.MeshBasicMaterial({ color: 0xFFFF00, transparent: true, opacity: 0.8 })
         );
         muzzleFlash.rotation.x = Math.PI / 2;
-        muzzleFlash.position.set(0, 0, -0.95);
+        muzzleFlash.position.set(0, 0, -1.0);
         muzzleFlash.visible = false;
         weaponGroup.add(muzzleFlash);
         this.muzzleFlash = muzzleFlash;
@@ -196,7 +202,8 @@ class SimpleGame {
         this.weaponDefaultRotation = new THREE.Vector3(0, 0, 0);
         
         // Store aim position - centered and closer to simulate looking down sights
-        this.weaponAimPosition = new THREE.Vector3(0, -0.05, -0.2);
+        // Move it more into view to clearly see the iron sights
+        this.weaponAimPosition = new THREE.Vector3(0, -0.02, -0.2);
         this.weaponAimRotation = new THREE.Vector3(0, 0, 0);
         
         // Add weapon to camera
