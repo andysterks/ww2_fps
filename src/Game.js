@@ -32,7 +32,7 @@ class Game {
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.0;
+        this.renderer.toneMappingExposure = 0.7;
         this.renderer.physicallyCorrectLights = true;
         this.renderer.autoClear = false; // Important for rendering both scenes
 
@@ -94,9 +94,9 @@ class Game {
         // Add subtle bloom for better lighting
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
-            0.5,  // strength
+            0.2,  // strength reduced from 0.5
             0.4,  // radius
-            0.85  // threshold
+            0.9   // threshold increased from 0.85 to reduce bloom on bright areas
         );
         this.composer.addPass(bloomPass);
 
