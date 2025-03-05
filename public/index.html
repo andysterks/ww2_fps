@@ -3,31 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WW2 FPS Game</title>
+    <title>WW2 FPS</title>
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            overflow: hidden;
-            background-color: #000;
+            box-sizing: border-box;
         }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+
         #game-container {
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
             position: absolute;
             top: 0;
             left: 0;
         }
-        #loading-screen {
+
+        #instructions {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.8);
             color: white;
-            font-family: Arial, sans-serif;
             text-align: center;
-            z-index: 1000;
+            cursor: pointer;
+            z-index: 100;
+            user-select: none;
         }
+
+        #instructions h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+
+        #instructions p {
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
         #crosshair {
             position: absolute;
             top: 50%;
@@ -36,39 +64,50 @@
             color: white;
             font-size: 24px;
             pointer-events: none;
-            z-index: 100;
-        }
-        #instructions {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            z-index: 99;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 10px;
             display: none;
+            z-index: 99;
+        }
+
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 98;
+        }
+
+        #ammo {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 24px;
+            color: white;
+        }
+
+        #health {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 24px;
+            color: white;
         }
     </style>
 </head>
 <body>
     <div id="game-container"></div>
-    <div id="loading-screen">Loading...</div>
-    <div id="crosshair">+</div>
     <div id="instructions">
-        Press F to aim | R to reload | Click to shoot<br>
-        Click anywhere to enable audio
+        <h1>WW2 FPS</h1>
+        <p>Click anywhere to start</p>
+        <p>Press F to aim | R to reload | Click to shoot</p>
+        <p>WASD to move | SHIFT to sprint | SPACE to jump</p>
     </div>
-    
-    <!-- Dependencies -->
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
-    <script src="https://unpkg.com/three@0.160.0/examples/jsm/controls/PointerLockControls.js"></script>
-    
-    <!-- Game script -->
+    <div id="hud">
+        <div id="crosshair">+</div>
+        <div id="ammo">8/8</div>
+        <div id="health">100</div>
+    </div>
     <script type="module" src="/src/index.js"></script>
 </body>
 </html> 

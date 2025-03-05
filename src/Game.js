@@ -119,21 +119,64 @@ class Game {
         // Handle window resize
         window.addEventListener('resize', () => this.onWindowResize(), false);
 
-        // Handle pointer lock
-        document.addEventListener('click', () => {
+        // Get the game container and instructions elements
+        const gameContainer = document.getElementById('game-container');
+        const instructions = document.getElementById('instructions');
+
+        // Handle click to start
+        instructions.addEventListener('click', () => {
+            console.log('Instructions clicked');
             if (!this.isRunning) {
-                this.player.controls.lock();
+                // Request pointer lock
+                gameContainer.requestPointerLock = gameContainer.requestPointerLock ||
+                                                 gameContainer.mozRequestPointerLock ||
+                                                 gameContainer.webkitRequestPointerLock;
+                gameContainer.requestPointerLock();
             }
         });
 
-        this.player.controls.addEventListener('lock', () => {
-            this.isRunning = true;
-            document.getElementById('crosshair').style.display = 'block';
+        // Handle pointer lock change
+        document.addEventListener('pointerlockchange', () => {
+            console.log('Pointer lock change');
+            if (document.pointerLockElement === gameContainer ||
+                document.mozPointerLockElement === gameContainer ||
+                document.webkitPointerLockElement === gameContainer) {
+                console.log('Pointer locked');
+                this.isRunning = true;
+                instructions.style.display = 'none';
+                document.getElementById('crosshair').style.display = 'block';
+            } else {
+                console.log('Pointer unlocked');
+                this.isRunning = false;
+                instructions.style.display = 'flex';
+                document.getElementById('crosshair').style.display = 'none';
+            }
         });
 
-        this.player.controls.addEventListener('unlock', () => {
-            this.isRunning = false;
-            document.getElementById('crosshair').style.display = 'none';
+        // Handle pointer lock error
+        document.addEventListener('pointerlockerror', (event) => {
+            console.error('Pointer lock error:', event);
+        });
+
+        // Handle keyboard controls
+        document.addEventListener('keydown', (event) => {
+            if (this.isRunning) {
+                switch (event.code) {
+                    case 'KeyF':
+                        this.weaponSystem.toggleAim();
+                        break;
+                    case 'KeyR':
+                        this.weaponSystem.reload();
+                        break;
+                }
+            }
+        });
+
+        // Handle mouse click for shooting
+        document.addEventListener('click', () => {
+            if (this.isRunning) {
+                this.weaponSystem.shoot();
+            }
         });
     }
 
