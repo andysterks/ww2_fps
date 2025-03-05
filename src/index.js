@@ -156,7 +156,9 @@ class SimpleGame {
             new THREE.MeshStandardMaterial({ 
                 color: 0x2c2c2c, 
                 roughness: 0.6,
-                metalness: 0.4 
+                metalness: 0.4,
+                transparent: false,
+                opacity: 1.0
             })
         );
         
@@ -166,7 +168,9 @@ class SimpleGame {
             new THREE.MeshStandardMaterial({ 
                 color: 0x4a2a0a, // Darker wood color
                 roughness: 0.9,
-                metalness: 0.1 
+                metalness: 0.1,
+                transparent: false,
+                opacity: 1.0
             })
         );
         rifleStock.position.set(0, -0.03, 0.35);
@@ -177,13 +181,25 @@ class SimpleGame {
         // Front sight protective wings
         const leftWing = new THREE.Mesh(
             new THREE.BoxGeometry(0.02, 0.04, 0.02),
-            new THREE.MeshStandardMaterial({ color: 0x2c2c2c })
+            new THREE.MeshStandardMaterial({ 
+                color: 0x2c2c2c,
+                transparent: false,
+                opacity: 1.0,
+                roughness: 0.7,
+                metalness: 0.3
+            })
         );
         leftWing.position.set(-0.015, 0.09, -0.6);
         
         const rightWing = new THREE.Mesh(
             new THREE.BoxGeometry(0.02, 0.04, 0.02),
-            new THREE.MeshStandardMaterial({ color: 0x2c2c2c })
+            new THREE.MeshStandardMaterial({ 
+                color: 0x2c2c2c,
+                transparent: false,
+                opacity: 1.0,
+                roughness: 0.7,
+                metalness: 0.3
+            })
         );
         rightWing.position.set(0.015, 0.09, -0.6);
         
@@ -193,7 +209,9 @@ class SimpleGame {
             new THREE.MeshStandardMaterial({ 
                 color: 0x000000,
                 roughness: 0.5,
-                metalness: 0.5
+                metalness: 0.5,
+                transparent: false,
+                opacity: 1.0
             })
         );
         frontSightPost.position.set(0, 0.095, -0.6);
@@ -201,14 +219,26 @@ class SimpleGame {
         // Front sight base
         const frontSightBase = new THREE.Mesh(
             new THREE.BoxGeometry(0.04, 0.02, 0.02),
-            new THREE.MeshStandardMaterial({ color: 0x2c2c2c })
+            new THREE.MeshStandardMaterial({ 
+                color: 0x2c2c2c,
+                transparent: false,
+                opacity: 1.0,
+                roughness: 0.7,
+                metalness: 0.3
+            })
         );
         frontSightBase.position.set(0, 0.07, -0.6);
         
         // Rear sight housing (characteristic M1 Garand rear sight)
         const rearSightHousing = new THREE.Mesh(
             new THREE.BoxGeometry(0.06, 0.03, 0.04),
-            new THREE.MeshStandardMaterial({ color: 0x2c2c2c })
+            new THREE.MeshStandardMaterial({ 
+                color: 0x2c2c2c,
+                transparent: false,
+                opacity: 1.0,
+                roughness: 0.7,
+                metalness: 0.3
+            })
         );
         rearSightHousing.position.set(0, 0.09, 0.1);
         
@@ -218,7 +248,9 @@ class SimpleGame {
             new THREE.MeshStandardMaterial({ 
                 color: 0x000000,
                 roughness: 0.5,
-                metalness: 0.5
+                metalness: 0.5,
+                transparent: false,
+                opacity: 1.0
             })
         );
         rearSightAperture.rotation.x = Math.PI / 2;
@@ -237,7 +269,7 @@ class SimpleGame {
         weaponGroup.add(rifleStock);
         weaponGroup.add(ironSightsGroup);
         
-        // Store iron sights reference for visibility toggling
+        // Store iron sights reference
         this.ironSights = ironSightsGroup;
         
         // Define positions first
@@ -558,33 +590,6 @@ class SimpleGame {
     
     toggleAim() {
         this.isAimingDownSights = !this.isAimingDownSights;
-        
-        // Make iron sights more visible when aiming
-        if (this.ironSights) {
-            const sightMaterials = [];
-            this.ironSights.traverse((child) => {
-                if (child.material) {
-                    sightMaterials.push(child.material);
-                }
-            });
-            
-            // Fade transition for sight visibility
-            const targetOpacity = this.isAimingDownSights ? 1.0 : 0.6;
-            const opacityTransition = () => {
-                let needsUpdate = false;
-                sightMaterials.forEach(material => {
-                    const opacityDiff = targetOpacity - material.opacity;
-                    if (Math.abs(opacityDiff) > 0.01) {
-                        material.opacity += opacityDiff * 0.1;
-                        needsUpdate = true;
-                    }
-                });
-                if (needsUpdate) {
-                    requestAnimationFrame(opacityTransition);
-                }
-            };
-            opacityTransition();
-        }
         
         // Update FOV smoothly
         const targetFOV = this.isAimingDownSights ? this.aimFOV : this.defaultFOV;
