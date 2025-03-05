@@ -146,17 +146,29 @@ export class PlayerController {
         this.velocity.x = 0;
         this.velocity.z = 0;
         
-        // Calculate movement direction
-        this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-        this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-        this.direction.normalize();
+        // Get camera direction
+        const cameraDirection = new THREE.Vector3();
+        this.camera.getWorldDirection(cameraDirection);
         
-        // Apply movement
-        if (this.moveForward || this.moveBackward) {
-            this.velocity.z = this.direction.z * currentSpeed;
-        }
-        if (this.moveLeft || this.moveRight) {
+        // Calculate forward and right vectors
+        const forward = new THREE.Vector3(cameraDirection.x, 0, cameraDirection.z).normalize();
+        const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+        
+        // Calculate movement direction
+        this.direction.set(0, 0, 0);
+        
+        if (this.moveForward) this.direction.add(forward);
+        if (this.moveBackward) this.direction.sub(forward);
+        if (this.moveRight) this.direction.add(right);
+        if (this.moveLeft) this.direction.sub(right);
+        
+        // Normalize direction if moving diagonally
+        if (this.direction.lengthSq() > 0) {
+            this.direction.normalize();
+            
+            // Apply movement
             this.velocity.x = this.direction.x * currentSpeed;
+            this.velocity.z = this.direction.z * currentSpeed;
         }
         
         // Apply gravity
@@ -167,8 +179,8 @@ export class PlayerController {
         }
         
         // Move the player
-        this.controls.moveForward(-this.velocity.z * deltaTime);
-        this.controls.moveRight(-this.velocity.x * deltaTime);
+        this.camera.position.x += this.velocity.x * deltaTime;
+        this.camera.position.z += this.velocity.z * deltaTime;
         this.camera.position.y += this.velocity.y * deltaTime;
         
         // Ensure minimum height
