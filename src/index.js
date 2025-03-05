@@ -1135,15 +1135,14 @@ class SimpleGame {
             // Check if any movement keys are pressed
             const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
             
-            // If no movement keys are pressed, immediately stop the player
+            // Reset velocity completely when no movement keys are pressed
             if (!isMoving) {
+                // Immediately zero out velocity
                 this.velocity.x = 0;
                 this.velocity.z = 0;
-            } else {
-                // Only apply friction when moving
-                this.velocity.x -= this.velocity.x * 10.0 * delta; // Increased friction for quicker response
-                this.velocity.z -= this.velocity.z * 10.0 * delta; // Increased friction for quicker response
                 
+                // Skip the rest of the movement code
+            } else {
                 // Set movement direction
                 this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
                 this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
@@ -1152,13 +1151,14 @@ class SimpleGame {
                 // Calculate movement speed (with sprint)
                 const speedMultiplier = this.isSprinting ? this.sprintMultiplier : 1.0;
                 
-                // Apply a scaling factor to match the static player's movement speed
+                // Direct velocity calculation without friction
+                // This ensures immediate response to input and no drifting
                 const scalingFactor = 0.05;
                 const moveSpeed = this.playerSpeed * speedMultiplier * delta * scalingFactor;
                 
-                // Apply movement to velocity
-                if (this.moveForward || this.moveBackward) this.velocity.z -= this.direction.z * moveSpeed;
-                if (this.moveLeft || this.moveRight) this.velocity.x -= this.direction.x * moveSpeed;
+                // Set velocity directly based on input direction
+                this.velocity.z = -this.direction.z * moveSpeed;
+                this.velocity.x = -this.direction.x * moveSpeed;
                 
                 // Calculate the magnitude of player movement this frame
                 const playerMoveMagnitude = Math.sqrt(
@@ -1170,14 +1170,16 @@ class SimpleGame {
                 if (playerMoveMagnitude > 0 && Math.abs(playerMoveMagnitude - staticPlayerDistance) > 0.001) {
                     // Scale the velocity to match the static player's distance
                     const scaleFactor = staticPlayerDistance / playerMoveMagnitude;
-                    this.velocity.x *= scaleFactor * 0.8; // Increased from 0.5 for faster correction
-                    this.velocity.z *= scaleFactor * 0.8; // Increased from 0.5 for faster correction
+                    this.velocity.x *= scaleFactor;
+                    this.velocity.z *= scaleFactor;
                 }
             }
             
-            // Move the player
-            this.controls.moveRight(-this.velocity.x);
-            this.controls.moveForward(-this.velocity.z);
+            // Move the player only if there's velocity
+            if (Math.abs(this.velocity.x) > 0.0001 || Math.abs(this.velocity.z) > 0.0001) {
+                this.controls.moveRight(-this.velocity.x);
+                this.controls.moveForward(-this.velocity.z);
+            }
             
             // Animate static player
             this.animateSimpleStaticPlayer(delta);
@@ -1264,9 +1266,11 @@ class SimpleGame {
                 ? ((playerVelocityMagnitude - staticPlayerDistance) / staticPlayerDistance * 100).toFixed(1)
                 : "0.0";
             
-            // Current scaling factor and friction values
+            // Current scaling factor
             const scalingFactor = 0.05;
-            const friction = 3.0;
+            
+            // Check if player is moving
+            const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
             
             debugInfo.innerHTML = `
                 <div>Bullets: ${this.bulletCount}/${this.maxBullets}</div>
@@ -1275,11 +1279,12 @@ class SimpleGame {
                 <div>Is Aiming: ${this.isAimingDownSights}</div>
                 <div>Position: ${this.camera.position.x.toFixed(2)}, ${this.camera.position.y.toFixed(2)}, ${this.camera.position.z.toFixed(2)}</div>
                 <div>Movement: F:${this.moveForward} B:${this.moveBackward} L:${this.moveLeft} R:${this.moveRight}</div>
+                <div>Is Moving: ${isMoving}</div>
                 <div>Player Speed: ${this.playerSpeed.toFixed(1)} (Sprint: ${this.isSprinting ? 'ON' : 'OFF'})</div>
                 <div>Player Velocity: ${playerVelocityMagnitude.toFixed(3)}</div>
                 <div>Static Player Distance: ${staticPlayerDistance.toFixed(3)}</div>
                 <div>Speed Difference: ${speedDifference}%</div>
-                <div>Speed Settings: Scale=${scalingFactor}, Friction=${friction}</div>
+                <div>Speed Settings: Scale=${scalingFactor}, Direct Velocity</div>
             `;
         }
     }
@@ -2126,7 +2131,8 @@ class SimpleGame {
         this.velocity.z = 0;
         
         console.log("Player speeds matched. Both player and static player now move at the same speed.");
-        console.log("Using playerSpeed: 2.0, scalingFactor: 0.05, friction: 3.0");
+        console.log("Using playerSpeed: 2.0, scalingFactor: 0.05, direct velocity calculation");
+        console.log("Drifting has been eliminated - player will stop immediately when keys are released");
         
         return true;
     }
