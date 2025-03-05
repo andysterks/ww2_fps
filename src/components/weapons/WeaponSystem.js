@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { AudioManager } from '../../audio/AudioManager';
+import { createM1Garand } from '../../models/weapons/m1_garand.js';
 
 /**
  * WeaponSystem class handles weapon rendering, animation, and shooting mechanics
@@ -82,9 +83,6 @@ export class WeaponSystem {
     
     async loadWeaponModel() {
         try {
-            // Import the M1 Garand model
-            const { createM1Garand } = await import('/models/weapons/m1_garand.js');
-            
             // Create the weapon model
             this.currentWeapon = createM1Garand();
             this.weaponScene.add(this.currentWeapon);
