@@ -5,181 +5,90 @@ import { audioManager } from '../../audio.js';
  */
 class GameUI {
     constructor() {
-        // UI elements
-        this.crosshair = null;
-        this.ammoCounter = null;
-        this.soundToggle = null;
-        this.messageContainer = null;
+        // Get UI elements
+        this.crosshair = document.getElementById('crosshair');
+        this.scopeOverlay = document.getElementById('scope-overlay');
+        this.ammoDisplay = document.getElementById('ammo');
+        this.healthDisplay = document.getElementById('health');
+        this.instructions = document.getElementById('instructions');
+        this.soundToggle = document.getElementById('sound-toggle');
+        this.audioStatus = document.getElementById('audio-status');
+        this.debugInfo = document.getElementById('debug-info');
         
-        // Initialize UI
-        this.init();
+        // Initialize state
+        this.isAiming = false;
+        this.ammo = 8;
+        this.maxAmmo = 8;
+        this.health = 100;
+        this.isMuted = false;
+        
+        // Set up event listeners
+        this.setupEventListeners();
     }
     
-    init() {
-        // Create crosshair
-        this.createCrosshair();
-        
-        // Create ammo counter
-        this.createAmmoCounter();
-        
-        // Create sound toggle
-        this.createSoundToggle();
-        
-        // Create message container
-        this.createMessageContainer();
-    }
-    
-    createCrosshair() {
-        // Create crosshair element
-        this.crosshair = document.createElement('div');
-        this.crosshair.id = 'crosshair';
-        this.crosshair.innerHTML = '+';
-        this.crosshair.style.position = 'absolute';
-        this.crosshair.style.top = '50%';
-        this.crosshair.style.left = '50%';
-        this.crosshair.style.transform = 'translate(-50%, -50%)';
-        this.crosshair.style.color = 'white';
-        this.crosshair.style.fontSize = '24px';
-        this.crosshair.style.fontWeight = 'bold';
-        this.crosshair.style.textShadow = '1px 1px 1px rgba(0, 0, 0, 0.5)';
-        this.crosshair.style.userSelect = 'none';
-        this.crosshair.style.pointerEvents = 'none';
-        
-        // Add to document
-        document.body.appendChild(this.crosshair);
-    }
-    
-    createAmmoCounter() {
-        // Create ammo counter element
-        this.ammoCounter = document.createElement('div');
-        this.ammoCounter.id = 'ammo-counter';
-        this.ammoCounter.style.position = 'absolute';
-        this.ammoCounter.style.bottom = '20px';
-        this.ammoCounter.style.right = '20px';
-        this.ammoCounter.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-        this.ammoCounter.style.color = 'white';
-        this.ammoCounter.style.padding = '10px 15px';
-        this.ammoCounter.style.borderRadius = '5px';
-        this.ammoCounter.style.fontFamily = 'monospace';
-        this.ammoCounter.style.fontSize = '24px';
-        this.ammoCounter.style.fontWeight = 'bold';
-        this.ammoCounter.style.userSelect = 'none';
-        this.ammoCounter.style.pointerEvents = 'none';
-        
-        // Set initial value
-        this.updateAmmoCounter(8);
-        
-        // Add to document
-        document.body.appendChild(this.ammoCounter);
-    }
-    
-    createSoundToggle() {
-        // Create sound toggle button
-        this.soundToggle = document.createElement('button');
-        this.soundToggle.id = 'sound-toggle';
-        this.soundToggle.innerHTML = '🔊';
-        this.soundToggle.style.position = 'absolute';
-        this.soundToggle.style.top = '20px';
-        this.soundToggle.style.right = '20px';
-        this.soundToggle.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-        this.soundToggle.style.color = 'white';
-        this.soundToggle.style.border = 'none';
-        this.soundToggle.style.borderRadius = '5px';
-        this.soundToggle.style.padding = '10px';
-        this.soundToggle.style.fontSize = '20px';
-        this.soundToggle.style.cursor = 'pointer';
-        
-        // Add event listener
+    setupEventListeners() {
+        // Handle sound toggle
         this.soundToggle.addEventListener('click', () => {
-            const isMuted = audioManager.toggleMute();
-            this.soundToggle.innerHTML = isMuted ? '🔇' : '🔊';
+            this.toggleSound();
         });
-        
-        // Add to document
-        document.body.appendChild(this.soundToggle);
     }
     
-    createMessageContainer() {
-        // Create message container
-        this.messageContainer = document.createElement('div');
-        this.messageContainer.id = 'message-container';
-        this.messageContainer.style.position = 'absolute';
-        this.messageContainer.style.top = '50%';
-        this.messageContainer.style.left = '50%';
-        this.messageContainer.style.transform = 'translate(-50%, -50%)';
-        this.messageContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-        this.messageContainer.style.color = 'white';
-        this.messageContainer.style.padding = '20px';
-        this.messageContainer.style.borderRadius = '5px';
-        this.messageContainer.style.textAlign = 'center';
-        this.messageContainer.style.fontFamily = 'Arial, sans-serif';
-        this.messageContainer.style.fontSize = '18px';
-        this.messageContainer.style.display = 'none';
-        this.messageContainer.style.userSelect = 'none';
-        this.messageContainer.style.pointerEvents = 'none';
-        
-        // Add to document
-        document.body.appendChild(this.messageContainer);
+    toggleSound() {
+        this.isMuted = !this.isMuted;
+        this.soundToggle.textContent = this.isMuted ? '🔇' : '🔊';
+        this.soundToggle.className = this.isMuted ? 'sound-off' : 'sound-on';
     }
     
-    updateAmmoCounter(ammo) {
-        if (this.ammoCounter) {
-            this.ammoCounter.innerHTML = `Ammo: ${ammo}/8`;
-            
-            // Change color when low on ammo
-            if (ammo <= 2) {
-                this.ammoCounter.style.color = 'red';
-            } else {
-                this.ammoCounter.style.color = 'white';
-            }
-        }
+    toggleScope(isAiming) {
+        this.isAiming = isAiming;
+        this.scopeOverlay.style.display = isAiming ? 'block' : 'none';
+        this.crosshair.style.display = isAiming ? 'none' : 'block';
     }
     
-    updateCrosshair(isAiming) {
-        if (this.crosshair) {
-            if (isAiming) {
-                // Smaller crosshair when aiming
-                this.crosshair.style.fontSize = '16px';
-                this.crosshair.style.opacity = '0.8';
-            } else {
-                // Normal crosshair
-                this.crosshair.style.fontSize = '24px';
-                this.crosshair.style.opacity = '1';
-            }
-        }
+    updateAmmo(current, max) {
+        this.ammo = current;
+        this.maxAmmo = max;
+        this.ammoDisplay.textContent = `${current}/${max}`;
+    }
+    
+    updateHealth(value) {
+        this.health = value;
+        this.healthDisplay.textContent = value;
     }
     
     showMessage(message, duration = 3000) {
-        if (this.messageContainer) {
-            // Set message text
-            this.messageContainer.innerHTML = message;
-            
-            // Show message
-            this.messageContainer.style.display = 'block';
-            
-            // Hide after duration
-            setTimeout(() => {
-                this.messageContainer.style.display = 'none';
-            }, duration);
+        this.instructions.textContent = message;
+        this.instructions.style.opacity = '1';
+        
+        setTimeout(() => {
+            this.instructions.style.opacity = '0';
+        }, duration);
+    }
+    
+    showAudioPrompt() {
+        this.audioStatus.style.display = 'block';
+    }
+    
+    hideAudioPrompt() {
+        this.audioStatus.style.display = 'none';
+    }
+    
+    updateDebugInfo(info) {
+        if (this.debugInfo) {
+            this.debugInfo.innerHTML = info;
         }
     }
     
-    showControls() {
-        const controlsMessage = `
-            <h2>Controls</h2>
-            <p>WASD - Move</p>
-            <p>Shift - Sprint</p>
-            <p>F - Aim</p>
-            <p>R - Reload</p>
-            <p>Click - Shoot</p>
-            <p>ESC - Exit pointer lock</p>
-        `;
-        
-        this.showMessage(controlsMessage, 5000);
+    showDebugInfo() {
+        if (this.debugInfo) {
+            this.debugInfo.style.display = 'block';
+        }
     }
     
-    showGameStartMessage() {
-        this.showMessage('Click to start game', 3000);
+    hideDebugInfo() {
+        if (this.debugInfo) {
+            this.debugInfo.style.display = 'none';
+        }
     }
 }
 
