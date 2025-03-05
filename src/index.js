@@ -716,9 +716,9 @@ class SimpleGame {
         try {
             // Use socket.io for WebSocket communication
             // Connect directly to WebSocket server for lowest latency
-            const serverUrl = window.location.hostname === 'localhost' ? 
-                'http://localhost:3001' : // Local development
-                `http://${window.location.hostname.replace('www.', '')}:3001`; // Production - direct connection
+            const serverUrl = process.env.NODE_ENV === 'development' ?
+                'http://localhost:3000' : // Local development
+                `http://${window.location.hostname.replace('www.', '')}:3000`; // Production - direct connection
             
             console.log('Connecting to server at:', serverUrl);
             this.socket = io(serverUrl);

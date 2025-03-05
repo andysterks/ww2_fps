@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const WebSocket = require('ws');
+const { Server } = require('socket.io');
 const { v4: uuidv4 } = require('uuid');
 const app = express();
 const port = 3000;
@@ -38,16 +38,24 @@ app.post('/save-sound', upload.single('file'), (req, res) => {
   }
 });
 
-// Create a WebSocket server on port 8080
-const wss = new WebSocket.Server({ port: 8080 });
+// Create HTTP server
+const server = require('http').createServer(app);
+
+// Create Socket.IO server
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+});
 
 // Store connected players
 const players = new Map();
 
-console.log('WebSocket server started on port 8080');
+console.log('Socket.IO server initialized');
 
 // Handle new connections
-wss.on('connection', (ws) => {
+io.on('connection', (socket) => {
     // Generate a unique ID for this player
     const playerId = uuidv4();
     
@@ -55,7 +63,7 @@ wss.on('connection', (ws) => {
     
     // Store the player connection
     players.set(playerId, {
-        ws,
+        socket,
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0 },
         moveForward: false,
@@ -67,100 +75,72 @@ wss.on('connection', (ws) => {
     });
     
     // Send the player their ID
-    ws.send(JSON.stringify({
-        type: 'init',
+    socket.emit('init', {
         id: playerId
-    }));
+    });
     
     // Send the new player information about all existing players
     players.forEach((player, id) => {
         if (id !== playerId) {
-            ws.send(JSON.stringify({
-                type: 'player-joined',
+            socket.emit('player-joined', {
                 id,
                 position: player.position,
                 rotation: player.rotation
-            }));
+            });
         }
     });
     
     // Broadcast to all other players that a new player has joined
-    broadcastToOthers(playerId, {
-        type: 'player-joined',
+    socket.broadcast.emit('player-joined', {
         id: playerId,
         position: players.get(playerId).position,
         rotation: players.get(playerId).rotation
     });
     
-    // Handle messages from this player
-    ws.on('message', (message) => {
+    // Handle updates from this player
+    socket.on('update', (data) => {
         try {
-            const data = JSON.parse(message);
-            
-            // Update player data
-            if (data.type === 'update') {
-                const player = players.get(playerId);
-                if (player) {
-                    player.position = data.position;
-                    player.rotation = data.rotation;
-                    player.moveForward = data.moveForward;
-                    player.moveBackward = data.moveBackward;
-                    player.moveLeft = data.moveLeft;
-                    player.moveRight = data.moveRight;
-                    player.isSprinting = data.isSprinting;
-                    player.lastUpdate = Date.now();
-                    
-                    // Broadcast the update to all other players
-                    broadcastToOthers(playerId, {
-                        type: 'player-update',
-                        id: playerId,
-                        position: data.position,
-                        rotation: data.rotation,
-                        moveForward: data.moveForward,
-                        moveBackward: data.moveBackward,
-                        moveLeft: data.moveLeft,
-                        moveRight: data.moveRight,
-                        isSprinting: data.isSprinting
-                    });
-                }
+            const player = players.get(playerId);
+            if (player) {
+                player.position = data.position;
+                player.rotation = data.rotation;
+                player.moveForward = data.moveForward;
+                player.moveBackward = data.moveBackward;
+                player.moveLeft = data.moveLeft;
+                player.moveRight = data.moveRight;
+                player.isSprinting = data.isSprinting;
+                player.lastUpdate = Date.now();
+                
+                // Broadcast the update to all other players
+                socket.broadcast.emit('player-update', {
+                    id: playerId,
+                    position: data.position,
+                    rotation: data.rotation,
+                    moveForward: data.moveForward,
+                    moveBackward: data.moveBackward,
+                    moveLeft: data.moveLeft,
+                    moveRight: data.moveRight,
+                    isSprinting: data.isSprinting
+                });
             }
         } catch (error) {
-            console.error('Error processing message:', error);
+            console.error('Error processing update:', error);
         }
     });
     
     // Handle disconnection
-    ws.on('close', () => {
+    socket.on('disconnect', () => {
         console.log(`Player disconnected: ${playerId}`);
         
         // Remove the player
         players.delete(playerId);
         
         // Broadcast to all other players that this player has left
-        broadcastToAll({
-            type: 'player-left',
+        io.emit('player-left', {
             id: playerId
         });
     });
 });
-
-// Broadcast a message to all players except the specified one
-function broadcastToOthers(excludePlayerId, message) {
-    players.forEach((player, id) => {
-        if (id !== excludePlayerId && player.ws.readyState === WebSocket.OPEN) {
-            player.ws.send(JSON.stringify(message));
-        }
-    });
-}
-
-// Broadcast a message to all players
-function broadcastToAll(message) {
-    players.forEach((player) => {
-        if (player.ws.readyState === WebSocket.OPEN) {
-            player.ws.send(JSON.stringify(message));
-        }
-    });
-}
 
 // Clean up inactive players (those who haven't sent updates in a while)
 setInterval(() => {
@@ -171,17 +151,14 @@ setInterval(() => {
         if (now - player.lastUpdate > timeout) {
             console.log(`Player timed out: ${id}`);
             
-            // Close the connection
-            if (player.ws.readyState === WebSocket.OPEN) {
-                player.ws.close();
-            }
+            // Disconnect the socket
+            player.socket.disconnect(true);
             
             // Remove the player
             players.delete(id);
             
             // Broadcast to all other players that this player has left
-            broadcastToAll({
-                type: 'player-left',
+            io.emit('player-left', {
                 id
             });
         }
@@ -189,6 +166,6 @@ setInterval(() => {
 }, 10000); // Check every 10 seconds
 
 // Start the server
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
