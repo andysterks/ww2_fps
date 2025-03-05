@@ -151,50 +151,75 @@ class SimpleGame {
         // Create a more realistic M1 Garand rifle with visible iron sights
         const weaponGroup = new THREE.Group();
         
-        // Rifle body (receiver)
+        // Rifle body (receiver) - made slightly larger
         const rifleBody = new THREE.Mesh(
-            new THREE.BoxGeometry(0.08, 0.08, 0.6),
-            new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.7 }) // Dark gray for metal parts
+            new THREE.BoxGeometry(0.1, 0.1, 0.8),
+            new THREE.MeshStandardMaterial({ 
+                color: 0x444444, 
+                roughness: 0.7,
+                metalness: 0.3 
+            })
         );
         
-        // Rifle stock
+        // Rifle stock - made slightly larger
         const rifleStock = new THREE.Mesh(
-            new THREE.BoxGeometry(0.12, 0.14, 0.5),
-            new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.9 }) // Brown wood
+            new THREE.BoxGeometry(0.14, 0.16, 0.6),
+            new THREE.MeshStandardMaterial({ 
+                color: 0x8B4513, 
+                roughness: 0.9,
+                metalness: 0.1 
+            })
         );
         rifleStock.position.set(0, -0.02, 0.3);
         
         // Create iron sights group
         const ironSightsGroup = new THREE.Group();
         
-        // Front sight post (thinner and taller)
+        // Front sight post - made taller and more visible
         const frontSightPost = new THREE.Mesh(
-            new THREE.BoxGeometry(0.001, 0.025, 0.001),
-            new THREE.MeshBasicMaterial({ color: 0x000000 }) // Black
+            new THREE.BoxGeometry(0.002, 0.04, 0.002),
+            new THREE.MeshStandardMaterial({ 
+                color: 0x000000,
+                roughness: 0.5,
+                metalness: 0.5
+            })
         );
-        frontSightPost.position.set(0, 0.065, -0.45);
+        frontSightPost.position.set(0, 0.09, -0.55);
         
-        // Front sight housing (smaller and more defined)
+        // Front sight housing - made more prominent
         const frontSightHousing = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.004, 0.006, 0.02, 8),
-            new THREE.MeshStandardMaterial({ color: 0x333333 })
+            new THREE.CylinderGeometry(0.006, 0.008, 0.03, 8),
+            new THREE.MeshStandardMaterial({ 
+                color: 0x333333,
+                roughness: 0.6,
+                metalness: 0.4
+            })
         );
-        frontSightHousing.position.set(0, 0.055, -0.45);
+        frontSightHousing.position.set(0, 0.075, -0.55);
         
-        // Rear sight aperture (smaller and more precise)
+        // Rear sight base - made wider and more visible
         const rearSightBase = new THREE.Mesh(
-            new THREE.BoxGeometry(0.03, 0.015, 0.008),
-            new THREE.MeshStandardMaterial({ color: 0x333333 })
+            new THREE.BoxGeometry(0.04, 0.02, 0.01),
+            new THREE.MeshStandardMaterial({ 
+                color: 0x333333,
+                roughness: 0.6,
+                metalness: 0.4
+            })
         );
-        rearSightBase.position.set(0, 0.065, 0.1);
+        rearSightBase.position.set(0, 0.09, 0.1);
         
-        // Rear sight aperture ring (smaller aperture for better precision)
+        // Rear sight aperture - made larger and more defined
         const rearSightAperture = new THREE.Mesh(
-            new THREE.RingGeometry(0.001, 0.002, 16),
-            new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide })
+            new THREE.TorusGeometry(0.004, 0.001, 8, 24),
+            new THREE.MeshStandardMaterial({ 
+                color: 0x000000,
+                roughness: 0.5,
+                metalness: 0.5,
+                side: THREE.DoubleSide
+            })
         );
         rearSightAperture.rotation.x = Math.PI / 2;
-        rearSightAperture.position.set(0, 0.065, 0.1);
+        rearSightAperture.position.set(0, 0.09, 0.1);
         
         // Add sights to group
         ironSightsGroup.add(frontSightPost);
@@ -213,7 +238,9 @@ class SimpleGame {
         // Define positions first
         this.weaponDefaultPosition = new THREE.Vector3(0.3, -0.3, -0.5);
         this.weaponDefaultRotation = new THREE.Vector3(0, Math.PI / 12, 0);
-        this.weaponAimPosition = new THREE.Vector3(0, -0.0585, -0.2);
+        
+        // Adjusted aim position for better sight alignment
+        this.weaponAimPosition = new THREE.Vector3(0, -0.0685, -0.3);
         this.weaponAimRotation = new THREE.Vector3(0, 0, 0);
         
         // Then position weapon in hip-fire position
@@ -229,7 +256,7 @@ class SimpleGame {
         // Add aiming properties
         this.aimTransitionSpeed = 8.0;
         this.defaultFOV = 75;
-        this.aimFOV = 60;
+        this.aimFOV = 65; // Slightly wider FOV for better sight picture
         this.isAimingDownSights = false;
     }
     
