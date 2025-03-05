@@ -58,8 +58,8 @@ export class PlayerController {
         };
         
         // Initialize controls
-        this.controls = new PointerLockControls(this.camera, document.body);
-        console.log('PointerLockControls initialized');
+        const gameContainer = document.getElementById('game-container');
+        this.controls = new PointerLockControls(this.camera, gameContainer);
         
         // Set initial position
         this.camera.position.set(0, 2, 10);
@@ -74,31 +74,23 @@ export class PlayerController {
     
     setupEventListeners() {
         document.addEventListener('keydown', (event) => {
-            console.log('Keydown event:', event.code);
+            if (!this.controls.isLocked) return;
             
             switch (event.code) {
                 case 'KeyW':
-                case 'ArrowUp':
                     this.moveForward = true;
-                    console.log('Moving forward');
                     break;
                 case 'KeyS':
-                case 'ArrowDown':
                     this.moveBackward = true;
                     break;
                 case 'KeyA':
-                case 'ArrowLeft':
                     this.moveLeft = true;
                     break;
                 case 'KeyD':
-                case 'ArrowRight':
                     this.moveRight = true;
                     break;
                 case 'ShiftLeft':
                     if (!this.isCrouching) this.isSprinting = true;
-                    break;
-                case 'KeyC':
-                    this.toggleCrouch();
                     break;
                 case 'Space':
                     if (!event.repeat) this.jump();
@@ -109,19 +101,15 @@ export class PlayerController {
         document.addEventListener('keyup', (event) => {
             switch (event.code) {
                 case 'KeyW':
-                case 'ArrowUp':
                     this.moveForward = false;
                     break;
                 case 'KeyS':
-                case 'ArrowDown':
                     this.moveBackward = false;
                     break;
                 case 'KeyA':
-                case 'ArrowLeft':
                     this.moveLeft = false;
                     break;
                 case 'KeyD':
-                case 'ArrowRight':
                     this.moveRight = false;
                     break;
                 case 'ShiftLeft':
@@ -132,42 +120,52 @@ export class PlayerController {
     }
     
     update(deltaTime) {
-        if (!this.controls.isLocked) {
-            return;
-        }
-
-        console.log('Update called, controls locked');
-        console.log('Movement state:', { 
-            forward: this.moveForward, 
-            backward: this.moveBackward,
-            left: this.moveLeft,
-            right: this.moveRight
-        });
+        if (!this.controls.isLocked) return;
 
         // Calculate movement speed
         let currentSpeed = this.moveSpeed;
         if (this.isSprinting) currentSpeed *= this.sprintMultiplier;
         if (this.isCrouching) currentSpeed *= this.crouchMultiplier;
 
-        // Store previous position for collision detection
-        this.lastPosition.copy(this.camera.position);
+        // Calculate forward direction
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+        forward.y = 0;
+        forward.normalize();
 
-        // Use PointerLockControls moveForward/moveRight methods
-        if (this.moveForward) this.controls.moveForward(currentSpeed * deltaTime);
-        if (this.moveBackward) this.controls.moveForward(-currentSpeed * deltaTime);
-        if (this.moveLeft) this.controls.moveRight(-currentSpeed * deltaTime);
-        if (this.moveRight) this.controls.moveRight(currentSpeed * deltaTime);
+        // Calculate right direction
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+        right.y = 0;
+        right.normalize();
+
+        // Reset velocity
+        this.velocity.set(0, this.velocity.y, 0);
+
+        // Apply movement
+        if (this.moveForward) {
+            this.velocity.add(forward.multiplyScalar(currentSpeed));
+        }
+        if (this.moveBackward) {
+            this.velocity.add(forward.multiplyScalar(-currentSpeed));
+        }
+        if (this.moveRight) {
+            this.velocity.add(right.multiplyScalar(currentSpeed));
+        }
+        if (this.moveLeft) {
+            this.velocity.add(right.multiplyScalar(-currentSpeed));
+        }
 
         // Apply gravity
         if (!this.isOnGround()) {
             this.velocity.y -= this.gravity * deltaTime;
-            this.camera.position.y += this.velocity.y * deltaTime;
         } else if (this.velocity.y < 0) {
             this.velocity.y = 0;
         }
 
+        // Move the camera
+        this.camera.position.addScaledVector(this.velocity, deltaTime);
+
         // Ensure minimum height
-        const minHeight = this.isCrouching ? this.crouchingHeight : this.standingHeight;
+        const minHeight = this.isCrouching ? 1.0 : 2.0;
         if (this.camera.position.y < minHeight) {
             this.camera.position.y = minHeight;
             this.velocity.y = 0;
@@ -227,10 +225,10 @@ export class PlayerController {
         for (const object of this.collidableObjects) {
             if (object.geometry) {
                 const box = new THREE.Box3().setFromObject(object);
-                const sphere = new THREE.Sphere(this.camera.position, this.radius);
-                
-                if (box.intersectsSphere(sphere)) {
-                    this.camera.position.copy(this.lastPosition);
+                if (box.containsPoint(this.camera.position)) {
+                    // Move back if colliding
+                    this.camera.position.addScaledVector(this.velocity, -1);
+                    this.velocity.set(0, 0, 0);
                     break;
                 }
             }
