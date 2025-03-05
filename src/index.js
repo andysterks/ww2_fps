@@ -1240,14 +1240,22 @@ class SimpleGame {
         if (debugInfo) {
             debugInfo.style.display = 'block';
             
+            // Calculate delta time for this frame
+            const delta = performance.now() / 1000 - this.prevTime / 1000;
+            
             // Calculate actual player velocity magnitude
             const playerVelocityMagnitude = Math.sqrt(
                 this.velocity.x * this.velocity.x + 
                 this.velocity.z * this.velocity.z
             );
             
-            // Calculate static player speed
-            const staticPlayerSpeed = this.playerSpeed;
+            // Calculate static player movement for this frame
+            const staticPlayerDistance = delta * this.playerSpeed;
+            
+            // Calculate the speed difference as a percentage
+            const speedDifference = playerVelocityMagnitude > 0 
+                ? ((playerVelocityMagnitude - staticPlayerDistance) / staticPlayerDistance * 100).toFixed(1)
+                : "0.0";
             
             // Current scaling factor and friction values
             const scalingFactor = 0.05;
@@ -1262,7 +1270,8 @@ class SimpleGame {
                 <div>Movement: F:${this.moveForward} B:${this.moveBackward} L:${this.moveLeft} R:${this.moveRight}</div>
                 <div>Player Speed: ${this.playerSpeed.toFixed(1)} (Sprint: ${this.isSprinting ? 'ON' : 'OFF'})</div>
                 <div>Player Velocity: ${playerVelocityMagnitude.toFixed(3)}</div>
-                <div>Static Player Speed: ${staticPlayerSpeed.toFixed(3)}</div>
+                <div>Static Player Distance: ${staticPlayerDistance.toFixed(3)}</div>
+                <div>Speed Difference: ${speedDifference}%</div>
                 <div>Speed Settings: Scale=${scalingFactor}, Friction=${friction}</div>
             `;
         }
