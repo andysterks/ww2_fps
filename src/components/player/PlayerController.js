@@ -4,7 +4,7 @@ import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockCont
 /**
  * PlayerController class handles player movement, collision detection, and camera controls
  */
-class PlayerController {
+export class PlayerController {
     constructor(camera, scene) {
         this.camera = camera;
         this.scene = scene;
@@ -15,272 +15,275 @@ class PlayerController {
         this.moveLeft = false;
         this.moveRight = false;
         this.isSprinting = false;
+        this.isCrouching = false;
+        this.isJumping = false;
         
         // Physics properties
         this.velocity = new THREE.Vector3();
         this.direction = new THREE.Vector3();
-        this.prevTime = performance.now();
+        this.lastPosition = new THREE.Vector3();
+        this.moveSpeed = 5.0; // meters per second
+        this.sprintMultiplier = 1.6;
+        this.crouchMultiplier = 0.5;
+        this.jumpForce = 5.0;
+        this.gravity = 9.81;
         
         // Player dimensions
-        this.playerHeight = 1.8; // meters
-        this.playerRadius = 0.4; // meters
+        this.standingHeight = 1.8; // meters
+        this.crouchingHeight = 1.0; // meters
+        this.currentHeight = this.standingHeight;
+        this.radius = 0.3; // meters for collision
         
-        // Collision detection
-        this.raycaster = new THREE.Raycaster();
-        this.collidableObjects = [];
-        this.stuckCounter = 0;
+        // Camera properties
+        this.defaultFOV = 75;
+        this.sprintingFOV = 85;
+        this.crouchingFOV = 70;
+        this.bobAmount = 0.015;
+        this.bobSpeed = 0.018;
+        this.bobTime = 0;
         
-        // View bobbing
-        this.viewBobOffset = 0;
-        this.viewBobAmount = 0.008;
-        this.viewBobFreq = 4;
-        this.headBobTimer = 0;
+        // Head bobbing
+        this.headBob = {
+            translation: new THREE.Vector3(),
+            rotation: new THREE.Euler(),
+            intensity: 1.0,
+            recovery: 0.2
+        };
         
         // Breathing effect
-        this.breathingAmount = 0.0015;
-        this.breathingFreq = 0.5;
+        this.breathing = {
+            offset: 0,
+            frequency: 0.5,
+            amplitude: 0.0015
+        };
         
         // Initialize controls
         this.controls = new PointerLockControls(this.camera, document.body);
         
-        // Set initial position very close to the objects
-        this.camera.position.set(0, this.playerHeight, 5);
-        this.controls.getObject().position.set(0, this.playerHeight, 5);
+        // Set initial position
+        this.camera.position.set(0, this.standingHeight, 0);
+        
+        // Set up collision detection
+        this.raycaster = new THREE.Raycaster();
+        this.collidableObjects = [];
         
         // Set up event listeners
         this.setupEventListeners();
     }
     
     setupEventListeners() {
-        document.addEventListener('keydown', (event) => this.onKeyDown(event));
-        document.addEventListener('keyup', (event) => this.onKeyUp(event));
+        // Keyboard events
+        document.addEventListener('keydown', (event) => {
+            switch (event.code) {
+                case 'KeyW':
+                    this.moveForward = true;
+                    break;
+                case 'KeyS':
+                    this.moveBackward = true;
+                    break;
+                case 'KeyA':
+                    this.moveLeft = true;
+                    break;
+                case 'KeyD':
+                    this.moveRight = true;
+                    break;
+                case 'ShiftLeft':
+                    if (!this.isCrouching) this.isSprinting = true;
+                    break;
+                case 'KeyC':
+                    this.toggleCrouch();
+                    break;
+                case 'Space':
+                    this.jump();
+                    break;
+            }
+        });
         
-        // Click to lock pointer
-        document.addEventListener('click', () => {
-            if (!this.controls.isLocked) {
-                this.controls.lock();
+        document.addEventListener('keyup', (event) => {
+            switch (event.code) {
+                case 'KeyW':
+                    this.moveForward = false;
+                    break;
+                case 'KeyS':
+                    this.moveBackward = false;
+                    break;
+                case 'KeyA':
+                    this.moveLeft = false;
+                    break;
+                case 'KeyD':
+                    this.moveRight = false;
+                    break;
+                case 'ShiftLeft':
+                    this.isSprinting = false;
+                    break;
             }
         });
     }
     
-    onKeyDown(event) {
-        switch (event.code) {
-            case 'KeyW':
-                this.moveForward = true;
-                break;
-            case 'KeyS':
-                this.moveBackward = true;
-                break;
-            case 'KeyA':
-                this.moveLeft = true;
-                break;
-            case 'KeyD':
-                this.moveRight = true;
-                break;
-            case 'ShiftLeft':
-            case 'ShiftRight':
-                this.isSprinting = true;
-                break;
+    update(deltaTime) {
+        if (!this.controls.isLocked) return;
+        
+        // Store previous position for collision detection
+        this.lastPosition.copy(this.camera.position);
+        
+        // Update movement
+        this.updateMovement(deltaTime);
+        
+        // Update camera effects
+        this.updateCameraEffects(deltaTime);
+        
+        // Check collisions and update final position
+        this.handleCollisions();
+    }
+    
+    updateMovement(deltaTime) {
+        // Calculate base speed
+        let currentSpeed = this.moveSpeed;
+        if (this.isSprinting) currentSpeed *= this.sprintMultiplier;
+        if (this.isCrouching) currentSpeed *= this.crouchMultiplier;
+        
+        // Apply movement based on input
+        this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+        this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
+        this.direction.normalize();
+        
+        // Update velocity
+        if (this.moveForward || this.moveBackward) {
+            this.velocity.z = -this.direction.z * currentSpeed;
+        }
+        if (this.moveLeft || this.moveRight) {
+            this.velocity.x = -this.direction.x * currentSpeed;
+        }
+        
+        // Apply gravity and handle jumping
+        if (!this.isOnGround()) {
+            this.velocity.y -= this.gravity * deltaTime;
+        } else if (this.velocity.y < 0) {
+            this.velocity.y = 0;
+        }
+        
+        // Update position
+        this.controls.moveRight(-this.velocity.x * deltaTime);
+        this.controls.moveForward(-this.velocity.z * deltaTime);
+        this.camera.position.y += this.velocity.y * deltaTime;
+        
+        // Clamp height to ground
+        const minHeight = this.isOnGround() ? 
+            (this.isCrouching ? this.crouchingHeight : this.standingHeight) : 
+            this.camera.position.y;
+        this.camera.position.y = Math.max(minHeight, this.camera.position.y);
+    }
+    
+    updateCameraEffects(deltaTime) {
+        // Update head bob
+        if (this.isMoving()) {
+            const bobSpeed = this.isSprinting ? this.bobSpeed * 1.5 : this.bobSpeed;
+            this.bobTime += deltaTime * bobSpeed;
+            
+            // Calculate head bob offsets
+            const bobX = Math.sin(this.bobTime * 2) * this.bobAmount;
+            const bobY = Math.abs(Math.sin(this.bobTime)) * this.bobAmount;
+            
+            // Apply head bob with intensity based on movement state
+            const intensity = this.isSprinting ? 1.5 : (this.isCrouching ? 0.5 : 1.0);
+            this.headBob.translation.set(
+                bobX * intensity,
+                bobY * intensity,
+                0
+            );
+            
+            // Apply slight tilt based on movement
+            this.headBob.rotation.z = Math.sin(this.bobTime) * 0.02 * intensity;
+        } else {
+            // Smoothly reset head bob
+            this.headBob.translation.multiplyScalar(1 - this.headBob.recovery);
+            this.headBob.rotation.z *= 1 - this.headBob.recovery;
+        }
+        
+        // Update breathing effect
+        this.breathing.offset = Math.sin(performance.now() * 0.001 * this.breathing.frequency) * this.breathing.amplitude;
+        
+        // Apply all camera effects
+        this.camera.position.add(this.headBob.translation);
+        this.camera.rotation.z = this.headBob.rotation.z;
+        this.camera.position.y += this.breathing.offset;
+        
+        // Update FOV based on movement state
+        let targetFOV = this.defaultFOV;
+        if (this.isSprinting) targetFOV = this.sprintingFOV;
+        if (this.isCrouching) targetFOV = this.crouchingFOV;
+        
+        this.camera.fov += (targetFOV - this.camera.fov) * 0.1;
+        this.camera.updateProjectionMatrix();
+    }
+    
+    handleCollisions() {
+        // Check for collisions with environment
+        for (const object of this.collidableObjects) {
+            // Simple sphere-box collision check
+            if (object.geometry.type === 'BoxGeometry') {
+                const box = new THREE.Box3().setFromObject(object);
+                const sphere = new THREE.Sphere(this.camera.position, this.radius);
+                
+                if (box.intersectsSphere(sphere)) {
+                    // Move back to last safe position
+                    this.camera.position.copy(this.lastPosition);
+                    break;
+                }
+            }
         }
     }
     
-    onKeyUp(event) {
-        switch (event.code) {
-            case 'KeyW':
-                this.moveForward = false;
-                break;
-            case 'KeyS':
-                this.moveBackward = false;
-                break;
-            case 'KeyA':
-                this.moveLeft = false;
-                break;
-            case 'KeyD':
-                this.moveRight = false;
-                break;
-            case 'ShiftLeft':
-            case 'ShiftRight':
-                this.isSprinting = false;
-                break;
+    jump() {
+        if (this.isOnGround() && !this.isCrouching) {
+            this.velocity.y = this.jumpForce;
+            this.isJumping = true;
         }
+    }
+    
+    toggleCrouch() {
+        this.isCrouching = !this.isCrouching;
+        
+        // Cannot sprint while crouching
+        if (this.isCrouching) this.isSprinting = false;
+        
+        // Smoothly adjust camera height
+        const targetHeight = this.isCrouching ? this.crouchingHeight : this.standingHeight;
+        this.currentHeight = targetHeight;
+    }
+    
+    isMoving() {
+        return this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
+    }
+    
+    isOnGround() {
+        // Cast ray downward to check for ground
+        this.raycaster.ray.origin.copy(this.camera.position);
+        this.raycaster.ray.direction.set(0, -1, 0);
+        
+        const intersects = this.raycaster.intersectObjects(this.collidableObjects);
+        return intersects.length > 0 && intersects[0].distance <= 0.1;
     }
     
     setCollidableObjects(objects) {
         this.collidableObjects = objects;
     }
     
-    update(isAiming = false) {
-        if (!this.controls.isLocked) return;
-        
-        const time = performance.now();
-        const delta = (time - this.prevTime) / 1000;
-        this.prevTime = time;
-        
-        // Update movement
-        this.updateMovement(delta, isAiming);
-        
-        // Update view bobbing
-        this.updateViewBobbing(time);
-    }
-    
-    updateMovement(delta, isAiming) {
-        // Apply friction to slow down
-        this.velocity.x -= this.velocity.x * 10.0 * delta;
-        this.velocity.z -= this.velocity.z * 10.0 * delta;
-        
-        // Calculate movement direction
-        this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-        this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-        this.direction.normalize();
-        
-        // Calculate speed modifiers
-        const baseSpeed = 62.5; // Extremely slow for realism
-        const sprintModifier = this.isSprinting ? 1.5 : 1.0;
-        const aimingModifier = isAiming ? 0.6 : 1.0;
-        const speedModifier = sprintModifier * aimingModifier;
-        
-        // Apply movement
-        if (this.moveForward || this.moveBackward) {
-            this.velocity.z -= this.direction.z * baseSpeed * speedModifier * delta;
-        }
-        
-        if (this.moveLeft || this.moveRight) {
-            this.velocity.x -= this.direction.x * baseSpeed * speedModifier * delta;
-        }
-        
-        // Handle collisions
-        this.handleCollisions(delta);
-    }
-    
-    handleCollisions(delta) {
-        // Horizontal collision detection
-        const horizontalCollision = this.checkHorizontalCollisions();
-        
-        if (!horizontalCollision) {
-            // Move horizontally if no collision
-            this.controls.moveRight(-this.velocity.x * delta);
-            this.controls.moveForward(-this.velocity.z * delta);
-        } else {
-            // Reset velocity if collision detected
-            this.velocity.x = 0;
-            this.velocity.z = 0;
-            this.stuckCounter++;
-            
-            // If stuck for too long, try to unstick
-            if (this.stuckCounter > 5) {
-                this.controls.moveRight(0.05);
-                this.stuckCounter = 0;
-            }
-        }
-        
-        // Vertical collision detection (floor/ceiling)
-        this.checkVerticalCollisions();
-    }
-    
-    checkHorizontalCollisions() {
-        if (this.collidableObjects.length === 0) return false;
-        
-        const playerPosition = new THREE.Vector3();
-        playerPosition.copy(this.camera.position);
-        
-        // Check in 8 directions around the player
-        for (let i = 0; i < 8; i++) {
-            const angle = (i / 8) * Math.PI * 2;
-            const x = Math.sin(angle) * this.playerRadius;
-            const z = Math.cos(angle) * this.playerRadius;
-            
-            this.raycaster.set(
-                new THREE.Vector3(
-                    playerPosition.x + x,
-                    playerPosition.y - this.playerHeight / 2,
-                    playerPosition.z + z
-                ),
-                new THREE.Vector3(
-                    this.velocity.x > 0 ? 1 : -1,
-                    0,
-                    this.velocity.z > 0 ? 1 : -1
-                ).normalize()
-            );
-            
-            const intersections = this.raycaster.intersectObjects(this.collidableObjects, true);
-            if (intersections.length > 0 && intersections[0].distance < 0.5) {
-                return true;
-            }
-        }
-        
-        return false;
-    }
-    
-    checkVerticalCollisions() {
-        if (this.collidableObjects.length === 0) return;
-        
-        const playerPosition = new THREE.Vector3();
-        playerPosition.copy(this.camera.position);
-        
-        // Check for floor
-        this.raycaster.set(
-            playerPosition,
-            new THREE.Vector3(0, -1, 0)
-        );
-        
-        const floorIntersections = this.raycaster.intersectObjects(this.collidableObjects, true);
-        if (floorIntersections.length > 0 && floorIntersections[0].distance < this.playerHeight) {
-            this.camera.position.y = floorIntersections[0].point.y + this.playerHeight;
-        }
-        
-        // Check for ceiling
-        this.raycaster.set(
-            playerPosition,
-            new THREE.Vector3(0, 1, 0)
-        );
-        
-        const ceilingIntersections = this.raycaster.intersectObjects(this.collidableObjects, true);
-        if (ceilingIntersections.length > 0 && ceilingIntersections[0].distance < 0.2) {
-            // Push player down if hitting ceiling
-            this.camera.position.y = ceilingIntersections[0].point.y - 0.2;
-        }
-    }
-    
-    updateViewBobbing(time) {
-        const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
-        
-        // Update head bob timer only when moving
-        if (isMoving) {
-            this.headBobTimer += 0.016; // Increment based on approximate frame time
-            
-            // Calculate view bob based on movement
-            const currentViewBobFreq = this.isSprinting ? this.viewBobFreq * 1.3 : this.viewBobFreq;
-            
-            // Only vertical bobbing - no rotation effects
-            this.viewBobOffset = Math.abs(Math.sin(this.headBobTimer * currentViewBobFreq * 2)) * this.viewBobAmount;
-        } else {
-            // Gradually return to center when not moving
-            this.viewBobOffset *= 0.9;
-            
-            // Reset when close to zero
-            if (Math.abs(this.viewBobOffset) < 0.0001) {
-                this.viewBobOffset = 0;
-            }
-        }
-        
-        // Add breathing effect
-        const breathingY = Math.sin(time * 0.001 * this.breathingFreq) * this.breathingAmount;
-        
-        // Apply only vertical bobbing to camera position
-        this.camera.position.y = this.playerHeight + (isMoving ? this.viewBobOffset : 0) + breathingY;
-    }
-    
-    getControls() {
-        return this.controls;
-    }
-    
     getPosition() {
         return this.camera.position;
     }
     
-    getDirection() {
-        const direction = new THREE.Vector3(0, 0, -1);
-        return direction.applyQuaternion(this.camera.quaternion);
+    getRotation() {
+        return this.camera.rotation;
+    }
+    
+    getMovementState() {
+        return {
+            isMoving: this.isMoving(),
+            isSprinting: this.isSprinting,
+            isCrouching: this.isCrouching,
+            isJumping: this.isJumping
+        };
     }
 }
 
