@@ -104,34 +104,48 @@ class Game {
     }
 
     async init() {
-        // Initialize audio
-        await this.audioManager.init();
+        try {
+            console.log('Initializing game...');
+            
+            // Initialize audio
+            await this.audioManager.init();
+            console.log('Audio initialized');
 
-        // Create environment first
-        this.environment = new Environment(this.scene);
-        await this.environment.init();
-        
-        // Create player and set initial position
-        this.player = new PlayerController(this.camera, this.scene);
-        this.camera.position.set(0, 2, 10); // Set initial position above ground and back from center
-        
-        // Set collidable objects for player
-        this.player.setCollidableObjects(this.environment.getCollidableObjects());
-        
-        // Create weapon system
-        this.weaponSystem = new WeaponSystem(this.camera, this.scene);
-        await this.weaponSystem.init();
+            // Create environment first
+            this.environment = new Environment(this.scene);
+            await this.environment.init();
+            console.log('Environment initialized');
+            
+            // Create player and set initial position
+            this.player = new PlayerController(this.camera, this.scene);
+            console.log('Player controller created');
+            
+            // Set collidable objects for player
+            const collidableObjects = this.environment.getCollidableObjects();
+            this.player.setCollidableObjects(collidableObjects);
+            console.log('Collidable objects set:', collidableObjects.length);
+            
+            // Create weapon system
+            this.weaponSystem = new WeaponSystem(this.camera, this.scene);
+            await this.weaponSystem.init();
+            console.log('Weapon system initialized');
 
-        // Create UI
-        this.ui = new GameUI();
+            // Create UI
+            this.ui = new GameUI();
+            console.log('UI initialized');
 
-        // Set up event listeners
-        this.setupEventListeners();
+            // Set up event listeners
+            this.setupEventListeners();
+            console.log('Event listeners set up');
 
-        // Start game loop
-        this.animate();
-        
-        console.log('Game initialized successfully');
+            // Start game loop
+            this.animate();
+            console.log('Game loop started');
+            
+            console.log('Game initialized successfully');
+        } catch (error) {
+            console.error('Error during game initialization:', error);
+        }
     }
 
     setupEventListeners() {
@@ -209,24 +223,28 @@ class Game {
         requestAnimationFrame(() => this.animate());
 
         const currentTime = performance.now();
-        const deltaTime = Math.min((currentTime - this.lastFrameTime) / 1000, 0.1); // Cap deltaTime at 0.1
+        const deltaTime = Math.min((currentTime - this.lastFrameTime) / 1000, 0.1);
         this.lastFrameTime = currentTime;
 
         if (this.isRunning) {
-            // Update game systems
-            this.player.update(deltaTime);
-            this.weaponSystem.update(deltaTime);
-            this.environment.update(deltaTime);
+            try {
+                // Update game systems
+                this.player.update(deltaTime);
+                this.weaponSystem.update(deltaTime);
+                this.environment.update(deltaTime);
 
-            // Clear both buffers
-            this.renderer.clear();
+                // Clear both buffers
+                this.renderer.clear();
 
-            // Render main scene with post-processing
-            this.composer.render();
+                // Render main scene with post-processing
+                this.composer.render();
 
-            // Render weapon scene directly
-            this.renderer.clearDepth();
-            this.renderer.render(this.weaponSystem.weaponScene, this.camera);
+                // Render weapon scene directly
+                this.renderer.clearDepth();
+                this.renderer.render(this.weaponSystem.weaponScene, this.camera);
+            } catch (error) {
+                console.error('Error in game loop:', error);
+            }
         } else {
             // When not running, just render the main scene without post-processing
             this.renderer.clear();

@@ -59,9 +59,10 @@ export class PlayerController {
         
         // Initialize controls
         this.controls = new PointerLockControls(this.camera, document.body);
+        console.log('PointerLockControls initialized');
         
         // Set initial position
-        this.camera.position.set(0, this.standingHeight, 0);
+        this.camera.position.set(0, 2, 10);
         
         // Set up collision detection
         this.raycaster = new THREE.Raycaster();
@@ -73,12 +74,13 @@ export class PlayerController {
     
     setupEventListeners() {
         document.addEventListener('keydown', (event) => {
-            if (!this.controls.isLocked) return;
+            console.log('Keydown event:', event.code);
             
             switch (event.code) {
                 case 'KeyW':
                 case 'ArrowUp':
                     this.moveForward = true;
+                    console.log('Moving forward');
                     break;
                 case 'KeyS':
                 case 'ArrowDown':
@@ -105,8 +107,6 @@ export class PlayerController {
         });
 
         document.addEventListener('keyup', (event) => {
-            if (!this.controls.isLocked) return;
-            
             switch (event.code) {
                 case 'KeyW':
                 case 'ArrowUp':
@@ -132,54 +132,39 @@ export class PlayerController {
     }
     
     update(deltaTime) {
-        if (!this.controls.isLocked) return;
+        if (!this.controls.isLocked) {
+            return;
+        }
 
-        // Store previous position for collision detection
-        this.lastPosition.copy(this.camera.position);
+        console.log('Update called, controls locked');
+        console.log('Movement state:', { 
+            forward: this.moveForward, 
+            backward: this.moveBackward,
+            left: this.moveLeft,
+            right: this.moveRight
+        });
 
         // Calculate movement speed
         let currentSpeed = this.moveSpeed;
         if (this.isSprinting) currentSpeed *= this.sprintMultiplier;
         if (this.isCrouching) currentSpeed *= this.crouchMultiplier;
 
-        // Reset velocity
-        this.velocity.x = 0;
-        this.velocity.z = 0;
+        // Store previous position for collision detection
+        this.lastPosition.copy(this.camera.position);
 
-        // Calculate movement direction
-        this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-        this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-        
-        // Normalize diagonal movement
-        if (this.direction.lengthSq() > 0) {
-            this.direction.normalize();
-            
-            // Apply movement speed
-            this.velocity.x = this.direction.x * currentSpeed;
-            this.velocity.z = this.direction.z * currentSpeed;
-        }
+        // Use PointerLockControls moveForward/moveRight methods
+        if (this.moveForward) this.controls.moveForward(currentSpeed * deltaTime);
+        if (this.moveBackward) this.controls.moveForward(-currentSpeed * deltaTime);
+        if (this.moveLeft) this.controls.moveRight(-currentSpeed * deltaTime);
+        if (this.moveRight) this.controls.moveRight(currentSpeed * deltaTime);
 
         // Apply gravity
         if (!this.isOnGround()) {
             this.velocity.y -= this.gravity * deltaTime;
+            this.camera.position.y += this.velocity.y * deltaTime;
         } else if (this.velocity.y < 0) {
             this.velocity.y = 0;
         }
-
-        // Get the camera's rotation
-        const rotation = this.camera.rotation.y;
-
-        // Apply rotation to movement
-        const rotatedVelocity = new THREE.Vector3(
-            this.velocity.x * Math.cos(rotation) - this.velocity.z * Math.sin(rotation),
-            this.velocity.y,
-            this.velocity.x * Math.sin(rotation) + this.velocity.z * Math.cos(rotation)
-        );
-
-        // Move the player
-        this.camera.position.x += rotatedVelocity.x * deltaTime;
-        this.camera.position.z += rotatedVelocity.z * deltaTime;
-        this.camera.position.y += rotatedVelocity.y * deltaTime;
 
         // Ensure minimum height
         const minHeight = this.isCrouching ? this.crouchingHeight : this.standingHeight;
