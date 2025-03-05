@@ -117,53 +117,87 @@ class SimpleGame {
         // Create a more realistic M1 Garand rifle
         const weaponGroup = new THREE.Group();
         
-        // Rifle body
+        // Rifle body (receiver)
         const rifleBody = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1, 0.1, 1),
-            new THREE.MeshBasicMaterial({ color: 0x8B4513 }) // Brown
+            new THREE.BoxGeometry(0.08, 0.08, 0.6),
+            new THREE.MeshBasicMaterial({ color: 0x444444 }) // Dark gray for metal parts
         );
         
         // Rifle stock
         const rifleStock = new THREE.Mesh(
-            new THREE.BoxGeometry(0.12, 0.15, 0.4),
-            new THREE.MeshBasicMaterial({ color: 0x8B4513 }) // Brown
+            new THREE.BoxGeometry(0.1, 0.12, 0.5),
+            new THREE.MeshBasicMaterial({ color: 0x8B4513 }) // Brown wood
         );
         rifleStock.position.set(0, -0.02, 0.3);
         
-        // Rifle handle
+        // Rifle handle/grip
         const rifleHandle = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1, 0.2, 0.1),
-            new THREE.MeshBasicMaterial({ color: 0x8B4513 }) // Brown
+            new THREE.BoxGeometry(0.08, 0.18, 0.1),
+            new THREE.MeshBasicMaterial({ color: 0x8B4513 }) // Brown wood
         );
-        rifleHandle.position.set(0, -0.15, 0.1);
+        rifleHandle.position.set(0, -0.13, 0.1);
         
         // Rifle barrel
         const rifleBarrel = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.03, 0.03, 1.2, 8),
-            new THREE.MeshBasicMaterial({ color: 0x444444 }) // Dark gray
+            new THREE.CylinderGeometry(0.02, 0.02, 0.9, 8),
+            new THREE.MeshBasicMaterial({ color: 0x444444 }) // Dark gray for metal
         );
         rifleBarrel.rotation.x = Math.PI / 2;
-        rifleBarrel.position.set(0, 0, -0.6);
+        rifleBarrel.position.set(0, 0, -0.5);
+        
+        // Front sight post
+        const frontSight = new THREE.Mesh(
+            new THREE.BoxGeometry(0.01, 0.05, 0.01),
+            new THREE.MeshBasicMaterial({ color: 0x222222 }) // Almost black
+        );
+        frontSight.position.set(0, 0.05, -0.9);
+        
+        // Rear sight aperture
+        const rearSightBase = new THREE.Mesh(
+            new THREE.BoxGeometry(0.08, 0.02, 0.04),
+            new THREE.MeshBasicMaterial({ color: 0x222222 }) // Almost black
+        );
+        rearSightBase.position.set(0, 0.05, -0.1);
+        
+        // Rear sight aperture hole
+        const rearSightAperture = new THREE.Mesh(
+            new THREE.RingGeometry(0.01, 0.02, 16),
+            new THREE.MeshBasicMaterial({ color: 0x111111 }) // Black
+        );
+        rearSightAperture.rotation.x = Math.PI / 2;
+        rearSightAperture.position.set(0, 0.06, -0.1);
         
         // Add all parts to the weapon group
         weaponGroup.add(rifleBody);
         weaponGroup.add(rifleStock);
         weaponGroup.add(rifleHandle);
         weaponGroup.add(rifleBarrel);
+        weaponGroup.add(frontSight);
+        weaponGroup.add(rearSightBase);
+        weaponGroup.add(rearSightAperture);
         
         // Create muzzle flash (initially hidden)
         const muzzleFlash = new THREE.Mesh(
-            new THREE.ConeGeometry(0.1, 0.2, 8),
+            new THREE.ConeGeometry(0.05, 0.15, 8),
             new THREE.MeshBasicMaterial({ color: 0xFFFF00, transparent: true, opacity: 0.8 })
         );
         muzzleFlash.rotation.x = Math.PI / 2;
-        muzzleFlash.position.set(0, 0, -1.2);
+        muzzleFlash.position.set(0, 0, -0.95);
         muzzleFlash.visible = false;
         weaponGroup.add(muzzleFlash);
         this.muzzleFlash = muzzleFlash;
         
-        // Position weapon in front of camera
+        // Position weapon in hip-fire position (default)
         weaponGroup.position.set(0.3, -0.3, -0.5);
+        weaponGroup.rotation.set(0, 0, 0);
+        
+        // Store original position for returning from aim
+        this.weaponDefaultPosition = new THREE.Vector3(0.3, -0.3, -0.5);
+        this.weaponDefaultRotation = new THREE.Vector3(0, 0, 0);
+        
+        // Store aim position
+        this.weaponAimPosition = new THREE.Vector3(0, -0.1, -0.3);
+        this.weaponAimRotation = new THREE.Vector3(0, 0, 0);
         
         // Add weapon to camera
         this.camera.add(weaponGroup);
