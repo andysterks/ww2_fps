@@ -3,6 +3,7 @@ import { Sky } from 'three/examples/jsm/objects/Sky.js';
 import { Water } from 'three/examples/jsm/objects/Water.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { TextureLoader } from 'three';
+import { createTestEnvironment } from '../../models/environment/test_environment.js';
 
 /**
  * Environment class handles the creation and management of the game world
@@ -24,8 +25,7 @@ export class Environment {
     
     async init() {
         try {
-            // Import and create test environment
-            const { createTestEnvironment } = await import('/models/environment/test_environment.js');
+            // Create test environment
             const testEnvironment = createTestEnvironment();
             this.scene.add(testEnvironment);
             
