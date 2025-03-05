@@ -68,13 +68,13 @@ export class Environment {
         // Sun position for bright daytime
         const sun = new THREE.Vector3();
         const uniforms = sky.material.uniforms;
-        uniforms['turbidity'].value = 2.5; // Less atmospheric turbidity for clearer blue
-        uniforms['rayleigh'].value = 2.5; // Increased for deeper blue
+        uniforms['turbidity'].value = 10; // Increased for more realistic atmosphere
+        uniforms['rayleigh'].value = 1.0; // Reduced for less scattering
         uniforms['mieCoefficient'].value = 0.005;
         uniforms['mieDirectionalG'].value = 0.8;
         
         // Position sun for nice daytime lighting
-        const phi = THREE.MathUtils.degToRad(65);
+        const phi = THREE.MathUtils.degToRad(60); // Adjusted sun height
         const theta = THREE.MathUtils.degToRad(180);
         sun.setFromSphericalCoords(1, phi, theta);
         uniforms['sunPosition'].value.copy(sun);
@@ -82,8 +82,8 @@ export class Environment {
         // Create clouds
         this.createClouds();
         
-        // Light blue fog for distance
-        this.scene.fog = new THREE.FogExp2(0xAEDEF4, 0.0008);
+        // Subtle blue-grey fog for distance
+        this.scene.fog = new THREE.FogExp2(0x88a0b3, 0.0015);
     }
     
     createClouds() {
@@ -156,12 +156,12 @@ export class Environment {
     }
     
     createLighting() {
-        // Bright ambient light for daytime
-        const ambientLight = new THREE.AmbientLight(0x6699CC, 1.0); // Sky blue tint
+        // Softer ambient light
+        const ambientLight = new THREE.AmbientLight(0x666666, 0.5);
         this.scene.add(ambientLight);
         
         // Directional light (sun)
-        const sunLight = new THREE.DirectionalLight(0xFFFFE0, 2.5); // Slightly warm sunlight
+        const sunLight = new THREE.DirectionalLight(0xffffff, 1.0); // Reduced intensity
         sunLight.position.set(50, 150, 50);
         sunLight.castShadow = true;
         
@@ -178,11 +178,11 @@ export class Environment {
         
         this.scene.add(sunLight);
         
-        // Add hemisphere light for better ambient lighting
+        // Softer hemisphere light
         const hemiLight = new THREE.HemisphereLight(
-            0x6699CC, // Sky color - blue
-            0x90A959, // Ground color - warm green
-            1.0
+            0x88a0b3, // Sky color - subtle blue-grey
+            0x505050, // Ground color - neutral grey
+            0.6 // Reduced intensity
         );
         hemiLight.position.set(0, 100, 0);
         this.scene.add(hemiLight);
