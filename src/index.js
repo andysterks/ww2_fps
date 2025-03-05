@@ -26,35 +26,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
 class SimpleGame {
     constructor() {
-        console.log("SimpleGame constructor started");
         try {
-            // Core Three.js components
+            console.log("Initializing game");
+            
+            // Initialize properties
             this.scene = new THREE.Scene();
-            console.log("Scene created");
-            
             this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            console.log("Camera created");
-            
             this.renderer = new THREE.WebGLRenderer({ antialias: true });
-            console.log("Renderer created");
             
-            // Configure renderer
+            // Set up renderer
             this.renderer.setSize(window.innerWidth, window.innerHeight);
-            this.renderer.setClearColor(0x87CEEB); // Sky blue
+            this.renderer.shadowMap.enabled = true;
+            this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             
-            const container = document.getElementById('game-container');
-            if (!container) {
-                throw new Error("Game container not found");
+            // Find game container
+            const gameContainer = document.getElementById('game-container');
+            if (!gameContainer) {
+                console.error("Game container not found!");
+                return;
             }
-            container.appendChild(this.renderer.domElement);
-            console.log("Renderer added to DOM");
             
-            // Player controls
-            this.controls = new PointerLockControls(this.camera, document.body);
-            console.log("Controls created");
+            // Append renderer to container
+            gameContainer.appendChild(this.renderer.domElement);
             
-            // Add camera to scene
-            this.scene.add(this.controls.getObject());
+            // Set up camera and controls
+            this.camera.position.y = 1.6; // Eye level
+            this.controls = new PointerLockControls(this.camera, this.renderer.domElement);
             
             // Movement variables
             this.moveForward = false;
@@ -62,52 +59,33 @@ class SimpleGame {
             this.moveLeft = false;
             this.moveRight = false;
             this.isSprinting = false;
-            this.velocity = new THREE.Vector3();
-            this.direction = new THREE.Vector3();
-            this.prevTime = performance.now();
-            this.playerSpeed = 1.0;
             this.sprintMultiplier = 1.5;
             
-            // Animation variables for static player
+            // Physics variables
+            this.velocity = new THREE.Vector3();
+            this.direction = new THREE.Vector3();
+            this.playerSpeed = 5.0;
+            this.prevTime = performance.now();
+            
+            // Animation variables
             this.animationClock = 0;
-            this.walkingSpeed = 2.0; // Animation speed multiplier
-            this.staticPlayerMoving = true; // Whether the static player is walking
-            this.staticPlayerDirection = new THREE.Vector3(0, 0, -1); // Direction of movement
-            
-            // Weapon state
-            this.bulletCount = 8;
-            this.maxBullets = 8;
-            this.canShoot = true;
-            this.isReloading = false;
-            this.isAimingDownSights = false;
-            
-            // Audio state
-            this.muted = false;
+            this.walkingSpeed = 3.0;
             
             // Debug mode
-            this.debugMode = true; // Set to true to enable debug info
-            
-            // Set initial position
-            this.camera.position.set(0, 1.8, 5);
-            this.controls.getObject().position.set(0, 1.8, 5);
+            this.debugMode = true;
             
             // Create a simple test environment
             this.createSimpleTestEnvironment();
-            
-            // Create instructions popup (after controls are initialized)
-            this.createInstructionsPopup();
             
             // Set up event listeners
             this.setupEventListeners();
             
             // Start animation loop
-            console.log("Starting animation loop");
             this.animate();
             
-            console.log("SimpleGame constructor completed successfully");
+            console.log("Game initialized successfully");
         } catch (error) {
-            console.error("Error in SimpleGame constructor:", error);
-            throw error;
+            console.error("Error initializing game:", error);
         }
     }
     
@@ -121,6 +99,7 @@ class SimpleGame {
         // Add directional light
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight.position.set(10, 10, 10);
+        directionalLight.castShadow = true;
         this.scene.add(directionalLight);
         
         // Create a ground plane
@@ -140,7 +119,156 @@ class SimpleGame {
         box.castShadow = true;
         this.scene.add(box);
         
+        // Create a static player model
+        this.createSimpleStaticPlayer(0, 0, -10);
+        
         console.log("Simple test environment created");
+    }
+    
+    // Simplified static player model
+    createSimpleStaticPlayer(x, y, z) {
+        console.log("Creating simple static player");
+        
+        // Create a group for the player model
+        const playerGroup = new THREE.Group();
+        
+        // Define materials
+        const uniformMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x4D5D53, // Field gray
+            roughness: 0.4,
+            metalness: 0.1
+        });
+        
+        const helmetMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x333333, // Dark gray
+            roughness: 0.2,
+            metalness: 0.3
+        });
+        
+        const skinMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0xE0AC69, // Light skin tone
+            roughness: 0.3,
+            metalness: 0.1
+        });
+        
+        // Create body parts
+        // Head and helmet
+        const headGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.25, 16);
+        const head = new THREE.Mesh(headGeometry, skinMaterial);
+        head.position.y = 1.6;
+        head.castShadow = true;
+        playerGroup.add(head);
+        
+        const helmetGeometry = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
+        helmet.scale.set(1.1, 0.8, 1.1);
+        helmet.position.y = 1.78;
+        helmet.position.z = -0.05;
+        helmet.castShadow = true;
+        playerGroup.add(helmet);
+        
+        // Torso
+        const torsoGeometry = new THREE.BoxGeometry(0.4, 0.5, 0.2);
+        const torso = new THREE.Mesh(torsoGeometry, uniformMaterial);
+        torso.position.y = 1.25;
+        torso.castShadow = true;
+        playerGroup.add(torso);
+        
+        // Create leg groups for animation
+        const leftLegGroup = new THREE.Group();
+        const rightLegGroup = new THREE.Group();
+        leftLegGroup.position.set(-0.12, 0.9, 0);
+        rightLegGroup.position.set(0.12, 0.9, 0);
+        
+        // Legs
+        const legGeometry = new THREE.BoxGeometry(0.18, 0.5, 0.18);
+        
+        const leftLeg = new THREE.Mesh(legGeometry, uniformMaterial);
+        leftLeg.position.set(0, -0.3, 0);
+        leftLeg.castShadow = true;
+        leftLegGroup.add(leftLeg);
+        
+        const rightLeg = new THREE.Mesh(legGeometry, uniformMaterial);
+        rightLeg.position.set(0, -0.3, 0);
+        rightLeg.castShadow = true;
+        rightLegGroup.add(rightLeg);
+        
+        // Boots
+        const bootGeometry = new THREE.BoxGeometry(0.2, 0.1, 0.22);
+        const bootMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x111111,
+            roughness: 0.3,
+            metalness: 0.2
+        });
+        
+        const leftBoot = new THREE.Mesh(bootGeometry, bootMaterial);
+        leftBoot.position.set(0, -0.6, 0.02);
+        leftBoot.castShadow = true;
+        leftLegGroup.add(leftBoot);
+        
+        const rightBoot = new THREE.Mesh(bootGeometry, bootMaterial);
+        rightBoot.position.set(0, -0.6, 0.02);
+        rightBoot.castShadow = true;
+        rightLegGroup.add(rightBoot);
+        
+        // Create arm groups for animation
+        const leftArmGroup = new THREE.Group();
+        const rightArmGroup = new THREE.Group();
+        leftArmGroup.position.set(-0.28, 1.25, 0);
+        rightArmGroup.position.set(0.28, 1.25, 0);
+        
+        // Arms
+        const armGeometry = new THREE.BoxGeometry(0.15, 0.45, 0.15);
+        
+        const leftArm = new THREE.Mesh(armGeometry, uniformMaterial);
+        leftArm.position.set(0, 0, 0);
+        leftArm.castShadow = true;
+        leftArmGroup.add(leftArm);
+        
+        const rightArm = new THREE.Mesh(armGeometry, uniformMaterial);
+        rightArm.position.set(0, 0, 0);
+        rightArm.castShadow = true;
+        rightArmGroup.add(rightArm);
+        
+        // Hands
+        const handGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.12, 8);
+        
+        const leftHand = new THREE.Mesh(handGeometry, skinMaterial);
+        leftHand.rotation.x = Math.PI / 2;
+        leftHand.position.set(0, -0.25, 0);
+        leftHand.castShadow = true;
+        leftArmGroup.add(leftHand);
+        
+        const rightHand = new THREE.Mesh(handGeometry, skinMaterial);
+        rightHand.rotation.x = Math.PI / 2;
+        rightHand.position.set(0, -0.25, 0);
+        rightHand.castShadow = true;
+        rightArmGroup.add(rightHand);
+        
+        // Add limbs to player group
+        playerGroup.add(leftLegGroup);
+        playerGroup.add(rightLegGroup);
+        playerGroup.add(leftArmGroup);
+        playerGroup.add(rightArmGroup);
+        
+        // Store references for animation
+        playerGroup.leftLegGroup = leftLegGroup;
+        playerGroup.rightLegGroup = rightLegGroup;
+        playerGroup.leftArmGroup = leftArmGroup;
+        playerGroup.rightArmGroup = rightArmGroup;
+        
+        // Position the player
+        playerGroup.position.set(x, y, z);
+        playerGroup.rotation.y = Math.PI; // Face toward the player
+        
+        // Add to scene
+        this.scene.add(playerGroup);
+        
+        // Store reference to the player model
+        this.staticPlayerModel = playerGroup;
+        
+        console.log("Simple static player created");
+        return playerGroup;
     }
     
     createEnvironment() {
@@ -906,10 +1034,8 @@ class SimpleGame {
             this.controls.moveRight(-this.velocity.x);
             this.controls.moveForward(-this.velocity.z);
             
-            // Update weapon sway
-            if (this.weapon) {
-                this.updateWeaponSway();
-            }
+            // Animate static player
+            this.animateSimpleStaticPlayer(delta);
             
             // Update debug info
             if (this.debugMode) {
@@ -926,9 +1052,9 @@ class SimpleGame {
         }
     }
     
-    // New method to animate the static player
-    animateStaticPlayer(delta) {
-        if (!this.staticPlayerModel || !this.staticPlayerMoving) return;
+    // Simplified animation method
+    animateSimpleStaticPlayer(delta) {
+        if (!this.staticPlayerModel) return;
         
         try {
             // Update animation clock
@@ -955,16 +1081,10 @@ class SimpleGame {
             }
             
             // Move the player forward
-            if (this.staticPlayerModel) {
-                // Calculate movement distance based on player speed
-                const moveDistance = delta * this.playerSpeed;
-                
-                // Move in the direction the player is facing
-                this.staticPlayerModel.position.x += this.staticPlayerDirection.x * moveDistance;
-                this.staticPlayerModel.position.z += this.staticPlayerDirection.z * moveDistance;
-            }
+            const moveDistance = delta * this.playerSpeed;
+            this.staticPlayerModel.position.z += moveDistance;
         } catch (error) {
-            console.error("Error in animateStaticPlayer:", error);
+            console.error("Error in animateSimpleStaticPlayer:", error);
         }
     }
     
