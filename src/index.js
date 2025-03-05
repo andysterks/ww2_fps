@@ -1181,43 +1181,53 @@ class SimpleGame {
         head.castShadow = true;
         
         // Create improved German Stahlhelm (helmet)
-        // Main helmet dome - more accurate shape
-        const helmetGeometry = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        // Main helmet dome - complete shape to avoid gaps
+        const helmetGeometry = new THREE.SphereGeometry(0.25, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.6);
         const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
         helmet.scale.set(1.1, 0.8, 1.1);
-        helmet.position.y = 1.75;
+        helmet.position.y = 1.73; // Raised slightly to not block face
+        helmet.position.z = -0.02; // Moved back slightly
         helmet.castShadow = true;
         
-        // Helmet rim - more pronounced
-        const helmetBrimGeometry = new THREE.CylinderGeometry(0.28, 0.3, 0.08, 16);
-        const helmetBrim = new THREE.Mesh(helmetBrimGeometry, helmetMaterial);
-        helmetBrim.position.y = 1.68;
-        helmetBrim.castShadow = true;
+        // Helmet rim - complete circle to avoid gaps
+        const helmetRimGeometry = new THREE.TorusGeometry(0.27, 0.04, 16, 32);
+        const helmetRim = new THREE.Mesh(helmetRimGeometry, helmetMaterial);
+        helmetRim.position.y = 1.65;
+        helmetRim.rotation.x = Math.PI / 2;
+        helmetRim.castShadow = true;
         
         // Helmet neck guard - characteristic of Stahlhelm
         const neckGuardGeometry = new THREE.BoxGeometry(0.3, 0.08, 0.15);
         const neckGuard = new THREE.Mesh(neckGuardGeometry, helmetMaterial);
-        neckGuard.position.set(0, 1.68, -0.18);
+        neckGuard.position.set(0, 1.65, -0.18);
         neckGuard.castShadow = true;
         
         // Helmet side flares - characteristic of Stahlhelm
         const leftFlareGeometry = new THREE.BoxGeometry(0.08, 0.1, 0.15);
         const leftFlare = new THREE.Mesh(leftFlareGeometry, helmetMaterial);
-        leftFlare.position.set(-0.25, 1.68, 0);
+        leftFlare.position.set(-0.25, 1.65, 0);
         leftFlare.rotation.z = Math.PI / 6;
         leftFlare.castShadow = true;
         
         const rightFlareGeometry = new THREE.BoxGeometry(0.08, 0.1, 0.15);
         const rightFlare = new THREE.Mesh(rightFlareGeometry, helmetMaterial);
-        rightFlare.position.set(0.25, 1.68, 0);
+        rightFlare.position.set(0.25, 1.65, 0);
         rightFlare.rotation.z = -Math.PI / 6;
         rightFlare.castShadow = true;
         
         // Helmet front extension (more accurate)
         const frontBrimGeometry = new THREE.BoxGeometry(0.2, 0.05, 0.1);
         const frontBrim = new THREE.Mesh(frontBrimGeometry, helmetMaterial);
-        frontBrim.position.set(0, 1.68, 0.25);
+        frontBrim.position.set(0, 1.65, 0.25);
         frontBrim.castShadow = true;
+        
+        // Inner helmet liner to fill any gaps
+        const helmetLinerGeometry = new THREE.SphereGeometry(0.24, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
+        const helmetLiner = new THREE.Mesh(helmetLinerGeometry, helmetMaterial);
+        helmetLiner.scale.set(1.05, 0.75, 1.05);
+        helmetLiner.position.y = 1.73;
+        helmetLiner.position.z = -0.02;
+        helmetLiner.castShadow = true;
         
         // LEGO-style torso (more rectangular)
         const torsoGeometry = new THREE.BoxGeometry(0.4, 0.5, 0.2);
@@ -1258,22 +1268,6 @@ class SimpleGame {
         const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
         rightLeg.position.set(0.12, 0.6, 0); // Raised position to connect with hip
         rightLeg.castShadow = true;
-        
-        // LEGO-style boots (flat on bottom)
-        const bootGeometry = new THREE.BoxGeometry(0.2, 0.1, 0.22);
-        const bootMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x111111,
-            roughness: 0.3,
-            metalness: 0.2
-        });
-        
-        const leftBoot = new THREE.Mesh(bootGeometry, bootMaterial);
-        leftBoot.position.set(-0.12, 0.3, 0.02); // Adjusted position
-        leftBoot.castShadow = true;
-        
-        const rightBoot = new THREE.Mesh(bootGeometry, bootMaterial);
-        rightBoot.position.set(0.12, 0.3, 0.02); // Adjusted position
-        rightBoot.castShadow = true;
         
         // LEGO-style arms (cylindrical with angle)
         const armGeometry = new THREE.BoxGeometry(0.15, 0.45, 0.15);
@@ -1390,20 +1384,19 @@ class SimpleGame {
         
         // Add all parts to player group
         playerGroup.add(head);
+        playerGroup.add(helmetLiner); // Add helmet liner first (behind helmet)
         playerGroup.add(helmet);
-        playerGroup.add(helmetBrim);
+        playerGroup.add(helmetRim);
         playerGroup.add(frontBrim);
-        playerGroup.add(neckGuard); // Add new neck guard
-        playerGroup.add(leftFlare); // Add new left flare
-        playerGroup.add(rightFlare); // Add new right flare
+        playerGroup.add(neckGuard);
+        playerGroup.add(leftFlare);
+        playerGroup.add(rightFlare);
         playerGroup.add(torso);
         playerGroup.add(belt);
         playerGroup.add(buckle);
-        playerGroup.add(hip); // Add new hip connector
+        playerGroup.add(hip);
         playerGroup.add(leftLeg);
         playerGroup.add(rightLeg);
-        playerGroup.add(leftBoot);
-        playerGroup.add(rightBoot);
         playerGroup.add(leftArm);
         playerGroup.add(rightArm);
         playerGroup.add(leftHand);
