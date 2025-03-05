@@ -151,37 +151,37 @@ class SimpleGame {
         const weaponGroup = new THREE.Group();
         
         // Common material properties for all weapon parts
-        const metalMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x2c2c2c, 
-            roughness: 0.7,
-            metalness: 0.3,
+        const metalMaterial = new THREE.MeshPhongMaterial({ 
+            color: 0x2c2c2c,
+            shininess: 30,
+            specular: 0x444444,
             transparent: false,
             opacity: 1.0,
+            side: THREE.DoubleSide,
             depthWrite: true,
-            depthTest: true,
-            side: THREE.FrontSide
+            depthTest: true
         });
 
-        const woodMaterial = new THREE.MeshStandardMaterial({ 
+        const woodMaterial = new THREE.MeshPhongMaterial({ 
             color: 0x4a2a0a,
-            roughness: 0.9,
-            metalness: 0.1,
+            shininess: 10,
+            specular: 0x222222,
             transparent: false,
             opacity: 1.0,
+            side: THREE.DoubleSide,
             depthWrite: true,
-            depthTest: true,
-            side: THREE.FrontSide
+            depthTest: true
         });
 
-        const blackMaterial = new THREE.MeshStandardMaterial({ 
+        const blackMaterial = new THREE.MeshPhongMaterial({ 
             color: 0x000000,
-            roughness: 0.5,
-            metalness: 0.5,
+            shininess: 20,
+            specular: 0x222222,
             transparent: false,
             opacity: 1.0,
+            side: THREE.DoubleSide,
             depthWrite: true,
-            depthTest: true,
-            side: THREE.FrontSide
+            depthTest: true
         });
         
         // Rifle body (receiver)
@@ -190,6 +190,8 @@ class SimpleGame {
             metalMaterial.clone()
         );
         rifleBody.renderOrder = 1;
+        rifleBody.castShadow = true;
+        rifleBody.receiveShadow = true;
         
         // Rifle stock
         const rifleStock = new THREE.Mesh(
@@ -198,6 +200,8 @@ class SimpleGame {
         );
         rifleStock.position.set(0, -0.03, 0.35);
         rifleStock.renderOrder = 1;
+        rifleStock.castShadow = true;
+        rifleStock.receiveShadow = true;
         
         // Create iron sights group
         const ironSightsGroup = new THREE.Group();
@@ -209,6 +213,7 @@ class SimpleGame {
         );
         leftWing.position.set(-0.015, 0.09, -0.6);
         leftWing.renderOrder = 2;
+        leftWing.castShadow = true;
         
         const rightWing = new THREE.Mesh(
             new THREE.BoxGeometry(0.02, 0.04, 0.02),
@@ -216,6 +221,7 @@ class SimpleGame {
         );
         rightWing.position.set(0.015, 0.09, -0.6);
         rightWing.renderOrder = 2;
+        rightWing.castShadow = true;
         
         // Front sight post
         const frontSightPost = new THREE.Mesh(
@@ -224,6 +230,7 @@ class SimpleGame {
         );
         frontSightPost.position.set(0, 0.095, -0.6);
         frontSightPost.renderOrder = 3;
+        frontSightPost.castShadow = true;
         
         // Front sight base
         const frontSightBase = new THREE.Mesh(
@@ -232,6 +239,7 @@ class SimpleGame {
         );
         frontSightBase.position.set(0, 0.07, -0.6);
         frontSightBase.renderOrder = 2;
+        frontSightBase.castShadow = true;
         
         // Rear sight housing
         const rearSightHousing = new THREE.Mesh(
@@ -240,6 +248,7 @@ class SimpleGame {
         );
         rearSightHousing.position.set(0, 0.09, 0.1);
         rearSightHousing.renderOrder = 2;
+        rearSightHousing.castShadow = true;
         
         // Rear sight aperture
         const rearSightAperture = new THREE.Mesh(
@@ -249,6 +258,7 @@ class SimpleGame {
         rearSightAperture.rotation.x = Math.PI / 2;
         rearSightAperture.position.set(0, 0.09, 0.1);
         rearSightAperture.renderOrder = 3;
+        rearSightAperture.castShadow = true;
         
         // Add sights to group
         ironSightsGroup.add(leftWing);
