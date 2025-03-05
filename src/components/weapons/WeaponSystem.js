@@ -81,33 +81,15 @@ export class WeaponSystem {
     }
     
     async loadWeaponModel() {
-        const loader = new GLTFLoader();
-        
         try {
-            const gltf = await loader.loadAsync('/models/weapons/m1_garand.glb');
-            this.currentWeapon = gltf.scene;
+            // Import the M1 Garand model
+            const { createM1Garand } = await import('/models/weapons/m1_garand.js');
             
-            // Configure weapon model
-            this.currentWeapon.position.set(0.3, -0.3, -0.5);
-            this.currentWeapon.rotation.set(0, Math.PI, 0);
-            
-            // Apply better materials
-            this.currentWeapon.traverse((child) => {
-                if (child.isMesh) {
-                    child.castShadow = true;
-                    child.receiveShadow = true;
-                    
-                    // Enhance material properties
-                    if (child.material) {
-                        child.material.roughness = 0.7;
-                        child.material.metalness = 0.3;
-                        child.material.envMapIntensity = 1.0;
-                    }
-                }
-            });
-            
+            // Create the weapon model
+            this.currentWeapon = createM1Garand();
             this.weaponScene.add(this.currentWeapon);
             
+            console.log('Weapon model loaded successfully');
         } catch (error) {
             console.error('Error loading weapon model:', error);
         }

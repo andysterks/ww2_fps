@@ -23,21 +23,26 @@ export class Environment {
     }
     
     async init() {
-        // Create sky and lighting
-        this.createSky();
-        this.createLighting();
-        
-        // Create ground and terrain
-        await this.createGround();
-        
-        // Create buildings and structures
-        await this.createBuildings();
-        
-        // Add environmental details
-        await this.createEnvironmentalDetails();
-        
-        // Add atmospheric effects
-        this.createAtmosphericEffects();
+        try {
+            // Import and create test environment
+            const { createTestEnvironment } = await import('/models/environment/test_environment.js');
+            const testEnvironment = createTestEnvironment();
+            this.scene.add(testEnvironment);
+            
+            // Add fog to the scene
+            this.scene.fog = testEnvironment.fog;
+            
+            // Store collidable objects
+            testEnvironment.children.forEach(child => {
+                if (child.isMesh && child !== testEnvironment.getObjectByName('ground')) {
+                    this.collidableObjects.push(child);
+                }
+            });
+            
+            console.log('Environment initialized successfully');
+        } catch (error) {
+            console.error('Error initializing environment:', error);
+        }
     }
     
     createSky() {
