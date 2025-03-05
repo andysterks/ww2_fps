@@ -48,8 +48,8 @@ class Game {
         // Initialize audio
         audioManager.init();
         
-        // Create a simple environment directly in the scene
-        this.createSimpleEnvironment();
+        // Create environment
+        this.environment = new Environment(this.scene);
         
         // Create player
         this.player = new PlayerController(this.camera, this.scene);
@@ -75,64 +75,13 @@ class Game {
     
     connectComponents() {
         // Give player access to collidable objects
-        if (this.collidableObjects && this.collidableObjects.length > 0) {
-            this.player.setCollidableObjects(this.collidableObjects);
-        } else if (this.environment) {
-            this.player.setCollidableObjects(this.environment.getCollidableObjects());
-        }
+        this.player.setCollidableObjects(this.environment.getCollidableObjects());
+        
+        // Pass player reference to weapon system
+        this.weaponSystem.setPlayer(this.player);
     }
     
-    createSimpleEnvironment() {
-        // Store collidable objects
-        this.collidableObjects = [];
-        
-        // Create a very simple ground plane
-        const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
-        const groundMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0x4CAF50 // Green
-        });
-        
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = -0.5; // Slightly below the player
-        this.scene.add(ground);
-        this.collidableObjects.push(ground);
-        
-        // Add a simple cube in front of the player
-        const cubeGeometry = new THREE.BoxGeometry(5, 5, 5);
-        const cubeMaterial = new THREE.MeshBasicMaterial({
-            color: 0xFF0000 // Red
-        });
-        
-        const cube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-        cube.position.set(0, 2, -10); // 10 units in front of player
-        this.scene.add(cube);
-        this.collidableObjects.push(cube);
-        
-        // Add a blue cube to the left
-        const blueCubeMaterial = new THREE.MeshBasicMaterial({
-            color: 0x0000FF // Blue
-        });
-        
-        const blueCube = new THREE.Mesh(cubeGeometry, blueCubeMaterial);
-        blueCube.position.set(-10, 2, -10); // Left and in front of player
-        this.scene.add(blueCube);
-        this.collidableObjects.push(blueCube);
-        
-        // Add a yellow cube to the right
-        const yellowCubeMaterial = new THREE.MeshBasicMaterial({
-            color: 0xFFFF00 // Yellow
-        });
-        
-        const yellowCube = new THREE.Mesh(cubeGeometry, yellowCubeMaterial);
-        yellowCube.position.set(10, 2, -10); // Right and in front of player
-        this.scene.add(yellowCube);
-        this.collidableObjects.push(yellowCube);
-        
-        // Add ambient light - very bright to ensure visibility
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
-        this.scene.add(ambientLight);
-    }
+
     
     setupEventListeners() {
         // Lock/unlock pointer
