@@ -4,7 +4,132 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WW2 FPS</title>
-    <link rel="stylesheet" href="./styles/main.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+
+        #game-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            text-shadow: 0 0 2px black;
+        }
+
+        #ammo {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 24px;
+            text-shadow: 0 0 2px black;
+        }
+
+        #health {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 24px;
+            text-shadow: 0 0 2px black;
+        }
+
+        #instructions {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 16px;
+            text-shadow: 0 0 2px black;
+            text-align: center;
+        }
+
+        #sound-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+
+        #audio-status {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        #scope-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.95) 45%);
+            display: none;
+        }
+
+        #scope-overlay .rear-sight {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 20px;
+            background: black;
+        }
+
+        #scope-overlay .rear-sight::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 2px;
+            background: black;
+        }
+    </style>
     <!-- Socket.io client library -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 </head>
@@ -22,6 +147,6 @@
         <div id="audio-status">Click anywhere to enable audio</div>
         <div id="debug-info" style="position: absolute; bottom: 50px; left: 20px; color: white; background: rgba(0,0,0,0.5); padding: 5px; font-size: 12px; display: none;"></div>
     </div>
-    <script type="module" src="./src/index.js"></script>
+    <script type="module" src="/src/index.js"></script>
 </body>
 </html>
