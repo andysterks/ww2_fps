@@ -185,35 +185,43 @@ class SimpleGame {
             depthTest: true
         });
         
-        // Create rifle body - make it visible again
+        // IMPORTANT: Create a separate group for the weapon body
+        // This will allow us to position the sights separately
+        const weaponBodyGroup = new THREE.Group();
+        
+        // Create rifle body - positioned lower to not block view
         const rifleBody = new THREE.Mesh(
             new THREE.BoxGeometry(0.06, 0.1, 0.9),
             metalMaterial.clone()
         );
-        rifleBody.position.set(0, -0.02, 0);
+        rifleBody.position.set(0, -0.05, 0);
         rifleBody.castShadow = true;
         rifleBody.receiveShadow = true;
         rifleBody.renderOrder = 1;
         
-        // Create rifle stock - position it properly
+        // Create rifle stock - positioned lower
         const rifleStock = new THREE.Mesh(
             new THREE.BoxGeometry(0.08, 0.15, 0.5),
             woodMaterial.clone()
         );
-        rifleStock.position.set(0, -0.03, 0.4);
+        rifleStock.position.set(0, -0.05, 0.4);
         rifleStock.castShadow = true;
         rifleStock.receiveShadow = true;
         rifleStock.renderOrder = 1;
         
-        // Create iron sights group
+        // Add body parts to the weapon body group
+        weaponBodyGroup.add(rifleBody);
+        weaponBodyGroup.add(rifleStock);
+        
+        // Create a separate group for iron sights
         const ironSightsGroup = new THREE.Group();
         
-        // Front sight post
+        // Front sight post - thin and tall
         const frontSightPost = new THREE.Mesh(
-            new THREE.BoxGeometry(0.003, 0.03, 0.003),
+            new THREE.BoxGeometry(0.003, 0.035, 0.003),
             blackMaterial.clone()
         );
-        frontSightPost.position.set(0, 0.09, -0.4);
+        frontSightPost.position.set(0, 0.095, -0.4);
         frontSightPost.renderOrder = 3;
         frontSightPost.castShadow = true;
         
@@ -245,7 +253,7 @@ class SimpleGame {
         rightWing.castShadow = true;
         
         // Create a proper rear sight assembly
-        // Main rear sight housing - make it visible
+        // Main rear sight housing
         const rearSightBase = new THREE.Mesh(
             new THREE.CylinderGeometry(0.02, 0.02, 0.04, 16),
             metalMaterial.clone()
@@ -255,34 +263,11 @@ class SimpleGame {
         rearSightBase.renderOrder = 2;
         rearSightBase.castShadow = true;
         
-        // Create a true hollow aperture using a ring geometry
-        // We'll create a custom ring geometry to ensure it's truly hollow
+        // Create the aperture ring
         const innerRadius = 0.006;
         const outerRadius = 0.01;
         const thetaSegments = 32;
         
-        // Create a hole in the rear sight
-        const holeGeometry = new THREE.CircleGeometry(innerRadius, thetaSegments);
-        const holeMaterial = new THREE.MeshBasicMaterial({
-            color: 0x000000,
-            transparent: true,
-            opacity: 0,
-            depthWrite: false,
-            depthTest: false,
-            side: THREE.DoubleSide
-        });
-        
-        const sightHole = new THREE.Mesh(holeGeometry, holeMaterial);
-        sightHole.position.set(0, 0.09, 0.1);
-        sightHole.rotation.x = Math.PI / 2;
-        sightHole.renderOrder = 1001;
-        
-        // Create a second hole on the other side
-        const backHole = sightHole.clone();
-        backHole.position.set(0, 0.09, 0.12);
-        backHole.renderOrder = 1001;
-        
-        // Create the aperture ring
         const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, thetaSegments);
         const apertureMaterial = new THREE.MeshBasicMaterial({
             color: 0x000000,
@@ -317,24 +302,6 @@ class SimpleGame {
         rightKnob.renderOrder = 2;
         rightKnob.castShadow = true;
         
-        // Create a sight line - a transparent cylinder that creates a "hole" through the weapon
-        const sightLineMaterial = new THREE.MeshBasicMaterial({
-            color: 0x000000,
-            transparent: true,
-            opacity: 0, // Completely invisible
-            depthWrite: false, // Don't write to depth buffer
-            depthTest: false, // Don't test against depth buffer
-            side: THREE.DoubleSide
-        });
-        
-        const sightLine = new THREE.Mesh(
-            new THREE.CylinderGeometry(innerRadius, innerRadius, 1.5, 16),
-            sightLineMaterial
-        );
-        sightLine.rotation.x = Math.PI / 2;
-        sightLine.position.set(0, 0.09, -0.15); // Position it to go through the weapon
-        sightLine.renderOrder = 2000; // Render after everything else
-        
         // Add sights to group
         ironSightsGroup.add(frontSightPost);
         ironSightsGroup.add(frontSightBase);
@@ -342,15 +309,11 @@ class SimpleGame {
         ironSightsGroup.add(rightWing);
         ironSightsGroup.add(rearSightBase);
         ironSightsGroup.add(rearSightAperture);
-        ironSightsGroup.add(sightHole);
-        ironSightsGroup.add(backHole);
         ironSightsGroup.add(leftKnob);
         ironSightsGroup.add(rightKnob);
-        ironSightsGroup.add(sightLine); // Add the sight line to the group
         
         // Add all parts to weapon group
-        weaponGroup.add(rifleBody);
-        weaponGroup.add(rifleStock);
+        weaponGroup.add(weaponBodyGroup);
         weaponGroup.add(ironSightsGroup);
         
         // Store reference to iron sights for toggling visibility
@@ -373,6 +336,7 @@ class SimpleGame {
         
         // Store weapon reference
         this.weapon = weaponGroup;
+        this.weaponBody = weaponBodyGroup;
         
         // Add aiming properties
         this.aimTransitionSpeed = 8.0;
@@ -675,25 +639,11 @@ class SimpleGame {
     toggleAim() {
         this.isAimingDownSights = !this.isAimingDownSights;
         
-        // Make rifle body and stock transparent when aiming
-        if (this.weapon) {
-            // First two children are rifle body and stock
-            const rifleBody = this.weapon.children[0];
-            const rifleStock = this.weapon.children[1];
-            
-            if (this.isAimingDownSights) {
-                // Make body and stock transparent when aiming
-                rifleBody.material.opacity = 0.0;
-                rifleBody.material.transparent = true;
-                rifleStock.material.opacity = 0.0;
-                rifleStock.material.transparent = true;
-            } else {
-                // Make body and stock opaque when not aiming
-                rifleBody.material.opacity = 1.0;
-                rifleBody.material.transparent = false;
-                rifleStock.material.opacity = 1.0;
-                rifleStock.material.transparent = false;
-            }
+        // When aiming, hide the weapon body but keep the sights visible
+        if (this.isAimingDownSights) {
+            this.weaponBody.visible = false;
+        } else {
+            this.weaponBody.visible = true;
         }
         
         const fovTransition = () => {
