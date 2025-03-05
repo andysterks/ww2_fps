@@ -179,138 +179,241 @@ class Player {
             // Materials
             console.log("Creating materials");
             const skinMaterial = new THREE.MeshLambertMaterial({ color: 0xd4b78f }); // Warmer skin tone
-            const uniformMaterial = new THREE.MeshLambertMaterial({ color: 0x4b5320 }); // Military olive green
-            const helmetMaterial = new THREE.MeshLambertMaterial({ color: 0x3a3a3a }); // Dark gray for helmet
+            const uniformMaterial = new THREE.MeshLambertMaterial({ color: 0x3b3c36 }); // Feldgrau (German field gray)
+            const helmetMaterial = new THREE.MeshLambertMaterial({ color: 0x2a2a2a }); // Dark gray for helmet
+            const leatherMaterial = new THREE.MeshLambertMaterial({ color: 0x342920 }); // Dark brown for leather
+            const blackMaterial = new THREE.MeshLambertMaterial({ color: 0x1a1a1a }); // Black for boots and equipment
             
-            // Head (more cube-like)
+            // Head (slightly more oval)
             console.log("Creating head");
             const head = new THREE.Mesh(
-                new THREE.BoxGeometry(0.4, 0.4, 0.4),
+                new THREE.BoxGeometry(0.35, 0.4, 0.35),
                 skinMaterial
             );
             head.position.y = 1.6;
             head.name = 'head';
             this.model.add(head);
             
-            // Helmet (simplified box shape)
+            // Helmet (more accurate Stahlhelm shape)
             console.log("Creating helmet");
-            const helmet = new THREE.Mesh(
+            const helmet = new THREE.Group();
+            
+            // Main helmet dome
+            const helmetDome = new THREE.Mesh(
                 new THREE.BoxGeometry(0.45, 0.25, 0.45),
                 helmetMaterial
             );
-            helmet.position.y = 1.8;
-            helmet.name = 'helmet';
-            this.model.add(helmet);
+            helmetDome.position.y = 1.8;
+            helmet.add(helmetDome);
             
-            // Helmet brim
+            // Helmet brim (wider and angled)
             const helmetBrim = new THREE.Mesh(
-                new THREE.BoxGeometry(0.5, 0.05, 0.5),
+                new THREE.BoxGeometry(0.55, 0.05, 0.55),
                 helmetMaterial
             );
             helmetBrim.position.y = 1.7;
-            helmetBrim.name = 'helmetBrim';
-            this.model.add(helmetBrim);
+            helmet.add(helmetBrim);
             
-            // Torso (taller and more rectangular)
-            const torso = new THREE.Mesh(
-                new THREE.BoxGeometry(0.6, 0.9, 0.3),
+            // Helmet neck guard (characteristic of Stahlhelm)
+            const neckGuard = new THREE.Mesh(
+                new THREE.BoxGeometry(0.5, 0.1, 0.2),
+                helmetMaterial
+            );
+            neckGuard.position.set(0, 1.7, 0.2);
+            helmet.add(neckGuard);
+            
+            this.model.add(helmet);
+            
+            // Torso (more detailed uniform)
+            const torso = new THREE.Group();
+            
+            // Main jacket
+            const jacket = new THREE.Mesh(
+                new THREE.BoxGeometry(0.6, 0.9, 0.35),
                 uniformMaterial
             );
-            torso.position.y = 1.1;
-            torso.name = 'torso';
-            this.model.add(torso);
+            jacket.position.y = 1.1;
+            torso.add(jacket);
+            
+            // Collar
+            const collar = new THREE.Mesh(
+                new THREE.BoxGeometry(0.65, 0.15, 0.4),
+                uniformMaterial
+            );
+            collar.position.y = 1.45;
+            torso.add(collar);
             
             // Belt
             const belt = new THREE.Mesh(
-                new THREE.BoxGeometry(0.65, 0.1, 0.35),
-                new THREE.MeshLambertMaterial({ color: 0x2d2d2d })
+                new THREE.BoxGeometry(0.65, 0.1, 0.4),
+                leatherMaterial
             );
             belt.position.y = 0.75;
-            belt.name = 'belt';
-            this.model.add(belt);
+            torso.add(belt);
             
-            // Left arm (thinner and more rectangular)
-            const leftArm = new THREE.Mesh(
-                new THREE.BoxGeometry(0.2, 0.6, 0.2),
+            // Equipment pouches
+            const leftPouch = new THREE.Mesh(
+                new THREE.BoxGeometry(0.15, 0.2, 0.15),
+                leatherMaterial
+            );
+            leftPouch.position.set(0.3, 0.75, 0.2);
+            torso.add(leftPouch);
+            
+            const rightPouch = new THREE.Mesh(
+                new THREE.BoxGeometry(0.15, 0.2, 0.15),
+                leatherMaterial
+            );
+            rightPouch.position.set(-0.3, 0.75, 0.2);
+            torso.add(rightPouch);
+            
+            this.model.add(torso);
+            
+            // Arms (with proper uniform sleeves)
+            const leftArm = new THREE.Group();
+            const leftArmUpper = new THREE.Mesh(
+                new THREE.BoxGeometry(0.2, 0.4, 0.2),
                 uniformMaterial
             );
-            leftArm.position.set(0.4, 1.1, 0);
+            leftArm.add(leftArmUpper);
+            
+            const leftArmLower = new THREE.Mesh(
+                new THREE.BoxGeometry(0.18, 0.4, 0.18),
+                uniformMaterial
+            );
+            leftArmLower.position.y = -0.4;
+            leftArm.add(leftArmLower);
+            
+            leftArm.position.set(0.4, 1.3, 0);
             leftArm.name = 'leftArm';
             this.model.add(leftArm);
             
-            // Right arm
-            const rightArm = new THREE.Mesh(
-                new THREE.BoxGeometry(0.2, 0.6, 0.2),
+            const rightArm = new THREE.Group();
+            const rightArmUpper = new THREE.Mesh(
+                new THREE.BoxGeometry(0.2, 0.4, 0.2),
                 uniformMaterial
             );
-            rightArm.position.set(-0.4, 1.1, 0);
+            rightArm.add(rightArmUpper);
+            
+            const rightArmLower = new THREE.Mesh(
+                new THREE.BoxGeometry(0.18, 0.4, 0.18),
+                uniformMaterial
+            );
+            rightArmLower.position.y = -0.4;
+            rightArm.add(rightArmLower);
+            
+            rightArm.position.set(-0.4, 1.3, 0);
             rightArm.name = 'rightArm';
             this.model.add(rightArm);
             
-            // Left leg (thinner)
-            const leftLeg = new THREE.Mesh(
-                new THREE.BoxGeometry(0.25, 0.7, 0.25),
+            // Legs (with proper uniform trousers and boots)
+            const leftLeg = new THREE.Group();
+            const leftThigh = new THREE.Mesh(
+                new THREE.BoxGeometry(0.25, 0.4, 0.25),
                 uniformMaterial
             );
-            leftLeg.position.set(0.15, 0.35, 0);
+            leftLeg.add(leftThigh);
+            
+            const leftCalf = new THREE.Mesh(
+                new THREE.BoxGeometry(0.23, 0.4, 0.23),
+                uniformMaterial
+            );
+            leftCalf.position.y = -0.4;
+            leftLeg.add(leftCalf);
+            
+            // Boot
+            const leftBoot = new THREE.Mesh(
+                new THREE.BoxGeometry(0.25, 0.15, 0.3),
+                blackMaterial
+            );
+            leftBoot.position.y = -0.65;
+            leftLeg.add(leftBoot);
+            
+            leftLeg.position.set(0.15, 0.65, 0);
             leftLeg.name = 'leftLeg';
             this.model.add(leftLeg);
             
-            // Right leg
-            const rightLeg = new THREE.Mesh(
-                new THREE.BoxGeometry(0.25, 0.7, 0.25),
+            const rightLeg = new THREE.Group();
+            const rightThigh = new THREE.Mesh(
+                new THREE.BoxGeometry(0.25, 0.4, 0.25),
                 uniformMaterial
             );
-            rightLeg.position.set(-0.15, 0.35, 0);
+            rightLeg.add(rightThigh);
+            
+            const rightCalf = new THREE.Mesh(
+                new THREE.BoxGeometry(0.23, 0.4, 0.23),
+                uniformMaterial
+            );
+            rightCalf.position.y = -0.4;
+            rightLeg.add(rightCalf);
+            
+            // Boot
+            const rightBoot = new THREE.Mesh(
+                new THREE.BoxGeometry(0.25, 0.15, 0.3),
+                blackMaterial
+            );
+            rightBoot.position.y = -0.65;
+            rightLeg.add(rightBoot);
+            
+            rightLeg.position.set(-0.15, 0.65, 0);
             rightLeg.name = 'rightLeg';
             this.model.add(rightLeg);
             
-            // Add a simple rifle (Kar98k style)
+            // Add a detailed Kar98k rifle
             const rifle = new THREE.Group();
             rifle.name = 'rifle';
             
-            // Rifle stock (wooden part)
+            // Wooden stock
             const rifleStock = new THREE.Mesh(
                 new THREE.BoxGeometry(0.12, 0.8, 0.08),
                 new THREE.MeshLambertMaterial({ color: 0x4a3520 }) // Dark wood color
             );
             rifle.add(rifleStock);
             
-            // Rifle barrel (metal part)
+            // Metal barrel
             const rifleBarrel = new THREE.Mesh(
                 new THREE.BoxGeometry(0.08, 0.9, 0.08),
                 new THREE.MeshLambertMaterial({ color: 0x2a2a2a }) // Dark metal
             );
-            rifleBarrel.position.y = 0.85; // Position barrel above stock
+            rifleBarrel.position.y = 0.85;
             rifle.add(rifleBarrel);
             
-            // Rifle bolt mechanism
+            // Bolt mechanism
             const rifleBolt = new THREE.Mesh(
                 new THREE.BoxGeometry(0.12, 0.15, 0.05),
-                new THREE.MeshLambertMaterial({ color: 0x1a1a1a }) // Darker metal for bolt
+                new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
             );
-            rifleBolt.position.set(0.06, 0.7, 0); // Position on right side
+            rifleBolt.position.set(0.06, 0.7, 0);
             rifle.add(rifleBolt);
             
-            // Position the rifle diagonally across the body
-            rifle.rotation.z = -Math.PI / 8; // Tilt rifle diagonally
-            rifle.rotation.y = Math.PI / 16; // Slight rotation towards body
-            rifle.position.set(-0.2, 1.0, -0.1); // Position across chest, slightly forward
+            // Front sight
+            const frontSight = new THREE.Mesh(
+                new THREE.BoxGeometry(0.02, 0.08, 0.02),
+                new THREE.MeshLambertMaterial({ color: 0x1a1a1a })
+            );
+            frontSight.position.set(0, 1.25, 0);
+            rifle.add(frontSight);
+            
+            // Position rifle diagonally across body
+            rifle.rotation.z = -Math.PI / 8;
+            rifle.rotation.y = Math.PI / 16;
+            rifle.position.set(-0.2, 1.0, -0.1);
             this.model.add(rifle);
             
-            // Adjust arm positions to hold rifle
-            const leftArmGroup = this.model.getObjectByName('leftArm');
-            const rightArmGroup = this.model.getObjectByName('rightArm');
+            // Add a gas mask container (characteristic of German soldiers)
+            const gasMaskContainer = new THREE.Mesh(
+                new THREE.BoxGeometry(0.2, 0.25, 0.15),
+                leatherMaterial
+            );
+            gasMaskContainer.position.set(0.35, 0.9, 0.2);
+            this.model.add(gasMaskContainer);
             
-            if (leftArmGroup) {
-                leftArmGroup.position.set(0.3, 1.1, -0.1); // Move left arm forward to hold barrel
-                leftArmGroup.rotation.x = -Math.PI / 8; // Angle forward
-            }
-            
-            if (rightArmGroup) {
-                rightArmGroup.position.set(-0.25, 1.1, -0.1); // Position right arm to hold stock
-                rightArmGroup.rotation.x = -Math.PI / 8; // Angle forward
-            }
+            // Add bread bag
+            const breadBag = new THREE.Mesh(
+                new THREE.BoxGeometry(0.25, 0.2, 0.15),
+                new THREE.MeshLambertMaterial({ color: 0x5c4033 })
+            );
+            breadBag.position.set(-0.35, 0.9, 0.2);
+            this.model.add(breadBag);
             
             // Add the model to the scene
             if (this.game && this.game.scene) {
