@@ -35,8 +35,18 @@ class SimpleGame {
         this.playerSpeed = 10.0;
         this.sprintMultiplier = 1.5;
         
+        // Weapon state
+        this.bulletCount = 8;
+        this.maxBullets = 8;
+        this.canShoot = true;
+        this.isReloading = false;
+        this.isAiming = false;
+        
         // Audio state
         this.muted = false;
+        
+        // Debug mode
+        this.debugMode = true; // Set to true to enable debug info
         
         // Set initial position
         this.camera.position.set(0, 1.8, 5);
@@ -159,12 +169,6 @@ class SimpleGame {
         this.camera.add(weaponGroup);
         this.weapon = weaponGroup;
         
-        // Weapon state
-        this.bulletCount = 8;
-        this.maxBullets = 8;
-        this.canShoot = true;
-        this.isReloading = false;
-        
         // Update ammo counter
         this.updateAmmoCounter();
     }
@@ -174,7 +178,9 @@ class SimpleGame {
         document.addEventListener('click', () => {
             if (!this.controls.isLocked) {
                 this.controls.lock();
-            } else if (this.canShoot && !this.isReloading) {
+            } else {
+                // Always attempt to shoot when clicked
+                console.log('Click detected, attempting to shoot');
                 this.shoot();
             }
         });
@@ -321,6 +327,11 @@ class SimpleGame {
                 this.updateWeaponSway();
             }
             
+            // Update debug info
+            if (this.debugMode) {
+                this.updateDebugInfo();
+            }
+            
             // Store current time for next frame
             this.prevTime = time;
         }
@@ -329,7 +340,25 @@ class SimpleGame {
         this.renderer.render(this.scene, this.camera);
     }
     
+    updateDebugInfo() {
+        const debugInfo = document.getElementById('debug-info');
+        if (debugInfo) {
+            debugInfo.style.display = 'block';
+            debugInfo.innerHTML = `
+                <div>Bullets: ${this.bulletCount}/${this.maxBullets}</div>
+                <div>Can Shoot: ${this.canShoot}</div>
+                <div>Is Reloading: ${this.isReloading}</div>
+                <div>Is Aiming: ${this.isAiming}</div>
+                <div>Position: ${this.camera.position.x.toFixed(2)}, ${this.camera.position.y.toFixed(2)}, ${this.camera.position.z.toFixed(2)}</div>
+                <div>Movement: F:${this.moveForward} B:${this.moveBackward} L:${this.moveLeft} R:${this.moveRight}</div>
+            `;
+        }
+    }
+    
     shoot() {
+        // Debug the current state
+        console.log(`Shooting - Bullets: ${this.bulletCount}, CanShoot: ${this.canShoot}, IsReloading: ${this.isReloading}`);
+        
         if (this.bulletCount <= 0 || !this.canShoot || this.isReloading) {
             // Play empty click sound
             if (this.bulletCount <= 0) {
@@ -349,6 +378,7 @@ class SimpleGame {
         
         // Decrease bullet count
         this.bulletCount--;
+        console.log(`Bullets remaining: ${this.bulletCount}`);
         
         // Update ammo counter
         this.updateAmmoCounter();
@@ -392,6 +422,7 @@ class SimpleGame {
         // Reset shooting ability after delay
         setTimeout(() => {
             this.canShoot = true;
+            console.log('Ready to shoot again');
         }, 200);
     }
     
