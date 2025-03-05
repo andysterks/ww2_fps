@@ -259,8 +259,30 @@ export class PlayerController {
             isMoving: this.isMoving(),
             isSprinting: this.isSprinting,
             isCrouching: this.isCrouching,
-            isJumping: this.isJumping
+            isJumping: this.isJumping,
+            moveForward: this.moveForward,
+            moveBackward: this.moveBackward,
+            moveLeft: this.moveLeft,
+            moveRight: this.moveRight
         };
+    }
+
+    setPosition(position) {
+        this.cameraHolder.position.copy(position);
+    }
+
+    setRotation(rotation) {
+        this.cameraHolder.rotation.copy(rotation);
+    }
+
+    setMovementState(state) {
+        this.moveForward = state.moveForward;
+        this.moveBackward = state.moveBackward;
+        this.moveLeft = state.moveLeft;
+        this.moveRight = state.moveRight;
+        this.isSprinting = state.isSprinting;
+        this.isCrouching = state.isCrouching;
+        this.isJumping = state.isJumping;
     }
 }
 
