@@ -1,8 +1,13 @@
 import * as THREE from 'three';
-import { audioManager } from './audio.js';
-import PlayerController from './components/player/PlayerController';
-import WeaponSystem from './components/weapons/WeaponSystem';
-import Environment from './components/environment/Environment';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';
+import { SSAOPass } from 'three/examples/jsm/postprocessing/SSAOPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { PlayerController } from './components/player/PlayerController';
+import { WeaponSystem } from './components/weapons/WeaponSystem';
+import { Environment } from './components/environment/Environment';
+import { AudioManager } from './audio/AudioManager';
 import GameUI from './components/ui/GameUI';
 
 /**
@@ -10,45 +15,87 @@ import GameUI from './components/ui/GameUI';
  */
 class Game {
     constructor() {
-        // Core Three.js components
+        // Core Three.js setup
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        
-        // Configure renderer
+        this.renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            powerPreference: "high-performance",
+            stencil: false
+        });
+
+        // Advanced renderer setup
         this.setupRenderer();
         
-        // Game components
+        // Post-processing
+        this.composer = null;
+        this.setupPostProcessing();
+
+        // Game systems
+        this.audioManager = new AudioManager();
         this.player = null;
         this.weaponSystem = null;
         this.environment = null;
         this.ui = null;
-        
+
         // Game state
         this.isRunning = false;
-        this.prevTime = performance.now();
-        
-        // Initialize game
+        this.lastFrameTime = performance.now();
+        this.frameCount = 0;
+
+        // Initialize
         this.init();
     }
-    
+
     setupRenderer() {
-        // Configure renderer with simpler settings
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.setClearColor(0x87CEEB); // Set sky color directly on renderer
-        
-        // Set renderer size
+        // Configure renderer for better quality
+        this.renderer.setPixelRatio(window.devicePixelRatio);
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        
-        // Add renderer to DOM
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.outputEncoding = THREE.sRGBEncoding;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.0;
+        this.renderer.physicallyCorrectLights = true;
+
+        // Add to DOM
         document.getElementById('game-container').appendChild(this.renderer.domElement);
     }
-    
+
+    setupPostProcessing() {
+        // Create composer
+        this.composer = new EffectComposer(this.renderer);
+
+        // Add render pass
+        const renderPass = new RenderPass(this.scene, this.camera);
+        this.composer.addPass(renderPass);
+
+        // Add SSAO for better depth perception
+        const ssaoPass = new SSAOPass(this.scene, this.camera, window.innerWidth, window.innerHeight);
+        ssaoPass.kernelRadius = 16;
+        ssaoPass.minDistance = 0.005;
+        ssaoPass.maxDistance = 0.1;
+        this.composer.addPass(ssaoPass);
+
+        // Add subtle bloom for better lighting
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            0.5,  // strength
+            0.4,  // radius
+            0.85  // threshold
+        );
+        this.composer.addPass(bloomPass);
+
+        // Add SMAA for better anti-aliasing
+        const smaaPass = new SMAAPass(window.innerWidth, window.innerHeight);
+        this.composer.addPass(smaaPass);
+    }
+
     init() {
         // Initialize audio
-        audioManager.init();
-        
-        // Create environment
+        this.audioManager.init();
+
+        // Create environment first
         this.environment = new Environment(this.scene);
         
         // Create player
@@ -56,143 +103,65 @@ class Game {
         
         // Create weapon system
         this.weaponSystem = new WeaponSystem(this.camera, this.scene);
-        
+
         // Create UI
         this.ui = new GameUI();
-        
-        // Connect components
-        this.connectComponents();
-        
+
         // Set up event listeners
         this.setupEventListeners();
-        
+
         // Start game loop
         this.animate();
-        
-        // Show controls message
-        this.ui.showGameStartMessage();
     }
-    
-    connectComponents() {
-        // Give player access to collidable objects
-        this.player.setCollidableObjects(this.environment.getCollidableObjects());
-        
-        // Pass player reference to weapon system
-        this.weaponSystem.setPlayer(this.player);
-    }
-    
 
-    
     setupEventListeners() {
-        // Lock/unlock pointer
-        document.addEventListener('click', (event) => {
-            if (!this.player.getControls().isLocked) {
-                this.player.getControls().lock();
-                this.isRunning = true;
-            } else if (this.weaponSystem.canShoot) {
-                this.shoot();
-            }
-        });
-        
-        // Handle key presses
-        document.addEventListener('keydown', (event) => this.handleKeyDown(event));
-        
         // Handle window resize
-        window.addEventListener('resize', () => this.onWindowResize());
-        
-        // Handle pointer lock change
-        document.addEventListener('pointerlockchange', () => {
-            if (document.pointerLockElement === document.body) {
-                this.isRunning = true;
-            } else {
-                this.isRunning = false;
+        window.addEventListener('resize', () => this.onWindowResize(), false);
+
+        // Handle pointer lock
+        document.addEventListener('click', () => {
+            if (!this.isRunning) {
+                this.player.controls.lock();
             }
         });
-    }
-    
-    handleKeyDown(event) {
-        switch (event.code) {
-            case 'KeyF':
-                // Toggle aim
-                const isAiming = this.weaponSystem.toggleAim();
-                this.ui.updateCrosshair(isAiming);
-                break;
-                
-            case 'KeyR':
-                // Reload weapon
-                this.weaponSystem.reload();
-                break;
-                
-            case 'KeyC':
-                // Show controls
-                this.ui.showControls();
-                break;
-        }
-    }
-    
-    shoot() {
-        // Attempt to shoot
-        const didShoot = this.weaponSystem.shoot();
-        
-        if (didShoot) {
-            // Update ammo counter
-            this.ui.updateAmmoCounter(this.weaponSystem.getBulletCount());
-        }
-    }
-    
-    animate() {
-        // Request next frame
-        requestAnimationFrame(() => this.animate());
-        
-        // Skip update if game is paused
-        if (!this.isRunning) return;
-        
-        // Update player
-        this.player.update(this.weaponSystem.isAimingDownSights());
-        
-        // Update weapon system
-        this.weaponSystem.update({
-            moveForward: this.player.moveForward,
-            moveBackward: this.player.moveBackward,
-            moveLeft: this.player.moveLeft,
-            moveRight: this.player.moveRight,
-            isSprinting: this.player.isSprinting
+
+        this.player.controls.addEventListener('lock', () => {
+            this.isRunning = true;
+            document.getElementById('crosshair').style.display = 'block';
         });
-        
-        // Update UI
-        this.ui.updateAmmoCounter(this.weaponSystem.getBulletCount());
-        
-        // Render scenes
-        this.render();
+
+        this.player.controls.addEventListener('unlock', () => {
+            this.isRunning = false;
+            document.getElementById('crosshair').style.display = 'none';
+        });
     }
-    
-    render() {
-        // Clear renderer
-        this.renderer.clear();
-        
-        // Render main scene
-        this.renderer.render(this.scene, this.camera);
-        
-        // Render weapon on top
+
+    animate() {
+        requestAnimationFrame(() => this.animate());
+
+        const currentTime = performance.now();
+        const deltaTime = (currentTime - this.lastFrameTime) / 1000;
+        this.lastFrameTime = currentTime;
+
         if (this.isRunning) {
-            this.renderer.clearDepth();
-            this.renderer.render(
-                this.weaponSystem.getWeaponScene(),
-                this.weaponSystem.getWeaponCamera()
-            );
+            // Update game systems
+            this.player.update(deltaTime);
+            this.weaponSystem.update(deltaTime);
+            this.environment.update(deltaTime);
+
+            // Render scene with post-processing
+            this.composer.render();
         }
     }
-    
+
     onWindowResize() {
-        // Update camera aspect ratio
+        // Update camera
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
-        
-        // Update weapon camera
-        this.weaponSystem.onWindowResize();
-        
-        // Update renderer size
+
+        // Update renderer and composer
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.composer.setSize(window.innerWidth, window.innerHeight);
     }
 }
 
