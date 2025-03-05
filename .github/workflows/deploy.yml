@@ -29,6 +29,26 @@ jobs:
           username: ${{ secrets.DROPLET_USERNAME }}
           key: ${{ secrets.DROPLET_SSH_KEY }}
           script: |
-            # Make the deploy script executable and run it
+            # Create directory if it doesn't exist
+            sudo mkdir -p /var/www/ww2-fps
+            sudo chown -R $USER:$USER /var/www/ww2-fps
+
+            # Check if this is first deployment
+            if [ ! -d "/var/www/ww2-fps/.git" ]; then
+              # First time setup
+              cd /var/www/ww2-fps
+              git clone https://${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }} .
+              npm install -g pm2
+              npm install
+            else
+              # Subsequent deployments
+              cd /var/www/ww2-fps
+              git fetch origin main
+              git reset --hard origin/main
+            fi
+
+            # Make deploy script executable
             chmod +x /var/www/ww2-fps/deploy.sh
-            /var/www/ww2-fps/deploy.sh 
+            
+            # Run deployment script
+            bash /var/www/ww2-fps/deploy.sh 
