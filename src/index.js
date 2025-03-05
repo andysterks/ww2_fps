@@ -1129,9 +1129,12 @@ class SimpleGame {
             const time = performance.now();
             const delta = (time - this.prevTime) / 1000; // Convert to seconds
             
+            // Calculate the exact distance the static player would move this frame
+            const staticPlayerDistance = delta * this.playerSpeed;
+            
             // Update velocity with friction - reduced friction for slower deceleration
-            this.velocity.x -= this.velocity.x * 5.0 * delta; // Reduced from 10.0
-            this.velocity.z -= this.velocity.z * 5.0 * delta; // Reduced from 10.0
+            this.velocity.x -= this.velocity.x * 3.0 * delta; // Further reduced from 5.0
+            this.velocity.z -= this.velocity.z * 3.0 * delta; // Further reduced from 5.0
             
             // Set movement direction
             this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
@@ -1144,12 +1147,26 @@ class SimpleGame {
             // Apply a scaling factor to match the static player's movement speed
             // The static player moves at exactly delta * playerSpeed
             // We need to scale our movement to match that pace
-            const scalingFactor = 0.1; // Further reduced to better match static player speed
+            const scalingFactor = 0.05; // Further reduced from 0.1 to better match static player speed
             const moveSpeed = this.playerSpeed * speedMultiplier * delta * scalingFactor;
             
             // Apply movement to velocity
             if (this.moveForward || this.moveBackward) this.velocity.z -= this.direction.z * moveSpeed;
             if (this.moveLeft || this.moveRight) this.velocity.x -= this.direction.x * moveSpeed;
+            
+            // Calculate the magnitude of player movement this frame
+            const playerMoveMagnitude = Math.sqrt(
+                (this.velocity.x * this.velocity.x) + 
+                (this.velocity.z * this.velocity.z)
+            );
+            
+            // If player is moving and the speeds don't match, adjust velocity to match static player
+            if (playerMoveMagnitude > 0 && Math.abs(playerMoveMagnitude - staticPlayerDistance) > 0.001) {
+                // Scale the velocity to match the static player's distance
+                const scaleFactor = staticPlayerDistance / playerMoveMagnitude;
+                this.velocity.x *= scaleFactor * 0.5; // Apply 50% of the correction
+                this.velocity.z *= scaleFactor * 0.5; // Apply 50% of the correction
+            }
             
             // Move the player
             this.controls.moveRight(-this.velocity.x);
@@ -1232,6 +1249,10 @@ class SimpleGame {
             // Calculate static player speed
             const staticPlayerSpeed = this.playerSpeed;
             
+            // Current scaling factor and friction values
+            const scalingFactor = 0.05;
+            const friction = 3.0;
+            
             debugInfo.innerHTML = `
                 <div>Bullets: ${this.bulletCount}/${this.maxBullets}</div>
                 <div>Can Shoot: ${this.canShoot}</div>
@@ -1242,6 +1263,7 @@ class SimpleGame {
                 <div>Player Speed: ${this.playerSpeed.toFixed(1)} (Sprint: ${this.isSprinting ? 'ON' : 'OFF'})</div>
                 <div>Player Velocity: ${playerVelocityMagnitude.toFixed(3)}</div>
                 <div>Static Player Speed: ${staticPlayerSpeed.toFixed(3)}</div>
+                <div>Speed Settings: Scale=${scalingFactor}, Friction=${friction}</div>
             `;
         }
     }
@@ -2080,11 +2102,15 @@ class SimpleGame {
         // The static player moves at exactly delta * playerSpeed
         // We need to adjust our scaling factor to match that pace
         
-        // Reset to default values
+        // Reset to default values for optimal speed matching
         this.playerSpeed = 2.0;
         
-        // Add a keyboard shortcut for this method
+        // Reset velocity to prevent lingering momentum
+        this.velocity.x = 0;
+        this.velocity.z = 0;
+        
         console.log("Player speeds matched. Both player and static player now move at the same speed.");
+        console.log("Using playerSpeed: 2.0, scalingFactor: 0.05, friction: 3.0");
         
         return true;
     }
