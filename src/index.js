@@ -69,82 +69,237 @@ class SimpleGame {
     }
     
     createEnvironment() {
-        // Set sky color
-        this.scene.background = new THREE.Color(0x87CEEB);
-        
-        // Create a ground plane
-        const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
-        const groundMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x4CAF50, // Green
-            side: THREE.DoubleSide,
-            roughness: 0.8,
-            metalness: 0.2
-        });
-        
+        // Create ground
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x4CAF50 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = 0;
+        ground.receiveShadow = true;
         this.scene.add(ground);
         
-        // Create a street
-        const streetGeometry = new THREE.PlaneGeometry(10, 1000);
-        const streetMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x444444, // Dark gray
-            side: THREE.DoubleSide,
-            roughness: 0.9,
-            metalness: 0.1
-        });
+        // Create road
+        const roadGeometry = new THREE.PlaneGeometry(10, 100);
+        const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        const road = new THREE.Mesh(roadGeometry, roadMaterial);
+        road.rotation.x = -Math.PI / 2;
+        road.position.y = 0.01;
+        road.receiveShadow = true;
+        this.scene.add(road);
         
-        const street = new THREE.Mesh(streetGeometry, streetMaterial);
-        street.rotation.x = -Math.PI / 2;
-        street.position.y = 0.01; // Slightly above ground
-        this.scene.add(street);
+        // Add some buildings
+        this.addBuilding(0x8B0000, -15, 1, -20); // Dark red building
+        this.addBuilding(0xFF0000, -15, 1, 0); // Red building
+        this.addBuilding(0x0000FF, 15, 1, -20); // Blue building
+        this.addBuilding(0xFFFF00, 0, 1, -40); // Yellow building
         
-        // Add buildings with standard materials
-        this.addBuilding(0xFF0000, -15, 0, -20); // Red building
-        this.addBuilding(0x0000FF, 15, 0, -20);  // Blue building
-        this.addBuilding(0xFFFF00, 0, 0, -40);   // Yellow building
+        // Add a static player model (LEGO-like German soldier)
+        this.createStaticPlayerModel(0, 0, -15);
         
-        // Enhanced lighting setup
-        // Ambient light for base illumination
-        const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.5);
+        // Add ambient light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         this.scene.add(ambientLight);
         
-        // Directional light for sun-like lighting
-        const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.0);
-        directionalLight.position.set(100, 100, 0);
+        // Add directional light (sun)
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(50, 50, 0);
         directionalLight.castShadow = true;
-        this.scene.add(directionalLight);
-        
-        // Enable shadow mapping
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        
-        // Configure shadow properties
         directionalLight.shadow.mapSize.width = 2048;
         directionalLight.shadow.mapSize.height = 2048;
         directionalLight.shadow.camera.near = 0.5;
         directionalLight.shadow.camera.far = 500;
-        
-        // Make objects cast and receive shadows
-        ground.receiveShadow = true;
-        street.receiveShadow = true;
+        directionalLight.shadow.camera.left = -50;
+        directionalLight.shadow.camera.right = 50;
+        directionalLight.shadow.camera.top = 50;
+        directionalLight.shadow.camera.bottom = -50;
+        this.scene.add(directionalLight);
     }
     
     addBuilding(color, x, y, z) {
-        const buildingGeometry = new THREE.BoxGeometry(10, 10, 10);
+        // Create building group
+        const buildingGroup = new THREE.Group();
+        
+        // Main building structure
+        const height = 5 + Math.random() * 3; // Random height between 5-8
+        const width = 6 + Math.random() * 2;
+        const depth = 6 + Math.random() * 2;
+        
+        const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
         const buildingMaterial = new THREE.MeshStandardMaterial({ 
             color: color,
-            roughness: 0.7,
-            metalness: 0.3
+            roughness: 0.9,
+            metalness: 0.1
         });
         
         const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
-        building.position.set(x, y + 5, z);
+        building.position.set(0, height/2, 0);
         building.castShadow = true;
         building.receiveShadow = true;
         
-        this.scene.add(building);
+        // Add damage to buildings (holes and cracks)
+        if (Math.random() > 0.3) { // 70% chance of damage
+            // Create a hole in the building (simulating bomb damage)
+            const holeSize = 1 + Math.random() * 2;
+            const holeGeometry = new THREE.SphereGeometry(holeSize, 8, 8);
+            const holeMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x222222,
+                roughness: 1.0,
+                metalness: 0.0
+            });
+            
+            const hole = new THREE.Mesh(holeGeometry, holeMaterial);
+            
+            // Random position on the building
+            const side = Math.floor(Math.random() * 4); // 0-3 for different sides
+            const xPos = (Math.random() - 0.5) * width * 0.8;
+            const yPos = (Math.random() * 0.6 + 0.2) * height; // Middle 60% of height
+            const zPos = (Math.random() - 0.5) * depth * 0.8;
+            
+            switch(side) {
+                case 0: // Front
+                    hole.position.set(xPos, yPos, depth/2);
+                    break;
+                case 1: // Back
+                    hole.position.set(xPos, yPos, -depth/2);
+                    break;
+                case 2: // Left
+                    hole.position.set(-width/2, yPos, zPos);
+                    break;
+                case 3: // Right
+                    hole.position.set(width/2, yPos, zPos);
+                    break;
+            }
+            
+            buildingGroup.add(hole);
+        }
+        
+        // Add windows
+        const windowMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x87CEFA, 
+            roughness: 0.3,
+            metalness: 0.8
+        });
+        
+        // Front and back windows
+        const windowRows = Math.floor(height / 2);
+        const windowCols = Math.floor(width / 2);
+        
+        for (let row = 0; row < windowRows; row++) {
+            for (let col = 0; col < windowCols; col++) {
+                // Skip some windows randomly to create variation
+                if (Math.random() < 0.3) continue;
+                
+                const windowGeometry = new THREE.BoxGeometry(0.8, 1.2, 0.1);
+                
+                // Front windows
+                const frontWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+                frontWindow.position.set(
+                    (col * 2 - (windowCols-1)) * (width/(windowCols*2)),
+                    row * 2 + 1,
+                    depth/2 + 0.05
+                );
+                buildingGroup.add(frontWindow);
+                
+                // Back windows
+                const backWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+                backWindow.position.set(
+                    (col * 2 - (windowCols-1)) * (width/(windowCols*2)),
+                    row * 2 + 1,
+                    -depth/2 - 0.05
+                );
+                buildingGroup.add(backWindow);
+                
+                // Randomly break some windows (WW2 damage)
+                if (Math.random() < 0.4) {
+                    frontWindow.material = new THREE.MeshStandardMaterial({ 
+                        color: 0x222222, 
+                        roughness: 1.0,
+                        metalness: 0.0
+                    });
+                }
+                
+                if (Math.random() < 0.4) {
+                    backWindow.material = new THREE.MeshStandardMaterial({ 
+                        color: 0x222222, 
+                        roughness: 1.0,
+                        metalness: 0.0
+                    });
+                }
+            }
+        }
+        
+        // Side windows
+        const sideWindowRows = Math.floor(height / 2);
+        const sideWindowCols = Math.floor(depth / 2);
+        
+        for (let row = 0; row < sideWindowRows; row++) {
+            for (let col = 0; col < sideWindowCols; col++) {
+                // Skip some windows randomly
+                if (Math.random() < 0.3) continue;
+                
+                const windowGeometry = new THREE.BoxGeometry(0.1, 1.2, 0.8);
+                
+                // Left side windows
+                const leftWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+                leftWindow.position.set(
+                    -width/2 - 0.05,
+                    row * 2 + 1,
+                    (col * 2 - (sideWindowCols-1)) * (depth/(sideWindowCols*2))
+                );
+                buildingGroup.add(leftWindow);
+                
+                // Right side windows
+                const rightWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+                rightWindow.position.set(
+                    width/2 + 0.05,
+                    row * 2 + 1,
+                    (col * 2 - (sideWindowCols-1)) * (depth/(sideWindowCols*2))
+                );
+                buildingGroup.add(rightWindow);
+                
+                // Randomly break some windows
+                if (Math.random() < 0.4) {
+                    leftWindow.material = new THREE.MeshStandardMaterial({ 
+                        color: 0x222222, 
+                        roughness: 1.0,
+                        metalness: 0.0
+                    });
+                }
+                
+                if (Math.random() < 0.4) {
+                    rightWindow.material = new THREE.MeshStandardMaterial({ 
+                        color: 0x222222, 
+                        roughness: 1.0,
+                        metalness: 0.0
+                    });
+                }
+            }
+        }
+        
+        // Add a simple roof
+        const roofGeometry = new THREE.BoxGeometry(width + 0.5, 0.3, depth + 0.5);
+        const roofMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x333333,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+        
+        const roof = new THREE.Mesh(roofGeometry, roofMaterial);
+        roof.position.set(0, height + 0.15, 0);
+        roof.castShadow = true;
+        roof.receiveShadow = true;
+        buildingGroup.add(roof);
+        
+        // Add the main building to the group
+        buildingGroup.add(building);
+        
+        // Position the building group
+        buildingGroup.position.set(x, y, z);
+        
+        // Add to scene
+        this.scene.add(buildingGroup);
+        
+        return buildingGroup;
     }
     
     createWeapon() {
@@ -838,5 +993,158 @@ class SimpleGame {
         this.weapon.rotation.x += (targetRotation.x - this.weapon.rotation.x) * this.aimTransitionSpeed * 0.016;
         this.weapon.rotation.y += (targetRotation.y - this.weapon.rotation.y) * this.aimTransitionSpeed * 0.016;
         this.weapon.rotation.z += (targetRotation.z - this.weapon.rotation.z) * this.aimTransitionSpeed * 0.016;
+    }
+    
+    createStaticPlayerModel(x, y, z) {
+        // Create a group for the player model
+        const playerGroup = new THREE.Group();
+        
+        // Define materials
+        const skinMaterial = new THREE.MeshStandardMaterial({ color: 0xE0AC69 }); // Light skin tone
+        const helmetMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 }); // Dark gray
+        const uniformMaterial = new THREE.MeshStandardMaterial({ color: 0x4D4D4D }); // Gray
+        const beltMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 }); // Black
+        
+        // Create head
+        const headGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+        const head = new THREE.Mesh(headGeometry, skinMaterial);
+        head.position.y = 1.6;
+        head.castShadow = true;
+        
+        // Create helmet
+        const helmetGeometry = new THREE.BoxGeometry(0.5, 0.2, 0.5);
+        const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
+        helmet.position.y = 1.8;
+        helmet.castShadow = true;
+        
+        // Create helmet sides
+        const helmetSideGeometry = new THREE.BoxGeometry(0.55, 0.1, 0.55);
+        const helmetSide = new THREE.Mesh(helmetSideGeometry, helmetMaterial);
+        helmetSide.position.y = 1.7;
+        helmetSide.castShadow = true;
+        
+        // Create torso
+        const torsoGeometry = new THREE.BoxGeometry(0.6, 0.6, 0.4);
+        const torso = new THREE.Mesh(torsoGeometry, uniformMaterial);
+        torso.position.y = 1.1;
+        torso.castShadow = true;
+        
+        // Create belt
+        const beltGeometry = new THREE.BoxGeometry(0.65, 0.1, 0.45);
+        const belt = new THREE.Mesh(beltGeometry, beltMaterial);
+        belt.position.y = 0.8;
+        belt.castShadow = true;
+        
+        // Create legs
+        const legGeometry = new THREE.BoxGeometry(0.25, 0.6, 0.25);
+        
+        const leftLeg = new THREE.Mesh(legGeometry, uniformMaterial);
+        leftLeg.position.set(-0.15, 0.4, 0);
+        leftLeg.castShadow = true;
+        
+        const rightLeg = new THREE.Mesh(legGeometry, uniformMaterial);
+        rightLeg.position.set(0.15, 0.4, 0);
+        rightLeg.castShadow = true;
+        
+        // Create arms
+        const armGeometry = new THREE.BoxGeometry(0.2, 0.6, 0.2);
+        
+        const leftArm = new THREE.Mesh(armGeometry, uniformMaterial);
+        leftArm.position.set(-0.4, 1.1, 0);
+        leftArm.castShadow = true;
+        
+        const rightArm = new THREE.Mesh(armGeometry, uniformMaterial);
+        rightArm.position.set(0.4, 1.1, 0);
+        rightArm.castShadow = true;
+        
+        // Create hands
+        const handGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.2, 8);
+        
+        const leftHand = new THREE.Mesh(handGeometry, skinMaterial);
+        leftHand.rotation.x = Math.PI / 2;
+        leftHand.position.set(-0.4, 0.8, 0);
+        leftHand.castShadow = true;
+        
+        const rightHand = new THREE.Mesh(handGeometry, skinMaterial);
+        rightHand.rotation.x = Math.PI / 2;
+        rightHand.position.set(0.4, 0.8, 0);
+        rightHand.castShadow = true;
+        
+        // Create rifle
+        const rifleGroup = new THREE.Group();
+        
+        // Rifle body
+        const rifleBodyGeometry = new THREE.BoxGeometry(0.1, 0.1, 1.2);
+        const rifleBody = new THREE.Mesh(rifleBodyGeometry, beltMaterial);
+        rifleBody.position.set(0, 0, 0);
+        rifleBody.castShadow = true;
+        
+        // Rifle stock
+        const rifleStockGeometry = new THREE.BoxGeometry(0.15, 0.2, 0.4);
+        const rifleStock = new THREE.Mesh(rifleStockGeometry, beltMaterial);
+        rifleStock.position.set(0, -0.05, 0.4);
+        rifleStock.castShadow = true;
+        
+        // Add rifle parts to rifle group
+        rifleGroup.add(rifleBody);
+        rifleGroup.add(rifleStock);
+        
+        // Position rifle in right hand
+        rifleGroup.position.set(0.6, 0.8, 0);
+        rifleGroup.rotation.y = Math.PI / 2;
+        
+        // Add all parts to player group
+        playerGroup.add(head);
+        playerGroup.add(helmet);
+        playerGroup.add(helmetSide);
+        playerGroup.add(torso);
+        playerGroup.add(belt);
+        playerGroup.add(leftLeg);
+        playerGroup.add(rightLeg);
+        playerGroup.add(leftArm);
+        playerGroup.add(rightArm);
+        playerGroup.add(leftHand);
+        playerGroup.add(rightHand);
+        playerGroup.add(rifleGroup);
+        
+        // Add details to the uniform (camouflage pattern)
+        const addCamouflageDetail = (parent, width, height, depth, x, y, z) => {
+            const detailGeometry = new THREE.BoxGeometry(width, height, depth);
+            const detailMaterial = new THREE.MeshStandardMaterial({ color: 0x6B8E23 }); // Olive green
+            const detail = new THREE.Mesh(detailGeometry, detailMaterial);
+            detail.position.set(x, y, z);
+            parent.add(detail);
+        };
+        
+        // Add camouflage details to torso
+        addCamouflageDetail(torso, 0.2, 0.1, 0.41, -0.15, 0.1, 0);
+        addCamouflageDetail(torso, 0.15, 0.15, 0.41, 0.2, -0.1, 0);
+        addCamouflageDetail(torso, 0.25, 0.1, 0.41, 0.1, 0.2, 0);
+        
+        // Add camouflage details to helmet
+        addCamouflageDetail(helmet, 0.2, 0.21, 0.2, 0.1, 0, 0.1);
+        addCamouflageDetail(helmet, 0.3, 0.21, 0.15, -0.1, 0, -0.1);
+        
+        // Add face details (eyes)
+        const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+        const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+        
+        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        leftEye.position.set(-0.1, 1.65, 0.21);
+        leftEye.scale.set(1, 0.5, 0.5);
+        playerGroup.add(leftEye);
+        
+        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+        rightEye.position.set(0.1, 1.65, 0.21);
+        rightEye.scale.set(1, 0.5, 0.5);
+        playerGroup.add(rightEye);
+        
+        // Position the player
+        playerGroup.position.set(x, y, z);
+        
+        // Add player to scene
+        this.scene.add(playerGroup);
+        
+        return playerGroup;
     }
 }
