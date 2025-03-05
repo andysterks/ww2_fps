@@ -7,6 +7,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { PlayerController } from './components/player/PlayerController';
 import { WeaponSystem } from './components/weapons/WeaponSystem';
 import { Environment } from './components/environment/Environment';
+import { NetworkManager } from './components/network/NetworkManager';
 import audioManager from './audio/AudioManager.js';
 import GameUI from './components/ui/GameUI';
 
@@ -48,6 +49,7 @@ class Game {
         this.weaponSystem = null;
         this.environment = null;
         this.ui = null;
+        this.networkManager = null;
 
         // Game state
         this.isRunning = false;
@@ -133,6 +135,10 @@ class Game {
             // Create UI
             this.ui = new GameUI();
             console.log('UI initialized');
+
+            // Initialize network manager
+            this.networkManager = new NetworkManager(this);
+            console.log('Network manager initialized');
 
             // Set up event listeners
             this.setupEventListeners();
@@ -232,6 +238,7 @@ class Game {
                 this.player.update(deltaTime);
                 this.weaponSystem.update(deltaTime);
                 this.environment.update(deltaTime);
+                this.networkManager.update(deltaTime);
 
                 // Clear both buffers
                 this.renderer.clear();
