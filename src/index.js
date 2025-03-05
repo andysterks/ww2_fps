@@ -44,9 +44,14 @@ class Player {
     // Create the player model (German soldier)
     createModel() {
         // Create the model at the player's position
+        // Adjust y position to ensure feet are on the ground (y=0)
+        // The model's origin is at its center, so we need to offset it by half its height
+        const modelHeight = 1.8; // Total height of the player model
+        const yOffset = modelHeight / 2; // Half the height to place feet on ground
+        
         this.model = this.game.createStaticPlayerModel(
             this.position.x,
-            this.position.y,
+            this.position.y + yOffset, // Add offset to ensure feet are on ground
             this.position.z,
             this.id // Pass ID to make the model unique
         );
@@ -62,6 +67,10 @@ class Player {
     // Update player position and rotation based on controls (for local player)
     // or based on network data (for remote players)
     update(delta) {
+        // Define model height and offset constants
+        const modelHeight = 1.8; // Total height of the player model
+        const yOffset = modelHeight / 2; // Half the height to place feet on ground
+        
         if (this.isLocalPlayer) {
             // Local player's position is controlled by the camera/controls
             // We just need to update our stored position for network sync
@@ -99,7 +108,12 @@ class Player {
                 }
                 
                 // Update model position and rotation
-                this.model.position.copy(this.position);
+                // Copy position but maintain the y-offset to keep feet on ground
+                this.model.position.set(
+                    this.position.x,
+                    this.position.y + yOffset, // Add offset to ensure feet are on ground
+                    this.position.z
+                );
                 this.model.rotation.y = this.rotation.y;
             }
         }
@@ -116,8 +130,23 @@ class Player {
     
     // Update player position based on network data (for remote players)
     updateFromNetwork(position, rotation) {
+        // Store the raw position from the network
         this.position.set(position.x, position.y, position.z);
         this.rotation.set(rotation.x, rotation.y, rotation.z);
+        
+        // If the model exists, update it immediately with the correct y-offset
+        if (this.model && !this.isLocalPlayer) {
+            const modelHeight = 1.8; // Total height of the player model
+            const yOffset = modelHeight / 2; // Half the height to place feet on ground
+            
+            // Update model position with the y-offset
+            this.model.position.set(
+                position.x,
+                position.y + yOffset, // Add offset to ensure feet are on ground
+                position.z
+            );
+            this.model.rotation.y = rotation.y;
+        }
     }
 
     // Serialize player data for network transmission
