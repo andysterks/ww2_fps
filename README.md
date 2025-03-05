@@ -6,10 +6,11 @@ A World War 2 First Person Shooter using Three.js with multiplayer support.
 
 - First-person shooter gameplay
 - LEGO-style German soldier models
-- Multiplayer support with WebSocket
+- Multiplayer support with Socket.io
 - Realistic weapon handling
 - Sprint functionality
 - Debug information display
+- Smooth player movement with interpolation
 
 ## Setup
 
@@ -18,7 +19,7 @@ A World War 2 First Person Shooter using Three.js with multiplayer support.
    npm install
    ```
 
-2. Start the WebSocket server:
+2. Start the Socket.io server:
    ```
    npm run server
    ```
@@ -39,18 +40,19 @@ A World War 2 First Person Shooter using Three.js with multiplayer support.
 
 ## Multiplayer
 
-The game uses WebSockets to communicate between players. When a new player connects:
+The game uses Socket.io to communicate between players. When a new player connects:
 
 1. They are assigned a unique ID
 2. They receive information about all existing players
 3. All existing players are notified about the new player
-4. Player movements are synchronized in real-time
+4. Player movements are synchronized in real-time with smooth interpolation
 
 ## Development
 
 - The client code is in `src/index.js`
-- The WebSocket server is in `websocket-server.js`
+- The Socket.io server is in `websocket-server.js`
 - Player models are created using Three.js geometries
+- Movement flags are synchronized to enable smooth animations
 
 ## Requirements
 

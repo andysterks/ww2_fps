@@ -9,9 +9,11 @@
     "server": "node websocket-server.js"
   },
   "dependencies": {
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
     "three": "^0.160.0",
-    "ws": "^8.16.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "vite": "^5.0.0"

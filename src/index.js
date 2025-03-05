@@ -533,4 +533,44 @@ class SimpleGame {
             this.players.delete(playerId);
         }
     }
+
+    // Main animation loop
+    animate() {
+        // Request next frame
+        requestAnimationFrame(() => this.animate());
+        
+        // Calculate delta time
+        const now = performance.now();
+        const delta = (now - this.lastFrameTime) / 1000;
+        this.lastFrameTime = now;
+        
+        // Skip if game is paused
+        if (!this.isRunning) return;
+        
+        try {
+            // Update all players
+            this.players.forEach(player => {
+                player.update(delta);
+            });
+            
+            // Send network updates at fixed intervals
+            if (this.socket && this.socket.connected && this.localPlayer) {
+                const timeSinceLastUpdate = now - this.lastNetworkUpdate;
+                if (timeSinceLastUpdate > this.networkUpdateInterval) {
+                    this.sendNetworkUpdate();
+                    this.lastNetworkUpdate = now;
+                }
+            }
+            
+            // Update debug info if enabled
+            if (this.debugMode) {
+                this.updateDebugInfo();
+            }
+            
+            // Render the scene
+            this.renderer.render(this.scene, this.camera);
+        } catch (error) {
+            console.error('Error in animation loop:', error);
+        }
+    }
 }
