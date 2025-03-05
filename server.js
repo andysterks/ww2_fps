@@ -54,16 +54,21 @@ const io = new Server(server, {
     cors: {
         origin: "*",
         methods: ["GET", "POST"],
-        credentials: true,
-        transports: ['websocket', 'polling']
+        credentials: true
     },
-    allowEIO3: true,
-    path: '/socket.io',
+    path: '/socket.io/',
     serveClient: true,
+    transports: ['websocket', 'polling'],
     pingTimeout: 60000,
     pingInterval: 25000,
     connectTimeout: 30000,
-    maxHttpBufferSize: 1e8
+    maxHttpBufferSize: 1e8,
+    allowEIO3: true
+});
+
+// Add middleware to handle WebSocket upgrades
+server.on('upgrade', (request, socket, head) => {
+    io.engine.handleUpgrade(request, socket, head);
 });
 
 // Store connected players
@@ -193,4 +198,5 @@ setInterval(() => {
 // Start the server
 server.listen(port, () => {
     console.log(`Server running at http://localhost:${port}`);
+    console.log('WebSocket server is ready');
 });

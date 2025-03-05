@@ -748,23 +748,44 @@ class SimpleGame {
                 `${window.location.protocol}//${window.location.hostname}:3000`;
             
             console.log('Connecting to server at:', serverUrl);
+            
+            // Create socket instance
             this.socket = io(serverUrl, {
+                path: '/socket.io/',
                 transports: ['websocket', 'polling'],
-                path: '/socket.io',
+                upgrade: true,
+                rememberUpgrade: true,
                 reconnection: true,
-                reconnectionAttempts: 5,
+                reconnectionAttempts: Infinity,
                 reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
                 timeout: 20000,
                 autoConnect: true,
-                forceNew: true,
-                query: {
-                    clientTime: Date.now()
-                }
+                forceNew: true
+            });
+            
+            // Debug connection state
+            this.socket.on('connect_error', (error) => {
+                console.error('Connection error:', error);
+                console.log('Current transport:', this.socket.io.engine.transport.name);
+            });
+
+            this.socket.on('connect_timeout', () => {
+                console.error('Connection timeout');
+            });
+
+            this.socket.io.on('upgrade', () => {
+                console.log('Transport upgraded to:', this.socket.io.engine.transport.name);
+            });
+
+            this.socket.io.on('packet', ({ type, data }) => {
+                console.log('Received packet:', type, data);
             });
             
             // Set up event listeners for socket.io
             this.socket.on('connect', () => {
                 console.log('Connected to server with ID:', this.socket.id);
+                console.log('Using transport:', this.socket.io.engine.transport.name);
                 
                 // Remove any existing test players
                 this.players.forEach((player, id) => {
@@ -787,37 +808,6 @@ class SimpleGame {
                         this.addRemotePlayer(player.id, player.position);
                     }
                 });
-            });
-            
-            this.socket.on('connect_error', (error) => {
-                console.error('Connection error:', error);
-                console.error('Connection details:', {
-                    url: serverUrl,
-                    transport: this.socket.io.engine.transport.name,
-                    protocol: window.location.protocol,
-                    hostname: window.location.hostname
-                });
-                
-                // Update debug message
-                const debugDiv = document.querySelector('div[style*="network"]');
-                if (debugDiv) {
-                    debugDiv.textContent = `Network error: ${error.message}`;
-                    debugDiv.style.color = 'red';
-                }
-                
-                // Create test players as fallback if we can't connect to the server
-                if (this.players.size <= 1) { // Only if we don't have remote players yet
-                    console.log("Creating test players as fallback due to connection error");
-                    this.createTestRemotePlayers();
-                }
-            });
-            
-            this.socket.on('error', (error) => {
-                console.error('Socket error:', error);
-            });
-            
-            this.socket.on('disconnect', (reason) => {
-                console.log('Disconnected from server:', reason);
             });
             
             this.socket.on('player-joined', (data) => {
