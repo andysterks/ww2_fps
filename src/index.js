@@ -1132,40 +1132,47 @@ class SimpleGame {
             // Calculate the exact distance the static player would move this frame
             const staticPlayerDistance = delta * this.playerSpeed;
             
-            // Update velocity with friction - reduced friction for slower deceleration
-            this.velocity.x -= this.velocity.x * 3.0 * delta; // Further reduced from 5.0
-            this.velocity.z -= this.velocity.z * 3.0 * delta; // Further reduced from 5.0
+            // Check if any movement keys are pressed
+            const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
             
-            // Set movement direction
-            this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-            this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-            this.direction.normalize(); // Ensure consistent movement in all directions
-            
-            // Calculate movement speed (with sprint)
-            const speedMultiplier = this.isSprinting ? this.sprintMultiplier : 1.0;
-            
-            // Apply a scaling factor to match the static player's movement speed
-            // The static player moves at exactly delta * playerSpeed
-            // We need to scale our movement to match that pace
-            const scalingFactor = 0.05; // Further reduced from 0.1 to better match static player speed
-            const moveSpeed = this.playerSpeed * speedMultiplier * delta * scalingFactor;
-            
-            // Apply movement to velocity
-            if (this.moveForward || this.moveBackward) this.velocity.z -= this.direction.z * moveSpeed;
-            if (this.moveLeft || this.moveRight) this.velocity.x -= this.direction.x * moveSpeed;
-            
-            // Calculate the magnitude of player movement this frame
-            const playerMoveMagnitude = Math.sqrt(
-                (this.velocity.x * this.velocity.x) + 
-                (this.velocity.z * this.velocity.z)
-            );
-            
-            // If player is moving and the speeds don't match, adjust velocity to match static player
-            if (playerMoveMagnitude > 0 && Math.abs(playerMoveMagnitude - staticPlayerDistance) > 0.001) {
-                // Scale the velocity to match the static player's distance
-                const scaleFactor = staticPlayerDistance / playerMoveMagnitude;
-                this.velocity.x *= scaleFactor * 0.5; // Apply 50% of the correction
-                this.velocity.z *= scaleFactor * 0.5; // Apply 50% of the correction
+            // If no movement keys are pressed, immediately stop the player
+            if (!isMoving) {
+                this.velocity.x = 0;
+                this.velocity.z = 0;
+            } else {
+                // Only apply friction when moving
+                this.velocity.x -= this.velocity.x * 10.0 * delta; // Increased friction for quicker response
+                this.velocity.z -= this.velocity.z * 10.0 * delta; // Increased friction for quicker response
+                
+                // Set movement direction
+                this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+                this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
+                this.direction.normalize(); // Ensure consistent movement in all directions
+                
+                // Calculate movement speed (with sprint)
+                const speedMultiplier = this.isSprinting ? this.sprintMultiplier : 1.0;
+                
+                // Apply a scaling factor to match the static player's movement speed
+                const scalingFactor = 0.05;
+                const moveSpeed = this.playerSpeed * speedMultiplier * delta * scalingFactor;
+                
+                // Apply movement to velocity
+                if (this.moveForward || this.moveBackward) this.velocity.z -= this.direction.z * moveSpeed;
+                if (this.moveLeft || this.moveRight) this.velocity.x -= this.direction.x * moveSpeed;
+                
+                // Calculate the magnitude of player movement this frame
+                const playerMoveMagnitude = Math.sqrt(
+                    (this.velocity.x * this.velocity.x) + 
+                    (this.velocity.z * this.velocity.z)
+                );
+                
+                // If player is moving and the speeds don't match, adjust velocity to match static player
+                if (playerMoveMagnitude > 0 && Math.abs(playerMoveMagnitude - staticPlayerDistance) > 0.001) {
+                    // Scale the velocity to match the static player's distance
+                    const scaleFactor = staticPlayerDistance / playerMoveMagnitude;
+                    this.velocity.x *= scaleFactor * 0.8; // Increased from 0.5 for faster correction
+                    this.velocity.z *= scaleFactor * 0.8; // Increased from 0.5 for faster correction
+                }
             }
             
             // Move the player
