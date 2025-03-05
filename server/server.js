@@ -6,6 +6,14 @@ const path = require('path');
 const app = express();
 const httpServer = createServer(app);
 
+// Enable CORS for all routes
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
+
 // Serve static files from the dist directory
 app.use(express.static(path.join(__dirname, '../dist')));
 
@@ -18,9 +26,11 @@ const io = new Server(httpServer, {
     connectTimeout: 20000,
     cors: {
         origin: "*",
-        methods: ["GET", "POST"]
+        methods: ["GET", "POST"],
+        credentials: true,
+        allowedHeaders: ["content-type"]
     },
-    transports: ['polling', 'websocket']
+    transports: ['websocket', 'polling']
 });
 
 // Store connected players
@@ -102,6 +112,9 @@ io.engine.on('connection_error', (err) => {
 
 // Start the server
 const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+const HOST = '0.0.0.0'; // Listen on all network interfaces
+httpServer.listen(PORT, HOST, () => {
+    console.log(`Server running on http://${HOST}:${PORT}`);
+    console.log('For local access, use: http://localhost:${PORT}');
+    console.log('For network access, use your computer\'s IP address');
 }); 

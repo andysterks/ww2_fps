@@ -745,7 +745,7 @@ class SimpleGame {
             // Use socket.io for WebSocket communication
             const serverUrl = window.location.hostname === 'localhost' ? 
                 'http://localhost:3000' : // Use explicit URL when running locally
-                `${window.location.protocol}//${window.location.hostname}`;
+                `${window.location.protocol}//${window.location.hostname}:3000`; // Use port 3000 for network connections
             
             console.log('Connecting to server at:', serverUrl);
             
@@ -761,7 +761,8 @@ class SimpleGame {
                 reconnectionDelayMax: 5000,
                 timeout: 20000,
                 autoConnect: true,
-                forceNew: true
+                forceNew: true,
+                withCredentials: true
             });
             
             // Debug connection state
