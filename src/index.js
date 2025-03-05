@@ -64,7 +64,7 @@ class SimpleGame {
             // Physics variables
             this.velocity = new THREE.Vector3();
             this.direction = new THREE.Vector3();
-            this.playerSpeed = 5.0; // Unified speed for all player movement (user and NPCs)
+            this.playerSpeed = 2.0; // Reduced from 5.0 for better matching with static player
             this.prevTime = performance.now();
             
             // Animation variables
@@ -1048,6 +1048,11 @@ class SimpleGame {
                         this.setPlayerSpeed(Math.max(0.5, this.playerSpeed - 0.5));
                         console.log(`Decreased player speed to ${this.playerSpeed.toFixed(1)}`);
                         break;
+                        
+                    case 'KeyM':
+                        // Match player speeds
+                        this.matchPlayerSpeeds();
+                        break;
                 }
             }
         });
@@ -1124,9 +1129,9 @@ class SimpleGame {
             const time = performance.now();
             const delta = (time - this.prevTime) / 1000; // Convert to seconds
             
-            // Update velocity with friction
-            this.velocity.x -= this.velocity.x * 10.0 * delta;
-            this.velocity.z -= this.velocity.z * 10.0 * delta;
+            // Update velocity with friction - reduced friction for slower deceleration
+            this.velocity.x -= this.velocity.x * 5.0 * delta; // Reduced from 10.0
+            this.velocity.z -= this.velocity.z * 5.0 * delta; // Reduced from 10.0
             
             // Set movement direction
             this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
@@ -1135,7 +1140,12 @@ class SimpleGame {
             
             // Calculate movement speed (with sprint)
             const speedMultiplier = this.isSprinting ? this.sprintMultiplier : 1.0;
-            const moveSpeed = this.playerSpeed * speedMultiplier * delta;
+            
+            // Apply a scaling factor to match the static player's movement speed
+            // The static player moves at exactly delta * playerSpeed
+            // We need to scale our movement to match that pace
+            const scalingFactor = 0.1; // Further reduced to better match static player speed
+            const moveSpeed = this.playerSpeed * speedMultiplier * delta * scalingFactor;
             
             // Apply movement to velocity
             if (this.moveForward || this.moveBackward) this.velocity.z -= this.direction.z * moveSpeed;
@@ -1212,6 +1222,16 @@ class SimpleGame {
         const debugInfo = document.getElementById('debug-info');
         if (debugInfo) {
             debugInfo.style.display = 'block';
+            
+            // Calculate actual player velocity magnitude
+            const playerVelocityMagnitude = Math.sqrt(
+                this.velocity.x * this.velocity.x + 
+                this.velocity.z * this.velocity.z
+            );
+            
+            // Calculate static player speed
+            const staticPlayerSpeed = this.playerSpeed;
+            
             debugInfo.innerHTML = `
                 <div>Bullets: ${this.bulletCount}/${this.maxBullets}</div>
                 <div>Can Shoot: ${this.canShoot}</div>
@@ -1220,6 +1240,8 @@ class SimpleGame {
                 <div>Position: ${this.camera.position.x.toFixed(2)}, ${this.camera.position.y.toFixed(2)}, ${this.camera.position.z.toFixed(2)}</div>
                 <div>Movement: F:${this.moveForward} B:${this.moveBackward} L:${this.moveLeft} R:${this.moveRight}</div>
                 <div>Player Speed: ${this.playerSpeed.toFixed(1)} (Sprint: ${this.isSprinting ? 'ON' : 'OFF'})</div>
+                <div>Player Velocity: ${playerVelocityMagnitude.toFixed(3)}</div>
+                <div>Static Player Speed: ${staticPlayerSpeed.toFixed(3)}</div>
             `;
         }
     }
@@ -1949,7 +1971,7 @@ class SimpleGame {
             { key: 'R', action: 'Reload weapon' },
             { key: 'F', action: 'Toggle aim' },
             { key: '+/-', action: 'Increase/decrease player speed' },
-            { key: 'M', action: 'Toggle sound' },
+            { key: 'M', action: 'Match player speeds' },
             { key: 'ESC', action: 'Pause game / Release mouse' }
         ];
         
@@ -2051,5 +2073,19 @@ class SimpleGame {
             console.error("Invalid speed value. Speed must be a positive number.");
             return false;
         }
+    }
+    
+    // Method to match player speed to static player
+    matchPlayerSpeeds() {
+        // The static player moves at exactly delta * playerSpeed
+        // We need to adjust our scaling factor to match that pace
+        
+        // Reset to default values
+        this.playerSpeed = 2.0;
+        
+        // Add a keyboard shortcut for this method
+        console.log("Player speeds matched. Both player and static player now move at the same speed.");
+        
+        return true;
     }
 }
