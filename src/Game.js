@@ -25,8 +25,19 @@ class Game {
         });
 
         // Advanced renderer setup
-        this.setupRenderer();
-        
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.0;
+        this.renderer.physicallyCorrectLights = true;
+        this.renderer.autoClear = false; // Important for rendering both scenes
+
+        // Add to DOM
+        document.getElementById('game-container').appendChild(this.renderer.domElement);
+
         // Post-processing
         this.composer = null;
         this.setupPostProcessing();
@@ -92,15 +103,17 @@ class Game {
         this.composer.addPass(smaaPass);
     }
 
-    init() {
+    async init() {
         // Initialize audio
-        this.audioManager.init();
+        await this.audioManager.init();
 
         // Create environment first
         this.environment = new Environment(this.scene);
+        await this.environment.init();
         
-        // Create player
+        // Create player and set initial position
         this.player = new PlayerController(this.camera, this.scene);
+        this.camera.position.set(0, 2, 10); // Set initial position above ground and back from center
         
         // Create weapon system
         this.weaponSystem = new WeaponSystem(this.camera, this.scene);
@@ -202,6 +215,10 @@ class Game {
             // Render weapon scene directly
             this.renderer.clearDepth();
             this.renderer.render(this.weaponSystem.weaponScene, this.weaponSystem.weaponCamera);
+        } else {
+            // When not running, just render the main scene without post-processing
+            this.renderer.clear();
+            this.renderer.render(this.scene, this.camera);
         }
     }
 

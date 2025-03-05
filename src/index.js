@@ -9,7 +9,7 @@ import Game from './Game.js';
 console.log("Script loaded");
 
 // Initialize the game when the DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     try {
         console.log("DOM loaded, initializing game...");
         
@@ -90,19 +90,30 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Initialize game
         const game = new Game();
+        await game.init();
         
         // Handle click to start
         instructions.addEventListener('click', () => {
-            instructions.style.display = 'none';
-            game.player.controls.lock();
+            if (!game.isRunning) {
+                gameContainer.requestPointerLock = gameContainer.requestPointerLock ||
+                                                 gameContainer.mozRequestPointerLock ||
+                                                 gameContainer.webkitRequestPointerLock;
+                gameContainer.requestPointerLock();
+            }
         });
         
         // Handle pointer lock change
         document.addEventListener('pointerlockchange', () => {
-            if (document.pointerLockElement === gameContainer) {
+            if (document.pointerLockElement === gameContainer ||
+                document.mozPointerLockElement === gameContainer ||
+                document.webkitPointerLockElement === gameContainer) {
+                game.isRunning = true;
                 instructions.style.display = 'none';
+                document.getElementById('crosshair').style.display = 'block';
             } else {
+                game.isRunning = false;
                 instructions.style.display = 'flex';
+                document.getElementById('crosshair').style.display = 'none';
             }
         });
         
