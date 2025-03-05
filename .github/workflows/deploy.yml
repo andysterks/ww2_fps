@@ -51,4 +51,4 @@ jobs:
             chmod +x /var/www/ww2-fps/deploy.sh
             
             # Run deployment script
-            bash /var/www/ww2-fps/deploy.sh 
+            bash /var/www/ww2-fps/deploy.sh
