@@ -241,24 +241,38 @@ class SimpleGame {
         frontSightBase.renderOrder = 2;
         frontSightBase.castShadow = true;
         
-        // Rear sight housing
+        // Rear sight housing (now cylindrical)
         const rearSightHousing = new THREE.Mesh(
-            new THREE.BoxGeometry(0.06, 0.03, 0.04),
+            new THREE.CylinderGeometry(0.02, 0.02, 0.04, 16),
             metalMaterial.clone()
         );
+        rearSightHousing.rotation.x = Math.PI / 2;
         rearSightHousing.position.set(0, 0.09, 0.1);
         rearSightHousing.renderOrder = 2;
         rearSightHousing.castShadow = true;
-        
-        // Rear sight aperture
+
+        // Rear sight aperture (peep sight)
         const rearSightAperture = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.003, 0.003, 0.04, 16),
+            new THREE.TorusGeometry(0.004, 0.002, 8, 24),
             blackMaterial.clone()
         );
         rearSightAperture.rotation.x = Math.PI / 2;
         rearSightAperture.position.set(0, 0.09, 0.1);
         rearSightAperture.renderOrder = 3;
         rearSightAperture.castShadow = true;
+
+        // Add adjustment knobs on sides
+        const leftKnob = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.008, 0.008, 0.01, 8),
+            metalMaterial.clone()
+        );
+        leftKnob.rotation.z = Math.PI / 2;
+        leftKnob.position.set(-0.025, 0.09, 0.1);
+        leftKnob.renderOrder = 2;
+        leftKnob.castShadow = true;
+
+        const rightKnob = leftKnob.clone();
+        rightKnob.position.x = 0.025;
         
         // Add sights to group
         ironSightsGroup.add(leftWing);
@@ -267,6 +281,8 @@ class SimpleGame {
         ironSightsGroup.add(frontSightBase);
         ironSightsGroup.add(rearSightHousing);
         ironSightsGroup.add(rearSightAperture);
+        ironSightsGroup.add(leftKnob);
+        ironSightsGroup.add(rightKnob);
         
         // Add all parts to weapon group
         weaponGroup.add(rifleBody);
@@ -280,8 +296,8 @@ class SimpleGame {
         this.weaponDefaultPosition = new THREE.Vector3(0.3, -0.3, -0.6);
         this.weaponDefaultRotation = new THREE.Vector3(0, Math.PI / 12, 0);
         
-        // Adjusted aim position
-        this.weaponAimPosition = new THREE.Vector3(0, -0.0585, -0.35);
+        // Adjusted aim position for proper sight picture
+        this.weaponAimPosition = new THREE.Vector3(0, -0.0485, -0.3);
         this.weaponAimRotation = new THREE.Vector3(0, 0, 0);
         
         // Position weapon in hip-fire position
@@ -297,7 +313,7 @@ class SimpleGame {
         // Add aiming properties
         this.aimTransitionSpeed = 8.0;
         this.defaultFOV = 75;
-        this.aimFOV = 55;
+        this.aimFOV = 50; // Narrower FOV when aiming to match sight picture
         this.isAimingDownSights = false;
     }
     
