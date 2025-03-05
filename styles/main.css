@@ -33,20 +33,61 @@ body {
     transition: opacity 0.2s ease-in-out;
 }
 
+/* Iron Sights Styling */
 #scope-overlay {
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.85) 45%);
     pointer-events: none;
     opacity: 1;
-    transition: opacity 0.2s ease-in-out;
+    transition: opacity 0.3s ease-in-out;
+    z-index: 10;
 }
 
 #scope-overlay.hidden {
     opacity: 0;
+    display: none;
+}
+
+/* Vignette effect when aiming */
+#scope-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.7) 100%);
+    z-index: 9;
+}
+
+/* Front sight post */
+#scope-overlay::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, calc(-50% - 8px));
+    width: 2px;
+    height: 16px;
+    background-color: #000;
+    z-index: 12;
+}
+
+/* Rear sight aperture */
+.rear-sight {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #000;
+    background-color: transparent;
+    z-index: 11;
 }
 
 .aiming #crosshair {

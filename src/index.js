@@ -195,8 +195,8 @@ class SimpleGame {
         this.weaponDefaultPosition = new THREE.Vector3(0.3, -0.3, -0.5);
         this.weaponDefaultRotation = new THREE.Vector3(0, 0, 0);
         
-        // Store aim position
-        this.weaponAimPosition = new THREE.Vector3(0, -0.1, -0.3);
+        // Store aim position - centered and closer to simulate looking down sights
+        this.weaponAimPosition = new THREE.Vector3(0, -0.05, -0.2);
         this.weaponAimRotation = new THREE.Vector3(0, 0, 0);
         
         // Add weapon to camera
