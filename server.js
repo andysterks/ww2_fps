@@ -7,6 +7,14 @@ const { v4: uuidv4 } = require('uuid');
 const app = express();
 const port = 3000;
 
+// Enable CORS for all routes
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
+
 // Serve static files from the 'public' directory
 app.use(express.static('public'));
 app.use(express.static('.'));
@@ -41,15 +49,18 @@ app.post('/save-sound', upload.single('file'), (req, res) => {
 // Create HTTP server
 const server = require('http').createServer(app);
 
-// Create Socket.IO server
+// Create Socket.IO server with updated configuration
 const io = new Server(server, {
-  cors: {
-    origin: true, // Allow all origins
-    methods: ["GET", "POST"],
-    credentials: true,
-    transports: ['websocket', 'polling']
-  },
-  allowEIO3: true // Allow Engine.IO 3 compatibility
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST'],
+        allowedHeaders: ['*'],
+        credentials: true
+    },
+    transports: ['websocket', 'polling'],
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    allowEIO3: true
 });
 
 // Store connected players
