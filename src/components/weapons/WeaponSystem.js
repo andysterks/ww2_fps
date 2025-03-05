@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { AudioManager } from '../../audio/AudioManager';
+import audioManager from '../../audio/AudioManager.js';
 import { createM1Garand } from '../../models/weapons/m1_garand.js';
 
 /**
@@ -256,7 +256,7 @@ export class WeaponSystem {
         this.createBulletImpact();
         
         // Play sound
-        AudioManager.playSound('gunshot');
+        audioManager.playSound('gunshot');
         
         // Auto reload when empty
         if (this.ammoCount <= 0) {
@@ -311,7 +311,7 @@ export class WeaponSystem {
         this.canShoot = false;
         
         // Play reload sound
-        AudioManager.playSound('reload');
+        audioManager.playSound('reload');
         
         // Reload animation would go here
         

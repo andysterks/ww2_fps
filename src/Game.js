@@ -7,7 +7,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { PlayerController } from './components/player/PlayerController';
 import { WeaponSystem } from './components/weapons/WeaponSystem';
 import { Environment } from './components/environment/Environment';
-import { AudioManager } from './audio/AudioManager';
+import audioManager from './audio/AudioManager.js';
 import GameUI from './components/ui/GameUI';
 
 /**
@@ -32,7 +32,7 @@ class Game {
         this.setupPostProcessing();
 
         // Game systems
-        this.audioManager = new AudioManager();
+        this.audioManager = audioManager;
         this.player = null;
         this.weaponSystem = null;
         this.environment = null;
@@ -57,6 +57,7 @@ class Game {
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.0;
         this.renderer.physicallyCorrectLights = true;
+        this.renderer.autoClear = false; // Important for rendering both scenes
 
         // Add to DOM
         document.getElementById('game-container').appendChild(this.renderer.domElement);
@@ -149,8 +150,15 @@ class Game {
             this.weaponSystem.update(deltaTime);
             this.environment.update(deltaTime);
 
-            // Render scene with post-processing
+            // Clear both buffers
+            this.renderer.clear();
+
+            // Render main scene with post-processing
             this.composer.render();
+
+            // Render weapon scene directly
+            this.renderer.clearDepth();
+            this.renderer.render(this.weaponSystem.weaponScene, this.weaponSystem.weaponCamera);
         }
     }
 
@@ -158,6 +166,12 @@ class Game {
         // Update camera
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
+
+        // Update weapon camera
+        if (this.weaponSystem) {
+            this.weaponSystem.weaponCamera.aspect = window.innerWidth / window.innerHeight;
+            this.weaponSystem.weaponCamera.updateProjectionMatrix();
+        }
 
         // Update renderer and composer
         this.renderer.setSize(window.innerWidth, window.innerHeight);
