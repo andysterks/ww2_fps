@@ -148,83 +148,88 @@ class SimpleGame {
     }
     
     createWeapon() {
-        // Create a more realistic M1 Garand rifle with visible iron sights
         const weaponGroup = new THREE.Group();
         
-        // Rifle body (receiver) - made slightly larger
+        // Rifle body (receiver) - more authentic proportions
         const rifleBody = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1, 0.1, 0.8),
+            new THREE.BoxGeometry(0.08, 0.12, 0.9),
             new THREE.MeshStandardMaterial({ 
-                color: 0x444444, 
-                roughness: 0.7,
-                metalness: 0.3 
+                color: 0x2c2c2c, 
+                roughness: 0.6,
+                metalness: 0.4 
             })
         );
         
-        // Rifle stock - made slightly larger
+        // Rifle stock - more authentic shape
         const rifleStock = new THREE.Mesh(
-            new THREE.BoxGeometry(0.14, 0.16, 0.6),
+            new THREE.BoxGeometry(0.1, 0.18, 0.7),
             new THREE.MeshStandardMaterial({ 
-                color: 0x8B4513, 
+                color: 0x4a2a0a, // Darker wood color
                 roughness: 0.9,
                 metalness: 0.1 
             })
         );
-        rifleStock.position.set(0, -0.02, 0.3);
+        rifleStock.position.set(0, -0.03, 0.35);
         
         // Create iron sights group
         const ironSightsGroup = new THREE.Group();
         
-        // Front sight post - made taller and more visible
+        // Front sight protective wings
+        const leftWing = new THREE.Mesh(
+            new THREE.BoxGeometry(0.02, 0.04, 0.02),
+            new THREE.MeshStandardMaterial({ color: 0x2c2c2c })
+        );
+        leftWing.position.set(-0.015, 0.09, -0.6);
+        
+        const rightWing = new THREE.Mesh(
+            new THREE.BoxGeometry(0.02, 0.04, 0.02),
+            new THREE.MeshStandardMaterial({ color: 0x2c2c2c })
+        );
+        rightWing.position.set(0.015, 0.09, -0.6);
+        
+        // Front sight post - thinner and taller
         const frontSightPost = new THREE.Mesh(
-            new THREE.BoxGeometry(0.002, 0.04, 0.002),
+            new THREE.BoxGeometry(0.002, 0.035, 0.002),
             new THREE.MeshStandardMaterial({ 
                 color: 0x000000,
                 roughness: 0.5,
                 metalness: 0.5
             })
         );
-        frontSightPost.position.set(0, 0.09, -0.55);
+        frontSightPost.position.set(0, 0.095, -0.6);
         
-        // Front sight housing - made more prominent
-        const frontSightHousing = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.006, 0.008, 0.03, 8),
-            new THREE.MeshStandardMaterial({ 
-                color: 0x333333,
-                roughness: 0.6,
-                metalness: 0.4
-            })
+        // Front sight base
+        const frontSightBase = new THREE.Mesh(
+            new THREE.BoxGeometry(0.04, 0.02, 0.02),
+            new THREE.MeshStandardMaterial({ color: 0x2c2c2c })
         );
-        frontSightHousing.position.set(0, 0.075, -0.55);
+        frontSightBase.position.set(0, 0.07, -0.6);
         
-        // Rear sight base - made wider and more visible
-        const rearSightBase = new THREE.Mesh(
-            new THREE.BoxGeometry(0.04, 0.02, 0.01),
-            new THREE.MeshStandardMaterial({ 
-                color: 0x333333,
-                roughness: 0.6,
-                metalness: 0.4
-            })
+        // Rear sight housing (characteristic M1 Garand rear sight)
+        const rearSightHousing = new THREE.Mesh(
+            new THREE.BoxGeometry(0.06, 0.03, 0.04),
+            new THREE.MeshStandardMaterial({ color: 0x2c2c2c })
         );
-        rearSightBase.position.set(0, 0.09, 0.1);
+        rearSightHousing.position.set(0, 0.09, 0.1);
         
-        // Rear sight aperture - made larger and more defined
+        // Rear sight aperture (peep sight)
         const rearSightAperture = new THREE.Mesh(
-            new THREE.TorusGeometry(0.004, 0.001, 8, 24),
+            new THREE.CylinderGeometry(0.003, 0.003, 0.04, 16),
             new THREE.MeshStandardMaterial({ 
                 color: 0x000000,
                 roughness: 0.5,
-                metalness: 0.5,
-                side: THREE.DoubleSide
+                metalness: 0.5
             })
         );
         rearSightAperture.rotation.x = Math.PI / 2;
         rearSightAperture.position.set(0, 0.09, 0.1);
         
         // Add sights to group
+        ironSightsGroup.add(leftWing);
+        ironSightsGroup.add(rightWing);
         ironSightsGroup.add(frontSightPost);
-        ironSightsGroup.add(frontSightHousing);
-        ironSightsGroup.add(rearSightBase);
+        ironSightsGroup.add(frontSightBase);
+        ironSightsGroup.add(rearSightHousing);
         ironSightsGroup.add(rearSightAperture);
         
         // Add all parts to weapon group
@@ -239,8 +244,8 @@ class SimpleGame {
         this.weaponDefaultPosition = new THREE.Vector3(0.3, -0.3, -0.5);
         this.weaponDefaultRotation = new THREE.Vector3(0, Math.PI / 12, 0);
         
-        // Adjusted aim position for better sight alignment
-        this.weaponAimPosition = new THREE.Vector3(0, -0.0685, -0.3);
+        // Adjusted aim position to match M1 Garand sight picture
+        this.weaponAimPosition = new THREE.Vector3(0, -0.0585, -0.25);
         this.weaponAimRotation = new THREE.Vector3(0, 0, 0);
         
         // Then position weapon in hip-fire position
@@ -256,7 +261,7 @@ class SimpleGame {
         // Add aiming properties
         this.aimTransitionSpeed = 8.0;
         this.defaultFOV = 75;
-        this.aimFOV = 65; // Slightly wider FOV for better sight picture
+        this.aimFOV = 55; // Narrower FOV for more authentic sight picture
         this.isAimingDownSights = false;
     }
     
