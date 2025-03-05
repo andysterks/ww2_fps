@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Test</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading Three.js test scene...</div>
+    
+    <!-- Console output for debugging -->
+    <div id="console" style="position: absolute; bottom: 10px; left: 10px; right: 10px; height: 100px; overflow: auto; background-color: rgba(0,0,0,0.7); padding: 10px; font-family: monospace; font-size: 12px;">
+        Console output:<br>
+    </div>
+
+    <script>
+        // Override console.log to display in our custom console
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        
+        console.log = function() {
+            const args = Array.from(arguments);
+            const consoleDiv = document.getElementById('console');
+            consoleDiv.innerHTML += `<span style="color: white;">LOG: ${args.join(' ')}</span><br>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            originalConsoleLog.apply(console, arguments);
+        };
+        
+        console.error = function() {
+            const args = Array.from(arguments);
+            const consoleDiv = document.getElementById('console');
+            consoleDiv.innerHTML += `<span style="color: red;">ERROR: ${args.join(' ')}</span><br>`;
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+            originalConsoleError.apply(console, arguments);
+        };
+        
+        // Log browser information
+        console.log("Browser: " + navigator.userAgent);
+        console.log("Window dimensions: " + window.innerWidth + "x" + window.innerHeight);
+    </script>
+    
+    <!-- Load the test script using a module script -->
+    <script type="module" src="test.js"></script>
+</body>
+</html> 

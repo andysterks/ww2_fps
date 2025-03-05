@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js Diagnostic Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        #test-container {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        #log {
+            height: 200px;
+            overflow-y: auto;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 10px;
+            font-family: monospace;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 5px;
+            border-radius: 3px;
+        }
+        
+        .log-info {
+            color: #3498db;
+        }
+        
+        .log-success {
+            color: #2ecc71;
+        }
+        
+        .log-warning {
+            color: #f39c12;
+        }
+        
+        .log-error {
+            color: #e74c3c;
+        }
+        
+        #summary {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .summary-section {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .summary-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .summary-section h4 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .success {
+            color: #27ae60;
+        }
+        
+        .error {
+            color: #c0392b;
+        }
+        
+        .warning {
+            color: #d35400;
+        }
+        
+        .button-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        .button:hover {
+            background-color: #2980b9;
+        }
+        
+        .button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Three.js Diagnostic Tool</h1>
+            <p class="subtitle">Testing WebGL and Three.js compatibility</p>
+        </header>
+        
+        <div class="section">
+            <h2>Test Scene</h2>
+            <div id="test-container"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Log</h2>
+            <div id="log"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Diagnostic Summary</h2>
+            <div id="summary">
+                <p>Running tests...</p>
+            </div>
+        </div>
+        
+        <div class="button-container">
+            <button id="restart-button" class="button">Restart Tests</button>
+            <button id="download-button" class="button">Download Report</button>
+        </div>
+        
+        <footer>
+            <p>This diagnostic tool helps identify issues with WebGL and Three.js rendering.</p>
+        </footer>
+    </div>
+    
+    <script>
+        // Add event listeners for buttons
+        document.getElementById('restart-button').addEventListener('click', () => {
+            location.reload();
+        });
+        
+        document.getElementById('download-button').addEventListener('click', () => {
+            // Create a text version of the diagnostic report
+            const summaryElement = document.getElementById('summary');
+            const logElement = document.getElementById('log');
+            
+            let report = "THREE.JS DIAGNOSTIC REPORT\n";
+            report += "========================\n\n";
+            report += "Generated: " + new Date().toLocaleString() + "\n\n";
+            
+            // Add summary content (strip HTML)
+            report += "SUMMARY:\n";
+            report += summaryElement.textContent.replace(/\s+/g, ' ').trim() + "\n\n";
+            
+            // Add log content
+            report += "LOG:\n";
+            report += logElement.textContent.replace(/\s+/g, ' ').trim() + "\n\n";
+            
+            // Add browser info
+            report += "BROWSER INFORMATION:\n";
+            report += "User Agent: " + navigator.userAgent + "\n";
+            report += "Platform: " + navigator.platform + "\n";
+            report += "Language: " + navigator.language + "\n";
+            
+            // Create and download the file
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'threejs-diagnostic-report.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+    </script>
+    
+    <!-- Load the diagnostic script -->
+    <script type="module" src="diagnostic.js"></script>
+</body>
+</html> 

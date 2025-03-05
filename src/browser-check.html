@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Compatibility Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+        
+        .section {
+            margin-bottom: 30px;
+        }
+        
+        h2 {
+            color: #3498db;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status-info {
+            background-color: #d6eaf8;
+            color: #2980b9;
+        }
+        
+        .status-success {
+            background-color: #d5f5e3;
+            color: #27ae60;
+        }
+        
+        .status-warning {
+            background-color: #fef9e7;
+            color: #f39c12;
+        }
+        
+        .status-error {
+            background-color: #f5b7b1;
+            color: #c0392b;
+        }
+        
+        .button-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        .button:hover {
+            background-color: #2980b9;
+        }
+        
+        .button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        #results {
+            margin-bottom: 20px;
+        }
+        
+        .result-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .compatible {
+            background-color: #d5f5e3;
+            border: 2px solid #27ae60;
+        }
+        
+        .incompatible {
+            background-color: #f5b7b1;
+            border: 2px solid #c0392b;
+        }
+        
+        .result-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .result-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .result-score {
+            font-size: 18px;
+        }
+        
+        #details {
+            margin-top: 20px;
+        }
+        
+        .details-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        
+        .details-section h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .details-item {
+            padding: 10px;
+            background-color: white;
+            border-radius: 4px;
+            border: 1px solid #eee;
+        }
+        
+        .details-label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #7f8c8d;
+        }
+        
+        .details-value {
+            word-break: break-word;
+        }
+        
+        .details-value.small {
+            font-size: 12px;
+            word-break: break-all;
+        }
+        
+        .success {
+            color: #27ae60;
+        }
+        
+        .error {
+            color: #c0392b;
+        }
+        
+        .warning {
+            color: #f39c12;
+        }
+        
+        .issues-list {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .issue-item {
+            margin-bottom: 5px;
+            color: #c0392b;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Browser Compatibility Checker</h1>
+            <p class="subtitle">Check if your browser is compatible with our Three.js game</p>
+        </header>
+        
+        <div id="status" class="status status-info">
+            Ready to check compatibility. Click the button to start.
+        </div>
+        
+        <div class="button-container">
+            <button id="check-button" class="button">Check Compatibility</button>
+        </div>
+        
+        <div class="section">
+            <h2>Results</h2>
+            <div id="results"></div>
+        </div>
+        
+        <div class="section">
+            <h2>Details</h2>
+            <div id="details"></div>
+        </div>
+        
+        <footer>
+            <p>This tool checks if your browser supports all the features needed to run our Three.js game.</p>
+        </footer>
+    </div>
+    
+    <script src="browser-check.js"></script>
+</body>
+</html> 
