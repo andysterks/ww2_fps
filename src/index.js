@@ -35,6 +35,9 @@ class SimpleGame {
         this.playerSpeed = 10.0;
         this.sprintMultiplier = 1.5;
         
+        // Audio state
+        this.muted = false;
+        
         // Set initial position
         this.camera.position.set(0, 1.8, 5);
         this.controls.getObject().position.set(0, 1.8, 5);
@@ -330,10 +333,12 @@ class SimpleGame {
         if (this.bulletCount <= 0 || !this.canShoot || this.isReloading) {
             // Play empty click sound
             if (this.bulletCount <= 0) {
-                try {
-                    audioManager.playSound('emptyClick');
-                } catch (e) {
-                    console.log('Audio not available');
+                console.log('Empty click');
+                // Create and play a click sound if not muted
+                if (!this.muted) {
+                    const clickSound = new Audio('./sounds/empty_click.mp3');
+                    clickSound.volume = 0.5;
+                    clickSound.play().catch(e => console.error('Error playing empty click:', e));
                 }
             }
             return;
@@ -348,16 +353,21 @@ class SimpleGame {
         // Update ammo counter
         this.updateAmmoCounter();
         
-        // Play gunshot sound
-        try {
+        // Play gunshot sound if not muted
+        console.log('Playing gunshot sound');
+        if (!this.muted) {
+            const gunshotSound = new Audio('./sounds/m1_garand_shot.mp3');
+            gunshotSound.volume = 0.5;
+            gunshotSound.play().catch(e => console.error('Error playing gunshot:', e));
+            
             // Play M1 Garand ping if last bullet
             if (this.bulletCount === 0) {
-                audioManager.playSound('m1GarandPing');
-            } else {
-                audioManager.playSound('gunshot');
+                setTimeout(() => {
+                    const pingSound = new Audio('./sounds/m1_garand_ping.mp3');
+                    pingSound.volume = 0.5;
+                    pingSound.play().catch(e => console.error('Error playing ping:', e));
+                }, 300);
             }
-        } catch (e) {
-            console.log('Audio not available');
         }
         
         // Show muzzle flash
@@ -390,11 +400,12 @@ class SimpleGame {
         
         this.isReloading = true;
         
-        // Play reload sound
-        try {
-            audioManager.playSound('reload');
-        } catch (e) {
-            console.log('Audio not available');
+        // Play reload sound if not muted
+        console.log('Playing reload sound');
+        if (!this.muted) {
+            const reloadSound = new Audio('./sounds/m1_garand_reload.mp3');
+            reloadSound.volume = 0.5;
+            reloadSound.play().catch(e => console.error('Error playing reload sound:', e));
         }
         
         // Reload animation could be added here
@@ -438,29 +449,37 @@ class SimpleGame {
     }
     
     toggleSound() {
-        try {
-            audioManager.toggleMute();
-            
-            // Update sound toggle button
-            const soundToggle = document.getElementById('sound-toggle');
-            if (soundToggle) {
-                if (audioManager.isMuted()) {
-                    soundToggle.textContent = '🔇';
-                    soundToggle.className = 'sound-off';
-                } else {
-                    soundToggle.textContent = '🔊';
-                    soundToggle.className = 'sound-on';
-                }
+        // Toggle mute state
+        this.muted = !this.muted;
+        
+        // Update sound toggle button
+        const soundToggle = document.getElementById('sound-toggle');
+        if (soundToggle) {
+            if (this.muted) {
+                soundToggle.textContent = '🔇';
+                soundToggle.className = 'sound-off';
+            } else {
+                soundToggle.textContent = '🔊';
+                soundToggle.className = 'sound-on';
             }
-        } catch (e) {
-            console.log('Audio not available');
         }
+        
+        console.log('Sound ' + (this.muted ? 'muted' : 'unmuted'));
     }
     
     updateAmmoCounter() {
         const ammoCounter = document.getElementById('ammo');
         if (ammoCounter) {
             ammoCounter.textContent = `${this.bulletCount}/${this.maxBullets}`;
+            
+            // Highlight the ammo counter when low on ammo
+            if (this.bulletCount <= 2) {
+                ammoCounter.style.color = '#ff4444';
+                ammoCounter.style.animation = 'pulse 1s infinite';
+            } else {
+                ammoCounter.style.color = 'white';
+                ammoCounter.style.animation = 'none';
+            }
         }
     }
     
