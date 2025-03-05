@@ -133,66 +133,52 @@ export class PlayerController {
     
     update(deltaTime) {
         if (!this.controls.isLocked) return;
-        
+
         // Store previous position for collision detection
         this.lastPosition.copy(this.camera.position);
-        
+
         // Calculate movement speed
         let currentSpeed = this.moveSpeed;
         if (this.isSprinting) currentSpeed *= this.sprintMultiplier;
         if (this.isCrouching) currentSpeed *= this.crouchMultiplier;
-        
-        // Reset velocity
-        this.velocity.x = 0;
-        this.velocity.z = 0;
-        
-        // Get camera direction
-        const cameraDirection = new THREE.Vector3();
-        this.camera.getWorldDirection(cameraDirection);
-        
-        // Calculate forward and right vectors
-        const forward = new THREE.Vector3(cameraDirection.x, 0, cameraDirection.z).normalize();
-        const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
-        
+
         // Calculate movement direction
-        this.direction.set(0, 0, 0);
-        
-        if (this.moveForward) this.direction.add(forward);
-        if (this.moveBackward) this.direction.sub(forward);
-        if (this.moveRight) this.direction.add(right);
-        if (this.moveLeft) this.direction.sub(right);
-        
-        // Normalize direction if moving diagonally
-        if (this.direction.lengthSq() > 0) {
-            this.direction.normalize();
-            
-            // Apply movement
-            this.velocity.x = this.direction.x * currentSpeed;
+        this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+        this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
+        this.direction.normalize();
+
+        // Apply movement
+        if (this.moveForward || this.moveBackward) {
             this.velocity.z = this.direction.z * currentSpeed;
         }
-        
+        if (this.moveLeft || this.moveRight) {
+            this.velocity.x = this.direction.x * currentSpeed;
+        }
+
         // Apply gravity
         if (!this.isOnGround()) {
             this.velocity.y -= this.gravity * deltaTime;
         } else if (this.velocity.y < 0) {
             this.velocity.y = 0;
         }
+
+        // Move the player using PointerLockControls
+        if (this.velocity.x !== 0) this.controls.moveRight(-this.velocity.x * deltaTime);
+        if (this.velocity.z !== 0) this.controls.moveForward(-this.velocity.z * deltaTime);
         
-        // Move the player
-        this.camera.position.x += this.velocity.x * deltaTime;
-        this.camera.position.z += this.velocity.z * deltaTime;
+        // Update vertical position directly
         this.camera.position.y += this.velocity.y * deltaTime;
-        
+
         // Ensure minimum height
         const minHeight = this.isCrouching ? this.crouchingHeight : this.standingHeight;
         if (this.camera.position.y < minHeight) {
             this.camera.position.y = minHeight;
             this.velocity.y = 0;
         }
-        
+
         // Handle collisions
         this.handleCollisions();
-        
+
         // Update camera effects
         this.updateCameraEffects(deltaTime);
     }
