@@ -1002,8 +1002,9 @@ class SimpleGame {
         // Define materials
         const skinMaterial = new THREE.MeshStandardMaterial({ color: 0xE0AC69 }); // Light skin tone
         const helmetMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 }); // Dark gray
-        const uniformMaterial = new THREE.MeshStandardMaterial({ color: 0x4D4D4D }); // Gray
+        const uniformMaterial = new THREE.MeshStandardMaterial({ color: 0x4D4D4D }); // Field gray
         const beltMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 }); // Black
+        const leatherMaterial = new THREE.MeshStandardMaterial({ color: 0x3D2817 }); // Brown leather
         
         // Create head
         const headGeometry = new THREE.BoxGeometry(0.4, 0.4, 0.4);
@@ -1011,17 +1012,26 @@ class SimpleGame {
         head.position.y = 1.6;
         head.castShadow = true;
         
-        // Create helmet
-        const helmetGeometry = new THREE.BoxGeometry(0.5, 0.2, 0.5);
+        // Create German Stahlhelm (helmet)
+        // Main helmet dome
+        const helmetGeometry = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
         const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
         helmet.position.y = 1.8;
+        helmet.scale.set(1.1, 0.8, 1.1);
         helmet.castShadow = true;
         
-        // Create helmet sides
-        const helmetSideGeometry = new THREE.BoxGeometry(0.55, 0.1, 0.55);
-        const helmetSide = new THREE.Mesh(helmetSideGeometry, helmetMaterial);
-        helmetSide.position.y = 1.7;
-        helmetSide.castShadow = true;
+        // Helmet rim
+        const helmetRimGeometry = new THREE.TorusGeometry(0.25, 0.05, 8, 24, Math.PI * 2);
+        const helmetRim = new THREE.Mesh(helmetRimGeometry, helmetMaterial);
+        helmetRim.position.y = 1.7;
+        helmetRim.rotation.x = Math.PI / 2;
+        helmetRim.castShadow = true;
+        
+        // Helmet front brim extension (characteristic of Stahlhelm)
+        const frontBrimGeometry = new THREE.BoxGeometry(0.15, 0.05, 0.1);
+        const frontBrim = new THREE.Mesh(frontBrimGeometry, helmetMaterial);
+        frontBrim.position.set(0, 1.7, 0.25);
+        frontBrim.castShadow = true;
         
         // Create torso
         const torsoGeometry = new THREE.BoxGeometry(0.6, 0.6, 0.4);
@@ -1035,6 +1045,12 @@ class SimpleGame {
         belt.position.y = 0.8;
         belt.castShadow = true;
         
+        // Belt buckle
+        const buckleGeometry = new THREE.BoxGeometry(0.15, 0.12, 0.05);
+        const buckle = new THREE.Mesh(buckleGeometry, new THREE.MeshStandardMaterial({ color: 0xC0C0C0 }));
+        buckle.position.set(0, 0.8, 0.25);
+        buckle.castShadow = true;
+        
         // Create legs
         const legGeometry = new THREE.BoxGeometry(0.25, 0.6, 0.25);
         
@@ -1045,6 +1061,18 @@ class SimpleGame {
         const rightLeg = new THREE.Mesh(legGeometry, uniformMaterial);
         rightLeg.position.set(0.15, 0.4, 0);
         rightLeg.castShadow = true;
+        
+        // Create boots
+        const bootGeometry = new THREE.BoxGeometry(0.27, 0.15, 0.3);
+        const bootMaterial = new THREE.MeshStandardMaterial({ color: 0x111111 }); // Black boots
+        
+        const leftBoot = new THREE.Mesh(bootGeometry, bootMaterial);
+        leftBoot.position.set(-0.15, 0.075, 0.02);
+        leftBoot.castShadow = true;
+        
+        const rightBoot = new THREE.Mesh(bootGeometry, bootMaterial);
+        rightBoot.position.set(0.15, 0.075, 0.02);
+        rightBoot.castShadow = true;
         
         // Create arms
         const armGeometry = new THREE.BoxGeometry(0.2, 0.6, 0.2);
@@ -1070,42 +1098,84 @@ class SimpleGame {
         rightHand.position.set(0.4, 0.8, 0);
         rightHand.castShadow = true;
         
-        // Create rifle
+        // Create rifle (Kar98k)
         const rifleGroup = new THREE.Group();
         
         // Rifle body
-        const rifleBodyGeometry = new THREE.BoxGeometry(0.1, 0.1, 1.2);
-        const rifleBody = new THREE.Mesh(rifleBodyGeometry, beltMaterial);
+        const rifleBodyGeometry = new THREE.BoxGeometry(0.08, 0.08, 1.2);
+        const rifleBody = new THREE.Mesh(rifleBodyGeometry, new THREE.MeshStandardMaterial({ color: 0x3D2817 })); // Wood color
         rifleBody.position.set(0, 0, 0);
         rifleBody.castShadow = true;
         
+        // Rifle barrel
+        const barrelGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8);
+        const barrel = new THREE.Mesh(barrelGeometry, new THREE.MeshStandardMaterial({ color: 0x222222 }));
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.set(0, 0.04, -0.4);
+        barrel.castShadow = true;
+        
         // Rifle stock
-        const rifleStockGeometry = new THREE.BoxGeometry(0.15, 0.2, 0.4);
-        const rifleStock = new THREE.Mesh(rifleStockGeometry, beltMaterial);
-        rifleStock.position.set(0, -0.05, 0.4);
+        const rifleStockGeometry = new THREE.BoxGeometry(0.1, 0.15, 0.4);
+        const rifleStock = new THREE.Mesh(rifleStockGeometry, new THREE.MeshStandardMaterial({ color: 0x3D2817 }));
+        rifleStock.position.set(0, -0.03, 0.4);
         rifleStock.castShadow = true;
+        
+        // Rifle bolt
+        const boltGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.12, 8);
+        const bolt = new THREE.Mesh(boltGeometry, new THREE.MeshStandardMaterial({ color: 0x444444 }));
+        bolt.rotation.z = Math.PI / 2;
+        bolt.position.set(0.08, 0.04, 0.1);
+        bolt.castShadow = true;
         
         // Add rifle parts to rifle group
         rifleGroup.add(rifleBody);
+        rifleGroup.add(barrel);
         rifleGroup.add(rifleStock);
+        rifleGroup.add(bolt);
         
         // Position rifle in right hand
         rifleGroup.position.set(0.6, 0.8, 0);
         rifleGroup.rotation.y = Math.PI / 2;
         
+        // Create equipment
+        // Bread bag
+        const breadBagGeometry = new THREE.BoxGeometry(0.25, 0.25, 0.15);
+        const breadBag = new THREE.Mesh(breadBagGeometry, new THREE.MeshStandardMaterial({ color: 0x6B8E23 })); // Olive green
+        breadBag.position.set(-0.25, 0.8, 0.2);
+        breadBag.castShadow = true;
+        
+        // Water canteen
+        const canteenGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.2, 8);
+        const canteen = new THREE.Mesh(canteenGeometry, new THREE.MeshStandardMaterial({ color: 0x3D2817 }));
+        canteen.position.set(0.25, 0.8, 0.2);
+        canteen.castShadow = true;
+        
+        // Gas mask container (characteristic cylindrical container)
+        const gasMaskGeometry = new THREE.CylinderGeometry(0.12, 0.12, 0.3, 8);
+        const gasMask = new THREE.Mesh(gasMaskGeometry, new THREE.MeshStandardMaterial({ color: 0x2C2C2C }));
+        gasMask.position.set(0, 0.8, -0.25);
+        gasMask.castShadow = true;
+        
         // Add all parts to player group
         playerGroup.add(head);
         playerGroup.add(helmet);
-        playerGroup.add(helmetSide);
+        playerGroup.add(helmetRim);
+        playerGroup.add(frontBrim);
         playerGroup.add(torso);
         playerGroup.add(belt);
+        playerGroup.add(buckle);
         playerGroup.add(leftLeg);
         playerGroup.add(rightLeg);
+        playerGroup.add(leftBoot);
+        playerGroup.add(rightBoot);
         playerGroup.add(leftArm);
         playerGroup.add(rightArm);
         playerGroup.add(leftHand);
         playerGroup.add(rightHand);
         playerGroup.add(rifleGroup);
+        playerGroup.add(breadBag);
+        playerGroup.add(canteen);
+        playerGroup.add(gasMask);
         
         // Add details to the uniform (camouflage pattern)
         const addCamouflageDetail = (parent, width, height, depth, x, y, z) => {
@@ -1122,8 +1192,8 @@ class SimpleGame {
         addCamouflageDetail(torso, 0.25, 0.1, 0.41, 0.1, 0.2, 0);
         
         // Add camouflage details to helmet
-        addCamouflageDetail(helmet, 0.2, 0.21, 0.2, 0.1, 0, 0.1);
-        addCamouflageDetail(helmet, 0.3, 0.21, 0.15, -0.1, 0, -0.1);
+        addCamouflageDetail(helmet, 0.2, 0.1, 0.2, 0.1, 0, 0.1);
+        addCamouflageDetail(helmet, 0.3, 0.1, 0.15, -0.1, 0, -0.1);
         
         // Add face details (eyes)
         const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
@@ -1138,6 +1208,19 @@ class SimpleGame {
         rightEye.position.set(0.1, 1.65, 0.21);
         rightEye.scale.set(1, 0.5, 0.5);
         playerGroup.add(rightEye);
+        
+        // Add insignia (eagle emblem on helmet)
+        const insigniaGeometry = new THREE.PlaneGeometry(0.15, 0.1);
+        const insigniaMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0xC0C0C0,
+            side: THREE.DoubleSide
+        });
+        
+        const eagleInsignia = new THREE.Mesh(insigniaGeometry, insigniaMaterial);
+        eagleInsignia.position.set(0, 1.8, 0.26);
+        eagleInsignia.rotation.x = Math.PI / 2;
+        eagleInsignia.rotation.z = Math.PI;
+        playerGroup.add(eagleInsignia);
         
         // Position the player
         playerGroup.position.set(x, y, z);
