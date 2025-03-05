@@ -68,13 +68,13 @@ export class Environment {
         // Configure sky parameters for natural look
         const sun = new THREE.Vector3();
         const uniforms = sky.material.uniforms;
-        uniforms['turbidity'].value = 3.0; // Increased turbidity for hazier sky
-        uniforms['rayleigh'].value = 0.5; // Increased scattering for more diffuse light
-        uniforms['mieCoefficient'].value = 0.005; // Slightly increased atmospheric effects
-        uniforms['mieDirectionalG'].value = 0.5; // More diffuse sun effects
+        uniforms['turbidity'].value = 4.0; // Increased turbidity for even hazier sky
+        uniforms['rayleigh'].value = 0.7; // Increased scattering for more diffuse light
+        uniforms['mieCoefficient'].value = 0.007; // Increased atmospheric effects
+        uniforms['mieDirectionalG'].value = 0.4; // More diffuse sun effects
         
         // Position sun lower in the sky for softer lighting
-        const phi = THREE.MathUtils.degToRad(25); // Lower sun angle
+        const phi = THREE.MathUtils.degToRad(20); // Even lower sun angle
         const theta = THREE.MathUtils.degToRad(180);
         sun.setFromSphericalCoords(1, phi, theta);
         uniforms['sunPosition'].value.copy(sun);
@@ -83,7 +83,7 @@ export class Environment {
         this.createClouds();
         
         // Very subtle fog
-        this.scene.fog = new THREE.FogExp2(0x555555, 0.002);
+        this.scene.fog = new THREE.FogExp2(0x555555, 0.003);
     }
     
     createClouds() {
@@ -157,11 +157,11 @@ export class Environment {
     
     createLighting() {
         // Minimal ambient light
-        const ambientLight = new THREE.AmbientLight(0x333333, 0.15); // Reduced from 0.2
+        const ambientLight = new THREE.AmbientLight(0x333333, 0.1); // Further reduced from 0.15
         this.scene.add(ambientLight);
         
         // Directional light (sun)
-        const sunLight = new THREE.DirectionalLight(0xf5e5d6, 0.2); // Reduced from 0.3
+        const sunLight = new THREE.DirectionalLight(0xf5e5d6, 0.15); // Further reduced from 0.2
         sunLight.position.set(-50, 80, -50);
         sunLight.castShadow = true;
         
@@ -183,7 +183,7 @@ export class Environment {
         const hemiLight = new THREE.HemisphereLight(
             0x555555, // Sky color - very dark grey
             0x333333, // Ground color - darker grey
-            0.15 // Reduced from 0.2
+            0.1 // Further reduced from 0.15
         );
         hemiLight.position.set(0, 100, 0);
         this.scene.add(hemiLight);
