@@ -4,77 +4,143 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 // Initialize the game when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    // Create a simple Three.js scene directly
-    const simpleGame = new SimpleGame();
+    try {
+        console.log("DOM loaded, initializing game...");
+        // Create a simple Three.js scene directly
+        const simpleGame = new SimpleGame();
+    } catch (error) {
+        console.error("Error initializing game:", error);
+        // Display error on screen for debugging
+        const errorDiv = document.createElement('div');
+        errorDiv.style.position = 'absolute';
+        errorDiv.style.top = '10px';
+        errorDiv.style.left = '10px';
+        errorDiv.style.color = 'red';
+        errorDiv.style.backgroundColor = 'white';
+        errorDiv.style.padding = '10px';
+        errorDiv.style.zIndex = '1000';
+        errorDiv.textContent = `Game initialization error: ${error.message}`;
+        document.body.appendChild(errorDiv);
+    }
 });
 
 class SimpleGame {
     constructor() {
-        // Core Three.js components
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        console.log("SimpleGame constructor started");
+        try {
+            // Core Three.js components
+            this.scene = new THREE.Scene();
+            console.log("Scene created");
+            
+            this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            console.log("Camera created");
+            
+            this.renderer = new THREE.WebGLRenderer({ antialias: true });
+            console.log("Renderer created");
+            
+            // Configure renderer
+            this.renderer.setSize(window.innerWidth, window.innerHeight);
+            this.renderer.setClearColor(0x87CEEB); // Sky blue
+            
+            const container = document.getElementById('game-container');
+            if (!container) {
+                throw new Error("Game container not found");
+            }
+            container.appendChild(this.renderer.domElement);
+            console.log("Renderer added to DOM");
+            
+            // Player controls
+            this.controls = new PointerLockControls(this.camera, document.body);
+            console.log("Controls created");
+            
+            // Add camera to scene
+            this.scene.add(this.controls.getObject());
+            
+            // Movement variables
+            this.moveForward = false;
+            this.moveBackward = false;
+            this.moveLeft = false;
+            this.moveRight = false;
+            this.isSprinting = false;
+            this.velocity = new THREE.Vector3();
+            this.direction = new THREE.Vector3();
+            this.prevTime = performance.now();
+            this.playerSpeed = 1.0;
+            this.sprintMultiplier = 1.5;
+            
+            // Animation variables for static player
+            this.animationClock = 0;
+            this.walkingSpeed = 2.0; // Animation speed multiplier
+            this.staticPlayerMoving = true; // Whether the static player is walking
+            this.staticPlayerDirection = new THREE.Vector3(0, 0, -1); // Direction of movement
+            
+            // Weapon state
+            this.bulletCount = 8;
+            this.maxBullets = 8;
+            this.canShoot = true;
+            this.isReloading = false;
+            this.isAimingDownSights = false;
+            
+            // Audio state
+            this.muted = false;
+            
+            // Debug mode
+            this.debugMode = true; // Set to true to enable debug info
+            
+            // Set initial position
+            this.camera.position.set(0, 1.8, 5);
+            this.controls.getObject().position.set(0, 1.8, 5);
+            
+            // Create a simple test environment
+            this.createSimpleTestEnvironment();
+            
+            // Create instructions popup (after controls are initialized)
+            this.createInstructionsPopup();
+            
+            // Set up event listeners
+            this.setupEventListeners();
+            
+            // Start animation loop
+            console.log("Starting animation loop");
+            this.animate();
+            
+            console.log("SimpleGame constructor completed successfully");
+        } catch (error) {
+            console.error("Error in SimpleGame constructor:", error);
+            throw error;
+        }
+    }
+    
+    createSimpleTestEnvironment() {
+        console.log("Creating simple test environment");
         
-        // Configure renderer
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setClearColor(0x87CEEB); // Sky blue
-        document.getElementById('game-container').appendChild(this.renderer.domElement);
+        // Add ambient light
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        this.scene.add(ambientLight);
         
-        // Player controls
-        this.controls = new PointerLockControls(this.camera, document.body);
+        // Add directional light
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 10, 10);
+        this.scene.add(directionalLight);
         
-        // Add camera to scene
-        this.scene.add(this.controls.getObject());
+        // Create a ground plane
+        const groundGeometry = new THREE.PlaneGeometry(100, 100);
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x4CAF50 });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = 0;
+        ground.receiveShadow = true;
+        this.scene.add(ground);
         
-        // Movement variables
-        this.moveForward = false;
-        this.moveBackward = false;
-        this.moveLeft = false;
-        this.moveRight = false;
-        this.isSprinting = false;
-        this.velocity = new THREE.Vector3();
-        this.direction = new THREE.Vector3();
-        this.prevTime = performance.now();
-        this.playerSpeed = 1.0;
-        this.sprintMultiplier = 1.5;
+        // Create a simple box as a reference object
+        const boxGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const boxMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+        const box = new THREE.Mesh(boxGeometry, boxMaterial);
+        box.position.set(0, 0.5, -5);
+        box.castShadow = true;
+        this.scene.add(box);
         
-        // Animation variables for static player
-        this.animationClock = 0;
-        this.walkingSpeed = 2.0; // Animation speed multiplier
-        this.staticPlayerMoving = true; // Whether the static player is walking
-        this.staticPlayerDirection = new THREE.Vector3(0, 0, -1); // Direction of movement
-        
-        // Weapon state
-        this.bulletCount = 8;
-        this.maxBullets = 8;
-        this.canShoot = true;
-        this.isReloading = false;
-        this.isAimingDownSights = false;
-        
-        // Audio state
-        this.muted = false;
-        
-        // Debug mode
-        this.debugMode = true; // Set to true to enable debug info
-        
-        // Set initial position
-        this.camera.position.set(0, 1.8, 5);
-        this.controls.getObject().position.set(0, 1.8, 5);
-        
-        // Create environment
-        this.createEnvironment();
-        
-        // Create weapon
-        this.createWeapon();
-        
-        // Create instructions popup (after controls are initialized)
-        this.createInstructionsPopup();
-        
-        // Set up event listeners
-        this.setupEventListeners();
-        
-        // Start animation loop
-        this.animate();
+        console.log("Simple test environment created");
     }
     
     createEnvironment() {
@@ -812,10 +878,9 @@ class SimpleGame {
     }
     
     animate() {
-        requestAnimationFrame(() => this.animate());
-        
-        // Only update if controls are locked
-        if (this.controls.isLocked) {
+        try {
+            requestAnimationFrame(() => this.animate());
+            
             // Calculate delta time
             const time = performance.now();
             const delta = (time - this.prevTime) / 1000; // Convert to seconds
@@ -853,13 +918,12 @@ class SimpleGame {
             
             // Store current time for next frame
             this.prevTime = time;
+            
+            // Render the scene
+            this.renderer.render(this.scene, this.camera);
+        } catch (error) {
+            console.error("Error in animate method:", error);
         }
-        
-        // Animate static player model (even if controls are not locked)
-        this.animateStaticPlayer(delta || 0.016); // Use default delta if not available
-        
-        // Render the scene
-        this.renderer.render(this.scene, this.camera);
     }
     
     // New method to animate the static player
