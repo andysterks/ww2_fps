@@ -178,24 +178,24 @@ class Player {
             
             // Materials
             console.log("Creating materials");
-            const skinMaterial = new THREE.MeshLambertMaterial({ color: 0xffcc99 });
-            const uniformMaterial = new THREE.MeshLambertMaterial({ color: 0x5d5d5d }); // Field gray for German uniform
-            const helmetMaterial = new THREE.MeshLambertMaterial({ color: 0x3a3a3a }); // Darker gray for helmet
+            const skinMaterial = new THREE.MeshLambertMaterial({ color: 0xd4b78f }); // Warmer skin tone
+            const uniformMaterial = new THREE.MeshLambertMaterial({ color: 0x4b5320 }); // Military olive green
+            const helmetMaterial = new THREE.MeshLambertMaterial({ color: 0x3a3a3a }); // Dark gray for helmet
             
-            // Head (slightly larger than a standard LEGO head for better visibility)
+            // Head (more cube-like)
             console.log("Creating head");
             const head = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.4, 0.4, 0.4, 8),
+                new THREE.BoxGeometry(0.4, 0.4, 0.4),
                 skinMaterial
             );
             head.position.y = 1.6;
             head.name = 'head';
             this.model.add(head);
             
-            // Helmet (German Stahlhelm style)
+            // Helmet (simplified box shape)
             console.log("Creating helmet");
             const helmet = new THREE.Mesh(
-                new THREE.SphereGeometry(0.45, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2),
+                new THREE.BoxGeometry(0.45, 0.25, 0.45),
                 helmetMaterial
             );
             helmet.position.y = 1.8;
@@ -204,16 +204,16 @@ class Player {
             
             // Helmet brim
             const helmetBrim = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
+                new THREE.BoxGeometry(0.5, 0.05, 0.5),
                 helmetMaterial
             );
-            helmetBrim.position.y = 1.65;
+            helmetBrim.position.y = 1.7;
             helmetBrim.name = 'helmetBrim';
             this.model.add(helmetBrim);
             
-            // Torso
+            // Torso (taller and more rectangular)
             const torso = new THREE.Mesh(
-                new THREE.BoxGeometry(0.8, 0.8, 0.4),
+                new THREE.BoxGeometry(0.6, 0.9, 0.3),
                 uniformMaterial
             );
             torso.position.y = 1.1;
@@ -222,46 +222,46 @@ class Player {
             
             // Belt
             const belt = new THREE.Mesh(
-                new THREE.BoxGeometry(0.85, 0.1, 0.45),
-                new THREE.MeshLambertMaterial({ color: 0x222222 })
+                new THREE.BoxGeometry(0.65, 0.1, 0.35),
+                new THREE.MeshLambertMaterial({ color: 0x2d2d2d })
             );
             belt.position.y = 0.75;
             belt.name = 'belt';
             this.model.add(belt);
             
-            // Left arm
+            // Left arm (thinner and more rectangular)
             const leftArm = new THREE.Mesh(
-                new THREE.BoxGeometry(0.25, 0.6, 0.25),
+                new THREE.BoxGeometry(0.2, 0.6, 0.2),
                 uniformMaterial
             );
-            leftArm.position.set(0.525, 1.1, 0);
+            leftArm.position.set(0.4, 1.1, 0);
             leftArm.name = 'leftArm';
             this.model.add(leftArm);
             
             // Right arm
             const rightArm = new THREE.Mesh(
-                new THREE.BoxGeometry(0.25, 0.6, 0.25),
+                new THREE.BoxGeometry(0.2, 0.6, 0.2),
                 uniformMaterial
             );
-            rightArm.position.set(-0.525, 1.1, 0);
+            rightArm.position.set(-0.4, 1.1, 0);
             rightArm.name = 'rightArm';
             this.model.add(rightArm);
             
-            // Left leg
+            // Left leg (thinner)
             const leftLeg = new THREE.Mesh(
-                new THREE.BoxGeometry(0.3, 0.7, 0.3),
+                new THREE.BoxGeometry(0.25, 0.7, 0.25),
                 uniformMaterial
             );
-            leftLeg.position.set(0.2, 0.35, 0);
+            leftLeg.position.set(0.15, 0.35, 0);
             leftLeg.name = 'leftLeg';
             this.model.add(leftLeg);
             
             // Right leg
             const rightLeg = new THREE.Mesh(
-                new THREE.BoxGeometry(0.3, 0.7, 0.3),
+                new THREE.BoxGeometry(0.25, 0.7, 0.25),
                 uniformMaterial
             );
-            rightLeg.position.set(-0.2, 0.35, 0);
+            rightLeg.position.set(-0.15, 0.35, 0);
             rightLeg.name = 'rightLeg';
             this.model.add(rightLeg);
             
@@ -269,26 +269,24 @@ class Player {
             const rifle = new THREE.Group();
             rifle.name = 'rifle';
             
-            // Rifle body
+            // Rifle body (longer and more rectangular)
             const rifleBody = new THREE.Mesh(
-                new THREE.BoxGeometry(0.1, 0.1, 1.2),
-                new THREE.MeshLambertMaterial({ color: 0x5c2e00 })
+                new THREE.BoxGeometry(0.12, 0.12, 1.0),
+                new THREE.MeshLambertMaterial({ color: 0x4a3520 }) // Darker wood color
             );
-            rifleBody.position.z = 0.6;
             rifle.add(rifleBody);
             
-            // Rifle barrel
+            // Rifle barrel (shorter and thicker)
             const rifleBarrel = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8),
-                new THREE.MeshLambertMaterial({ color: 0x333333 })
+                new THREE.BoxGeometry(0.08, 0.08, 0.4),
+                new THREE.MeshLambertMaterial({ color: 0x2a2a2a }) // Darker metal
             );
-            rifleBarrel.rotation.x = Math.PI / 2;
-            rifleBarrel.position.z = 1.1;
+            rifleBarrel.position.z = 0.7;
             rifle.add(rifleBarrel);
             
-            // Position the rifle in the right hand
-            rifle.position.set(-0.6, 1.1, 0.2);
-            rifle.rotation.y = Math.PI / 4;
+            // Position the rifle perpendicular to the body
+            rifle.rotation.y = Math.PI / 2; // Rotate 90 degrees
+            rifle.position.set(-0.4, 1.1, 0.3); // Position alongside the right arm
             this.model.add(rifle);
             
             // Add the model to the scene
