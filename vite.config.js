@@ -2,8 +2,14 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   server: {
-    port: 3000,
-    host: true
+    port: 8080,
+    host: true,
+    proxy: {
+      '/socket.io': {
+        target: 'http://localhost:3000',
+        ws: true
+      }
+    }
   },
   resolve: {
     alias: {

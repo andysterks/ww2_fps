@@ -744,8 +744,8 @@ class SimpleGame {
         try {
             // Use socket.io for WebSocket communication
             const serverUrl = window.location.hostname === 'localhost' ? 
-                'http://localhost:3000' : 
-                `${window.location.protocol}//${window.location.hostname}:3000`;
+                window.location.origin : // Use the same origin when running locally
+                `${window.location.protocol}//${window.location.hostname}`;
             
             console.log('Connecting to server at:', serverUrl);
             
@@ -770,7 +770,8 @@ class SimpleGame {
                 console.log('Connection details:', {
                     url: serverUrl,
                     protocol: window.location.protocol,
-                    hostname: window.location.hostname
+                    hostname: window.location.hostname,
+                    port: window.location.port
                 });
             });
 
@@ -778,15 +779,6 @@ class SimpleGame {
                 console.error('Connection timeout');
             });
 
-            this.socket.io.on('upgrade', () => {
-                console.log('Transport upgraded to:', this.socket.io.engine.transport.name);
-            });
-
-            this.socket.io.on('packet', ({ type, data }) => {
-                console.log('Received packet:', type, data);
-            });
-            
-            // Set up event listeners for socket.io
             this.socket.on('connect', () => {
                 console.log('Connected to server with ID:', this.socket.id);
                 console.log('Using transport:', this.socket.io.engine.transport.name);
@@ -797,6 +789,11 @@ class SimpleGame {
                         this.removePlayer(id);
                     }
                 });
+                
+                // Update local player ID to match socket ID
+                if (this.localPlayer) {
+                    this.localPlayer.id = this.socket.id;
+                }
                 
                 // Request current players list from server
                 this.socket.emit('request-players');
@@ -823,11 +820,15 @@ class SimpleGame {
             // Handle player leaving
             this.socket.on('player-left', (data) => {
                 console.log('Player left:', data);
-                this.removePlayer(data.id);
+                if (data.id && this.players.has(data.id)) {
+                    this.removePlayer(data.id);
+                }
             });
             
             // Handle player updates
             this.socket.on('player-update', (data) => {
+                if (data.id === this.socket.id) return; // Ignore our own updates
+                
                 const player = this.players.get(data.id);
                 if (player && !player.isLocal) {
                     console.log(`Updating player ${data.id} position:`, data.position);
@@ -842,8 +843,9 @@ class SimpleGame {
                 }
             });
             
-            // Send initial player data
-            this.sendNetworkUpdate();
+            // Set network update interval
+            this.networkUpdateInterval = 50; // 20 updates per second
+            this.lastNetworkUpdate = 0;
             
         } catch (error) {
             console.error("Error initializing network:", error);
