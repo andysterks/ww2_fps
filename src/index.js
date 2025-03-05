@@ -252,89 +252,123 @@ class SimpleGame {
         });
     }
     
-    // Initialize network functionality (placeholder)
+    // Initialize network functionality
     initNetwork() {
-        console.log("Network functionality initialized (placeholder)");
+        console.log("Initializing real WebSocket connection");
         
-        // This would be replaced with actual WebSocket or WebRTC implementation
-        // For now, we'll simulate network updates with a timer
-        this.networkUpdateInterval = 100; // ms
-        this.lastNetworkUpdate = 0;
+        // Connect to the WebSocket server
+        this.socket = new WebSocket('ws://localhost:8080');
         
-        // Create a mock server connection
-        this.mockServerConnection = {
-            // Simulate sending data to server
-            send: (data) => {
-                console.log("Sending data to server:", data);
-                // In a real implementation, this would send data to a WebSocket server
-                
-                // Simulate network latency (50ms)
-                setTimeout(() => {
-                    this.receiveNetworkUpdate(data);
-                }, 50);
-            },
+        // Handle connection open
+        this.socket.onopen = () => {
+            console.log("WebSocket connection established");
             
-            // Simulate receiving data from server
-            receive: (callback) => {
-                // In a real implementation, this would be a WebSocket onmessage handler
-                this.onNetworkUpdate = callback;
+            // Remove test remote players since we'll get real ones from the server
+            this.removeTestPlayers();
+        };
+        
+        // Handle incoming messages
+        this.socket.onmessage = (event) => {
+            try {
+                const message = JSON.parse(event.data);
+                
+                switch (message.type) {
+                    case 'init':
+                        // Server has assigned us an ID
+                        console.log(`Received player ID from server: ${message.id}`);
+                        
+                        // Update our local player ID
+                        if (this.localPlayer) {
+                            this.localPlayer.id = message.id;
+                        }
+                        break;
+                        
+                    case 'player-joined':
+                        // A new player has joined
+                        console.log(`Player joined: ${message.id}`);
+                        
+                        // Add the new player
+                        this.addRemotePlayer(message.id, message.position);
+                        
+                        // Update their rotation
+                        const newPlayer = this.players.get(message.id);
+                        if (newPlayer) {
+                            newPlayer.updateFromNetwork(message.position, message.rotation);
+                        }
+                        break;
+                        
+                    case 'player-update':
+                        // Update an existing player
+                        const player = this.players.get(message.id);
+                        if (player) {
+                            player.updateFromNetwork(message.position, message.rotation);
+                            
+                            // Update movement flags
+                            player.setMovementFlags(
+                                message.moveForward,
+                                message.moveBackward,
+                                message.moveLeft,
+                                message.moveRight,
+                                message.isSprinting
+                            );
+                        }
+                        break;
+                        
+                    case 'player-left':
+                        // A player has left
+                        console.log(`Player left: ${message.id}`);
+                        
+                        // Remove the player
+                        this.removeRemotePlayer(message.id);
+                        break;
+                        
+                    default:
+                        console.warn(`Unknown message type: ${message.type}`);
+                }
+            } catch (error) {
+                console.error('Error processing message:', error);
             }
         };
         
-        // Set up network update handler
-        this.mockServerConnection.receive((data) => {
-            this.handleNetworkUpdate(data);
+        // Handle connection close
+        this.socket.onclose = () => {
+            console.log("WebSocket connection closed");
+        };
+        
+        // Handle connection error
+        this.socket.onerror = (error) => {
+            console.error("WebSocket error:", error);
+        };
+    }
+    
+    // Remove test remote players
+    removeTestPlayers() {
+        // Get all player IDs
+        const playerIds = Array.from(this.players.keys());
+        
+        // Remove all remote players (keep local player)
+        playerIds.forEach(id => {
+            if (id !== this.localPlayer.id) {
+                this.removeRemotePlayer(id);
+            }
         });
     }
     
     // Send local player data to the network
     sendNetworkUpdate() {
-        if (!this.localPlayer) return;
+        if (!this.localPlayer || !this.socket || this.socket.readyState !== WebSocket.OPEN) return;
         
         // Serialize local player data
         const playerData = this.localPlayer.serialize();
         
-        // Send to mock server
-        this.mockServerConnection.send(playerData);
-    }
-    
-    // Receive network update (simulated server-side logic)
-    receiveNetworkUpdate(data) {
-        // In a real implementation, the server would broadcast this to all other clients
-        // For our simulation, we'll just handle it directly
+        // Add message type
+        const message = {
+            type: 'update',
+            ...playerData
+        };
         
-        // Don't send updates back to the originating player
-        if (data.id === this.localPlayer.id) return;
-        
-        // Simulate server broadcasting to all clients
-        if (this.onNetworkUpdate) {
-            this.onNetworkUpdate(data);
-        }
-    }
-    
-    // Handle incoming network update
-    handleNetworkUpdate(data) {
-        // Check if this is our own data (should be filtered out by the server)
-        if (data.id === this.localPlayer.id) return;
-        
-        // Check if we know this player
-        if (!this.players.has(data.id)) {
-            // New player, add them
-            this.addRemotePlayer(data.id, data.position);
-        }
-        
-        // Update the player with the received data
-        const player = this.players.get(data.id);
-        player.updateFromNetwork(data.position, data.rotation);
-        
-        // Update movement flags
-        player.setMovementFlags(
-            data.moveForward,
-            data.moveBackward,
-            data.moveLeft,
-            data.moveRight,
-            data.isSprinting
-        );
+        // Send to server
+        this.socket.send(JSON.stringify(message));
     }
     
     // Add a new remote player
@@ -1221,6 +1255,11 @@ class SimpleGame {
             });
             
             // Send network updates at fixed intervals
+            if (!this.lastNetworkUpdate) {
+                this.lastNetworkUpdate = time;
+                this.networkUpdateInterval = 100; // ms
+            }
+            
             if (time - this.lastNetworkUpdate > this.networkUpdateInterval) {
                 this.sendNetworkUpdate();
                 this.lastNetworkUpdate = time;

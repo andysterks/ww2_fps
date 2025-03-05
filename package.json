@@ -5,10 +5,13 @@
   "main": "src/index.js",
   "scripts": {
     "start": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "server": "node websocket-server.js"
   },
   "dependencies": {
-    "three": "^0.160.0"
+    "three": "^0.160.0",
+    "ws": "^8.16.0",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "vite": "^5.0.0"
