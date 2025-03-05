@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client';
 import * as THREE from 'three';
+import { createGermanSoldier } from '../../models/characters/german_soldier';
 
 /**
  * NetworkManager class handles all multiplayer networking functionality
@@ -79,21 +80,20 @@ export class NetworkManager {
     addPlayer(data) {
         if (data.id === this.socket.id) return;
         
-        // Create player mesh
-        const geometry = new THREE.BoxGeometry(1, 2, 1);
-        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const playerMesh = new THREE.Mesh(geometry, material);
+        // Create German soldier model
+        const playerModel = createGermanSoldier();
+        playerModel.scale.set(1.5, 1.5, 1.5); // Scale up the model a bit
         
         // Set initial position and rotation
-        playerMesh.position.copy(data.position);
-        playerMesh.rotation.copy(data.rotation);
+        playerModel.position.copy(data.position);
+        playerModel.rotation.copy(data.rotation);
         
         // Add to scene
-        this.game.scene.add(playerMesh);
+        this.game.scene.add(playerModel);
         
         // Store player data
         this.players.set(data.id, {
-            mesh: playerMesh,
+            mesh: playerModel,
             lastUpdate: performance.now(),
             position: new THREE.Vector3().copy(data.position),
             rotation: new THREE.Euler().copy(data.rotation),
