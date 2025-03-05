@@ -151,6 +151,12 @@ class SimpleGame {
             metalness: 0.1
         });
         
+        const leatherMaterial = new THREE.MeshStandardMaterial({
+            color: 0x4A3C2A, // Brown leather
+            roughness: 0.5,
+            metalness: 0.1
+        });
+        
         // Create body parts
         // Head and helmet
         const headGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.25, 16);
@@ -159,6 +165,7 @@ class SimpleGame {
         head.castShadow = true;
         playerGroup.add(head);
         
+        // German Stahlhelm helmet
         const helmetGeometry = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.6);
         const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
         helmet.scale.set(1.1, 0.8, 1.1);
@@ -167,12 +174,28 @@ class SimpleGame {
         helmet.castShadow = true;
         playerGroup.add(helmet);
         
+        // Helmet rim
+        const rimGeometry = new THREE.TorusGeometry(0.25, 0.05, 8, 24, Math.PI * 1.2);
+        const rim = new THREE.Mesh(rimGeometry, helmetMaterial);
+        rim.position.y = 1.7;
+        rim.position.z = -0.05;
+        rim.rotation.x = Math.PI / 2;
+        rim.castShadow = true;
+        playerGroup.add(rim);
+        
         // Torso
         const torsoGeometry = new THREE.BoxGeometry(0.4, 0.5, 0.2);
         const torso = new THREE.Mesh(torsoGeometry, uniformMaterial);
         torso.position.y = 1.25;
         torso.castShadow = true;
         playerGroup.add(torso);
+        
+        // Belt
+        const beltGeometry = new THREE.BoxGeometry(0.42, 0.08, 0.22);
+        const belt = new THREE.Mesh(beltGeometry, leatherMaterial);
+        belt.position.y = 1.0;
+        belt.castShadow = true;
+        playerGroup.add(belt);
         
         // Create leg groups for animation
         const leftLegGroup = new THREE.Group();
@@ -244,6 +267,34 @@ class SimpleGame {
         rightHand.position.set(0, -0.25, 0);
         rightHand.castShadow = true;
         rightArmGroup.add(rightHand);
+        
+        // Add equipment - bread bag
+        const breadBagGeometry = new THREE.BoxGeometry(0.15, 0.2, 0.1);
+        const breadBag = new THREE.Mesh(breadBagGeometry, leatherMaterial);
+        breadBag.position.set(-0.2, 1.0, 0.15);
+        breadBag.castShadow = true;
+        playerGroup.add(breadBag);
+        
+        // Add rifle (simplified Kar98k)
+        const rifleGroup = new THREE.Group();
+        
+        // Rifle stock
+        const stockGeometry = new THREE.BoxGeometry(0.05, 0.08, 0.6);
+        const stock = new THREE.Mesh(stockGeometry, new THREE.MeshStandardMaterial({ color: 0x5C4033 }));
+        stock.position.z = 0.2;
+        rifleGroup.add(stock);
+        
+        // Rifle barrel
+        const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.7, 8);
+        const barrel = new THREE.Mesh(barrelGeometry, new THREE.MeshStandardMaterial({ color: 0x333333 }));
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.z = -0.15;
+        rifleGroup.add(barrel);
+        
+        // Position rifle in right hand
+        rifleGroup.position.set(0, -0.25, 0.1);
+        rifleGroup.rotation.x = -Math.PI / 4;
+        rightArmGroup.add(rifleGroup);
         
         // Add limbs to player group
         playerGroup.add(leftLegGroup);
