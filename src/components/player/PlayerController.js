@@ -21,23 +21,29 @@ export class PlayerController {
         // Physics properties
         this.velocity = new THREE.Vector3();
         this.direction = new THREE.Vector3();
-        this.lastPosition = new THREE.Vector3();
-        this.moveSpeed = 5.0; // meters per second
+        this.moveSpeed = 5.0;
         this.sprintMultiplier = 1.6;
         this.crouchMultiplier = 0.5;
         this.jumpForce = 5.0;
         this.gravity = 9.81;
+
+        // Create a camera holder for effects
+        this.cameraHolder = new THREE.Object3D();
+        this.scene.add(this.cameraHolder);
+        this.cameraHolder.add(this.camera);
         
-        // Player dimensions
-        this.standingHeight = 1.8; // meters
-        this.crouchingHeight = 1.0; // meters
-        this.currentHeight = this.standingHeight;
-        this.radius = 0.3; // meters for collision
+        // Initialize controls
+        const gameContainer = document.getElementById('game-container');
+        this.controls = new PointerLockControls(this.cameraHolder, gameContainer);
         
-        // Camera properties
-        this.defaultFOV = 75;
-        this.sprintingFOV = 85;
-        this.crouchingFOV = 70;
+        // Set initial position
+        this.cameraHolder.position.set(0, 2, 10);
+        
+        // Set up collision detection
+        this.raycaster = new THREE.Raycaster();
+        this.collidableObjects = [];
+        
+        // Camera effects
         this.bobAmount = 0.015;
         this.bobSpeed = 0.018;
         this.bobTime = 0;
@@ -56,17 +62,6 @@ export class PlayerController {
             frequency: 0.5,
             amplitude: 0.0015
         };
-        
-        // Initialize controls
-        const gameContainer = document.getElementById('game-container');
-        this.controls = new PointerLockControls(this.camera, gameContainer);
-        
-        // Set initial position
-        this.camera.position.set(0, 2, 10);
-        
-        // Set up collision detection
-        this.raycaster = new THREE.Raycaster();
-        this.collidableObjects = [];
         
         // Set up event listeners
         this.setupEventListeners();
@@ -128,12 +123,12 @@ export class PlayerController {
         if (this.isCrouching) currentSpeed *= this.crouchMultiplier;
 
         // Calculate forward direction
-        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.cameraHolder.quaternion);
         forward.y = 0;
         forward.normalize();
 
         // Calculate right direction
-        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.cameraHolder.quaternion);
         right.y = 0;
         right.normalize();
 
@@ -161,13 +156,13 @@ export class PlayerController {
             this.velocity.y = 0;
         }
 
-        // Move the camera
-        this.camera.position.addScaledVector(this.velocity, deltaTime);
+        // Move the camera holder
+        this.cameraHolder.position.addScaledVector(this.velocity, deltaTime);
 
         // Ensure minimum height
         const minHeight = this.isCrouching ? 1.0 : 2.0;
-        if (this.camera.position.y < minHeight) {
-            this.camera.position.y = minHeight;
+        if (this.cameraHolder.position.y < minHeight) {
+            this.cameraHolder.position.y = minHeight;
             this.velocity.y = 0;
         }
 
@@ -190,44 +185,30 @@ export class PlayerController {
             
             // Apply head bob with intensity based on movement state
             const intensity = this.isSprinting ? 1.5 : (this.isCrouching ? 0.5 : 1.0);
-            this.headBob.translation.set(
+            
+            // Apply to camera local position
+            this.camera.position.set(
                 bobX * intensity,
                 bobY * intensity,
                 0
             );
-            
-            // Apply slight tilt based on movement
-            this.headBob.rotation.z = Math.sin(this.bobTime) * 0.02 * intensity;
         } else {
-            // Smoothly reset head bob
-            this.headBob.translation.multiplyScalar(1 - this.headBob.recovery);
-            this.headBob.rotation.z *= 1 - this.headBob.recovery;
+            // Smoothly reset camera position
+            this.camera.position.multiplyScalar(1 - this.headBob.recovery);
         }
         
         // Update breathing effect
         this.breathing.offset = Math.sin(performance.now() * 0.001 * this.breathing.frequency) * this.breathing.amplitude;
-        
-        // Apply all camera effects
-        this.camera.position.add(this.headBob.translation);
-        this.camera.rotation.z = this.headBob.rotation.z;
         this.camera.position.y += this.breathing.offset;
-        
-        // Update FOV based on movement state
-        let targetFOV = this.defaultFOV;
-        if (this.isSprinting) targetFOV = this.sprintingFOV;
-        if (this.isCrouching) targetFOV = this.crouchingFOV;
-        
-        this.camera.fov += (targetFOV - this.camera.fov) * 0.1;
-        this.camera.updateProjectionMatrix();
     }
     
     handleCollisions() {
         for (const object of this.collidableObjects) {
             if (object.geometry) {
                 const box = new THREE.Box3().setFromObject(object);
-                if (box.containsPoint(this.camera.position)) {
+                if (box.containsPoint(this.cameraHolder.position)) {
                     // Move back if colliding
-                    this.camera.position.addScaledVector(this.velocity, -1);
+                    this.cameraHolder.position.addScaledVector(this.velocity, -1);
                     this.velocity.set(0, 0, 0);
                     break;
                 }
@@ -254,7 +235,7 @@ export class PlayerController {
     }
     
     isOnGround() {
-        this.raycaster.ray.origin.copy(this.camera.position);
+        this.raycaster.ray.origin.copy(this.cameraHolder.position);
         this.raycaster.ray.direction.set(0, -1, 0);
         
         const intersects = this.raycaster.intersectObjects(this.collidableObjects);
@@ -266,11 +247,11 @@ export class PlayerController {
     }
     
     getPosition() {
-        return this.camera.position;
+        return this.cameraHolder.position;
     }
     
     getRotation() {
-        return this.camera.rotation;
+        return this.cameraHolder.rotation;
     }
     
     getMovementState() {
