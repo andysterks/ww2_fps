@@ -293,20 +293,28 @@ class Player {
             
             // Add the model to the scene
             if (this.game && this.game.scene) {
+                console.log(`Adding model for player ${this.id} to scene`);
                 this.game.scene.add(this.model);
+                
+                // Set initial position
+                this.model.position.copy(this.position);
+                this.model.position.y = 0; // Keep y at 0 to ensure feet are on ground
+                this.model.rotation.y = this.rotation.y;
+                
+                // If this is the local player, hide the model since we're in first person
+                if (this.isLocal) {
+                    console.log("Local player - hiding model");
+                    this.model.visible = false;
+                } else {
+                    console.log(`Remote player ${this.id} - model visible at position:`, this.model.position);
+                }
+            } else {
+                console.error(`Cannot add model for player ${this.id} - game or scene not available`);
             }
             
-            // If this is the local player, hide the model since we're in first person
-            if (this.isLocal) {
-                this.model.visible = false;
-            }
-            
-            // Set initial position
-            this.model.position.copy(this.position);
-            this.model.position.y = 0; // Keep y at 0 to ensure feet are on ground
-            this.model.rotation.y = this.rotation.y;
+            console.log(`Model creation complete for player ${this.id}`);
         } catch (error) {
-            console.error("Error creating player model:", error);
+            console.error(`Error creating model for player ${this.id}:`, error);
         }
     }
 
@@ -617,7 +625,7 @@ class SimpleGame {
                 debugDiv.textContent = 'Creating test players...';
             }
             
-            // Create some test remote players (only if not connected to real server)
+            // Create some test remote players (for development)
             this.createTestRemotePlayers();
             
             // Update debug message
@@ -693,18 +701,38 @@ class SimpleGame {
         
         // Create 3 test remote players at different positions
         const positions = [
-            { x: 5, y: 0, z: -15 },
-            { x: -5, y: 0, z: -10 },
-            { x: 0, y: 0, z: -20 }
+            { x: 0, y: 0, z: -5 },  // Directly in front
+            { x: -3, y: 0, z: -5 }, // To the left
+            { x: 3, y: 0, z: -5 }   // To the right
         ];
         
         positions.forEach((pos, index) => {
             const playerId = `remote-player-${index}`;
+            console.log(`Creating test player ${playerId} at position:`, pos);
+            
             const remotePlayer = new Player(playerId, this, false, pos);
             remotePlayer.createModel();
-            this.players.set(playerId, remotePlayer);
             
-            console.log("Test remote player created with ID:", playerId);
+            // Ensure the model is visible and properly positioned
+            if (remotePlayer.model) {
+                remotePlayer.model.position.copy(remotePlayer.position);
+                remotePlayer.model.visible = true;
+                console.log(`Player ${playerId} model position:`, remotePlayer.model.position);
+            }
+            
+            this.players.set(playerId, remotePlayer);
+            console.log(`Test remote player ${playerId} created and added to players map`);
+        });
+        
+        // Log the total number of players
+        console.log(`Total players in game: ${this.players.size}`);
+        
+        // Log all players' positions
+        this.players.forEach((player, id) => {
+            console.log(`Player ${id} position:`, player.position);
+            if (player.model) {
+                console.log(`Player ${id} model position:`, player.model.position);
+            }
         });
     }
     
