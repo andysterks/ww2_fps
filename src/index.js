@@ -621,18 +621,30 @@ class SimpleGame {
     }
     
     addRecoilEffect() {
-        // Simple recoil effect
+        // Recoil effect that's reduced when aiming
         if (this.weapon) {
             // Store original position
             const originalPosition = this.weapon.position.clone();
             
-            // Apply recoil
-            this.weapon.position.z += 0.05;
+            // Calculate recoil amount (less when aiming)
+            const recoilAmount = this.isAiming ? 0.02 : 0.05;
             
-            // Return to original position
+            // Apply recoil to weapon
+            this.weapon.position.z += recoilAmount;
+            
+            // Apply camera recoil
+            const cameraRecoil = this.isAiming ? 0.2 : 0.5;
+            this.camera.rotation.x -= THREE.MathUtils.degToRad(cameraRecoil);
+            
+            // Return weapon to original position
             setTimeout(() => {
                 this.weapon.position.copy(originalPosition);
             }, 100);
+            
+            // Return camera to original rotation
+            setTimeout(() => {
+                this.camera.rotation.x += THREE.MathUtils.degToRad(cameraRecoil);
+            }, 150);
         }
     }
     
