@@ -20,6 +20,9 @@ class SimpleGame {
         this.renderer.setClearColor(0x87CEEB); // Sky blue
         document.getElementById('game-container').appendChild(this.renderer.domElement);
         
+        // Create instructions popup
+        this.createInstructionsPopup();
+        
         // Player controls
         this.controls = new PointerLockControls(this.camera, document.body);
         
@@ -1435,5 +1438,128 @@ class SimpleGame {
         this.scene.add(playerGroup);
         
         return playerGroup;
+    }
+
+    createInstructionsPopup() {
+        // Create the instructions container
+        const instructionsContainer = document.createElement('div');
+        instructionsContainer.id = 'instructions-popup';
+        instructionsContainer.style.position = 'absolute';
+        instructionsContainer.style.top = '50%';
+        instructionsContainer.style.left = '50%';
+        instructionsContainer.style.transform = 'translate(-50%, -50%)';
+        instructionsContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        instructionsContainer.style.color = 'white';
+        instructionsContainer.style.padding = '20px';
+        instructionsContainer.style.borderRadius = '10px';
+        instructionsContainer.style.fontFamily = 'Arial, sans-serif';
+        instructionsContainer.style.zIndex = '1000';
+        instructionsContainer.style.maxWidth = '500px';
+        instructionsContainer.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
+        
+        // Create the header
+        const header = document.createElement('h2');
+        header.textContent = 'WW2 FPS Controls';
+        header.style.textAlign = 'center';
+        header.style.marginTop = '0';
+        header.style.color = '#FFD700'; // Gold color
+        instructionsContainer.appendChild(header);
+        
+        // Create the controls list
+        const controlsList = document.createElement('ul');
+        controlsList.style.listStyleType = 'none';
+        controlsList.style.padding = '0';
+        
+        // Define all controls
+        const controls = [
+            { key: 'W, A, S, D', action: 'Move around' },
+            { key: 'SHIFT', action: 'Sprint' },
+            { key: 'SPACE', action: 'Jump' },
+            { key: 'LEFT CLICK', action: 'Shoot' },
+            { key: 'RIGHT CLICK', action: 'Aim down sights' },
+            { key: 'R', action: 'Reload weapon' },
+            { key: 'M', action: 'Toggle sound' },
+            { key: 'ESC', action: 'Pause game / Release mouse' }
+        ];
+        
+        // Add each control to the list
+        controls.forEach(control => {
+            const listItem = document.createElement('li');
+            listItem.style.margin = '10px 0';
+            listItem.style.display = 'flex';
+            listItem.style.justifyContent = 'space-between';
+            
+            const keySpan = document.createElement('span');
+            keySpan.textContent = control.key;
+            keySpan.style.backgroundColor = '#333';
+            keySpan.style.padding = '3px 8px';
+            keySpan.style.borderRadius = '4px';
+            keySpan.style.fontFamily = 'monospace';
+            keySpan.style.marginRight = '10px';
+            keySpan.style.minWidth = '100px';
+            keySpan.style.display = 'inline-block';
+            keySpan.style.textAlign = 'center';
+            
+            const actionSpan = document.createElement('span');
+            actionSpan.textContent = control.action;
+            actionSpan.style.flexGrow = '1';
+            
+            listItem.appendChild(keySpan);
+            listItem.appendChild(actionSpan);
+            controlsList.appendChild(listItem);
+        });
+        
+        instructionsContainer.appendChild(controlsList);
+        
+        // Create start button
+        const startButton = document.createElement('button');
+        startButton.textContent = 'START GAME';
+        startButton.style.display = 'block';
+        startButton.style.margin = '20px auto 0';
+        startButton.style.padding = '10px 20px';
+        startButton.style.backgroundColor = '#4CAF50';
+        startButton.style.color = 'white';
+        startButton.style.border = 'none';
+        startButton.style.borderRadius = '5px';
+        startButton.style.cursor = 'pointer';
+        startButton.style.fontSize = '16px';
+        startButton.style.fontWeight = 'bold';
+        startButton.style.transition = 'background-color 0.3s';
+        
+        startButton.addEventListener('mouseover', () => {
+            startButton.style.backgroundColor = '#45a049';
+        });
+        
+        startButton.addEventListener('mouseout', () => {
+            startButton.style.backgroundColor = '#4CAF50';
+        });
+        
+        startButton.addEventListener('click', () => {
+            this.controls.lock();
+            instructionsContainer.style.display = 'none';
+        });
+        
+        instructionsContainer.appendChild(startButton);
+        
+        // Add instructions for showing the popup again
+        const note = document.createElement('p');
+        note.textContent = 'Press ESC to show these instructions again';
+        note.style.textAlign = 'center';
+        note.style.fontSize = '12px';
+        note.style.marginTop = '15px';
+        note.style.opacity = '0.7';
+        instructionsContainer.appendChild(note);
+        
+        // Add to DOM
+        document.body.appendChild(instructionsContainer);
+        
+        // Show/hide instructions based on pointer lock
+        this.controls.addEventListener('lock', () => {
+            instructionsContainer.style.display = 'none';
+        });
+        
+        this.controls.addEventListener('unlock', () => {
+            instructionsContainer.style.display = 'block';
+        });
     }
 }
