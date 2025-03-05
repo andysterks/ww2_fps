@@ -96,6 +96,9 @@ class SimpleGame {
         // Add a static player model (LEGO-like German soldier)
         this.createStaticPlayerModel(0, 0, -15);
         
+        // Add WW2 scene elements
+        this.addWW2SceneElements();
+        
         // Add ambient light
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
         this.scene.add(ambientLight);
@@ -113,6 +116,139 @@ class SimpleGame {
         directionalLight.shadow.camera.top = 50;
         directionalLight.shadow.camera.bottom = -50;
         this.scene.add(directionalLight);
+    }
+    
+    addWW2SceneElements() {
+        // Create sandbag barrier
+        this.createSandbags(-5, 0, -10);
+        
+        // Create a fallen helmet
+        this.createFallenHelmet(-3, 0.1, -8);
+        
+        // Create wooden crates
+        this.createWoodenCrate(4, 0.5, -12);
+        this.createWoodenCrate(4.5, 0.5, -13);
+    }
+    
+    createSandbags(x, y, z) {
+        const sandbagGroup = new THREE.Group();
+        
+        const sandbagMaterial = new THREE.MeshStandardMaterial({
+            color: 0xB5651D,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+        
+        const sandbagGeometry = new THREE.BoxGeometry(0.6, 0.3, 0.3);
+        
+        // Create rows of sandbags
+        for (let h = 0; h < 2; h++) {
+            const rowOffset = (h % 2) * 0.3; // Offset every other row
+            
+            for (let i = 0; i < 5; i++) {
+                const sandbag = new THREE.Mesh(sandbagGeometry, sandbagMaterial);
+                sandbag.position.set(x + i * 0.6 + rowOffset, y + h * 0.3, z);
+                sandbag.castShadow = true;
+                sandbag.receiveShadow = true;
+                
+                // Add some random rotation for realism
+                sandbag.rotation.y = (Math.random() - 0.5) * 0.2;
+                sandbag.rotation.z = (Math.random() - 0.5) * 0.1;
+                
+                sandbagGroup.add(sandbag);
+            }
+        }
+        
+        this.scene.add(sandbagGroup);
+        return sandbagGroup;
+    }
+    
+    createFallenHelmet(x, y, z) {
+        const helmetGroup = new THREE.Group();
+        
+        // Helmet material
+        const helmetMaterial = new THREE.MeshStandardMaterial({
+            color: 0x333333,
+            roughness: 0.4,
+            metalness: 0.3
+        });
+        
+        // Main helmet dome
+        const helmetGeometry = new THREE.SphereGeometry(0.25, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+        const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
+        helmet.scale.set(1.1, 0.8, 1.1);
+        helmet.castShadow = true;
+        
+        // Helmet rim
+        const helmetRimGeometry = new THREE.TorusGeometry(0.25, 0.05, 8, 24, Math.PI * 2);
+        const helmetRim = new THREE.Mesh(helmetRimGeometry, helmetMaterial);
+        helmetRim.position.y = -0.1;
+        helmetRim.rotation.x = Math.PI / 2;
+        helmetRim.castShadow = true;
+        
+        // Add parts to group
+        helmetGroup.add(helmet);
+        helmetGroup.add(helmetRim);
+        
+        // Position and rotate to look like it's fallen on the ground
+        helmetGroup.position.set(x, y, z);
+        helmetGroup.rotation.set(Math.PI / 3, Math.PI / 4, 0);
+        
+        this.scene.add(helmetGroup);
+        return helmetGroup;
+    }
+    
+    createWoodenCrate(x, y, z) {
+        const crateGeometry = new THREE.BoxGeometry(1, 1, 1);
+        const crateMaterial = new THREE.MeshStandardMaterial({
+            color: 0x8B4513, // Brown
+            roughness: 0.8,
+            metalness: 0.1
+        });
+        
+        const crate = new THREE.Mesh(crateGeometry, crateMaterial);
+        crate.position.set(x, y, z);
+        crate.castShadow = true;
+        crate.receiveShadow = true;
+        
+        // Add some details to the crate
+        const edgeGeometry = new THREE.BoxGeometry(1.02, 0.1, 0.1);
+        const edgeMaterial = new THREE.MeshStandardMaterial({
+            color: 0x5D4037, // Darker brown
+            roughness: 0.7,
+            metalness: 0.2
+        });
+        
+        // Add edges to the crate
+        const edges = [];
+        
+        // Bottom edges
+        for (let i = 0; i < 4; i++) {
+            const edge = new THREE.Mesh(edgeGeometry, edgeMaterial);
+            edge.position.set(0, -0.45, 0);
+            edge.rotation.y = Math.PI / 2 * i;
+            edge.rotation.z = Math.PI / 2;
+            edge.castShadow = true;
+            crate.add(edge);
+            edges.push(edge);
+        }
+        
+        // Top edges
+        for (let i = 0; i < 4; i++) {
+            const edge = new THREE.Mesh(edgeGeometry, edgeMaterial);
+            edge.position.set(0, 0.45, 0);
+            edge.rotation.y = Math.PI / 2 * i;
+            edge.rotation.z = Math.PI / 2;
+            edge.castShadow = true;
+            crate.add(edge);
+            edges.push(edge);
+        }
+        
+        // Add some random rotation for realism
+        crate.rotation.y = Math.random() * Math.PI * 2;
+        
+        this.scene.add(crate);
+        return crate;
     }
     
     addBuilding(color, x, y, z) {
