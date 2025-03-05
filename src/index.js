@@ -20,9 +20,6 @@ class SimpleGame {
         this.renderer.setClearColor(0x87CEEB); // Sky blue
         document.getElementById('game-container').appendChild(this.renderer.domElement);
         
-        // Create instructions popup
-        this.createInstructionsPopup();
-        
         // Player controls
         this.controls = new PointerLockControls(this.camera, document.body);
         
@@ -63,6 +60,9 @@ class SimpleGame {
         
         // Create weapon
         this.createWeapon();
+        
+        // Create instructions popup (after controls are initialized)
+        this.createInstructionsPopup();
         
         // Set up event listeners
         this.setupEventListeners();
@@ -642,11 +642,14 @@ class SimpleGame {
     setupEventListeners() {
         // Lock pointer on click and shoot
         document.addEventListener('click', (event) => {
-            // Only handle clicks outside the instructions popup
-            if (!this.controls.isLocked && 
-                (!this.instructionsContainer || !this.instructionsContainer.contains(event.target))) {
+            // Ignore clicks on the instructions popup
+            if (this.instructionsContainer && this.instructionsContainer.contains(event.target)) {
+                return;
+            }
+            
+            if (!this.controls.isLocked) {
                 this.controls.lock();
-            } else if (this.controls.isLocked) {
+            } else {
                 // Always attempt to shoot when clicked
                 console.log('Click detected, attempting to shoot');
                 this.shoot();
@@ -1536,13 +1539,14 @@ class SimpleGame {
             startButton.style.backgroundColor = '#4CAF50';
         });
         
-        // Fix the start button click event
-        const self = this; // Store reference to this
-        startButton.addEventListener('click', function() {
+        // Store reference to this for use in event handlers
+        const game = this;
+        
+        // Add click event to start button
+        startButton.onclick = function() {
             console.log('Start button clicked');
-            self.controls.lock();
-            instructionsContainer.style.display = 'none';
-        });
+            game.controls.lock();
+        };
         
         instructionsContainer.appendChild(startButton);
         
@@ -1558,6 +1562,9 @@ class SimpleGame {
         // Add to DOM
         document.body.appendChild(instructionsContainer);
         
+        // Store reference to instructions container
+        this.instructionsContainer = instructionsContainer;
+        
         // Show/hide instructions based on pointer lock
         this.controls.addEventListener('lock', () => {
             instructionsContainer.style.display = 'none';
@@ -1566,8 +1573,5 @@ class SimpleGame {
         this.controls.addEventListener('unlock', () => {
             instructionsContainer.style.display = 'block';
         });
-        
-        // Store reference to instructions container for access elsewhere
-        this.instructionsContainer = instructionsContainer;
     }
 }
