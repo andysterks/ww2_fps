@@ -43,15 +43,10 @@ class Player {
 
     // Create the player model (German soldier)
     createModel() {
-        // Create the model at the player's position
-        // Adjust y position to ensure feet are on the ground (y=0)
-        // The model's origin is at its center, so we need to offset it by half its height
-        const modelHeight = 1.8; // Total height of the player model
-        const yOffset = modelHeight / 2; // Half the height to place feet on ground
-        
+        // Create the model at the player's position, but with y=0 to ensure feet are on ground
         this.model = this.game.createStaticPlayerModel(
             this.position.x,
-            this.position.y + yOffset, // Add offset to ensure feet are on ground
+            0, // Always set y to 0 to ensure feet are on ground
             this.position.z,
             this.id // Pass ID to make the model unique
         );
@@ -67,10 +62,6 @@ class Player {
     // Update player position and rotation based on controls (for local player)
     // or based on network data (for remote players)
     update(delta) {
-        // Define model height and offset constants
-        const modelHeight = 1.8; // Total height of the player model
-        const yOffset = modelHeight / 2; // Half the height to place feet on ground
-        
         if (this.isLocalPlayer) {
             // Local player's position is controlled by the camera/controls
             // We just need to update our stored position for network sync
@@ -108,10 +99,10 @@ class Player {
                 }
                 
                 // Update model position and rotation
-                // Copy position but maintain the y-offset to keep feet on ground
+                // Keep y at 0 to ensure feet are on ground
                 this.model.position.set(
                     this.position.x,
-                    this.position.y + yOffset, // Add offset to ensure feet are on ground
+                    0, // Always keep y at 0
                     this.position.z
                 );
                 this.model.rotation.y = this.rotation.y;
@@ -134,15 +125,12 @@ class Player {
         this.position.set(position.x, position.y, position.z);
         this.rotation.set(rotation.x, rotation.y, rotation.z);
         
-        // If the model exists, update it immediately with the correct y-offset
+        // If the model exists, update it immediately
         if (this.model && !this.isLocalPlayer) {
-            const modelHeight = 1.8; // Total height of the player model
-            const yOffset = modelHeight / 2; // Half the height to place feet on ground
-            
-            // Update model position with the y-offset
+            // Keep y at 0 to ensure feet are on ground
             this.model.position.set(
                 position.x,
-                position.y + yOffset, // Add offset to ensure feet are on ground
+                0, // Always keep y at 0
                 position.z
             );
             this.model.rotation.y = rotation.y;
@@ -254,7 +242,8 @@ class SimpleGame {
     // Create the local player
     createLocalPlayer() {
         const localPlayerId = 'local-player';
-        const localPlayer = new Player(localPlayerId, this, true, { x: 0, y: 0, z: 0 });
+        // Set y to the camera height (1.6) for the local player
+        const localPlayer = new Player(localPlayerId, this, true, { x: 0, y: 1.6, z: 0 });
         localPlayer.createModel();
         this.players.set(localPlayerId, localPlayer);
         this.localPlayer = localPlayer;
@@ -401,7 +390,12 @@ class SimpleGame {
         // Add message type
         const message = {
             type: 'update',
-            ...playerData
+            ...playerData,
+            // Ensure y position is set to 0 for consistency with other players
+            position: {
+                ...playerData.position,
+                y: 0 // Always send y=0 to ensure consistent positioning
+            }
         };
         
         // Send to server
@@ -415,11 +409,18 @@ class SimpleGame {
             return;
         }
         
-        const remotePlayer = new Player(playerId, this, false, position);
+        // Create a position object with y=0 to ensure feet are on ground
+        const groundedPosition = {
+            x: position.x,
+            y: 0, // Always set y to 0 to ensure feet are on ground
+            z: position.z
+        };
+        
+        const remotePlayer = new Player(playerId, this, false, groundedPosition);
         remotePlayer.createModel();
         this.players.set(playerId, remotePlayer);
         
-        console.log(`Remote player ${playerId} added at position:`, position);
+        console.log(`Remote player ${playerId} added at position:`, groundedPosition);
     }
     
     // Remove a remote player
@@ -2059,7 +2060,8 @@ class SimpleGame {
         playerGroup.rightArmGroup = rightArmGroup;
         
         // Position the player
-        playerGroup.position.set(x, y, z);
+        // Set the position directly, ensuring the model's feet are on the ground
+        playerGroup.position.set(x, 0, z); // Set y to 0 to ensure feet are on ground
         playerGroup.rotation.y = Math.PI; // Face toward the player
         
         // Add to scene
