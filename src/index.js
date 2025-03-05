@@ -271,22 +271,29 @@ class Player {
             
             // Rifle body (longer and more rectangular)
             const rifleBody = new THREE.Mesh(
-                new THREE.BoxGeometry(0.12, 0.12, 1.0),
+                new THREE.BoxGeometry(0.12, 1.0, 0.12),
                 new THREE.MeshLambertMaterial({ color: 0x4a3520 }) // Darker wood color
             );
             rifle.add(rifleBody);
             
             // Rifle barrel (shorter and thicker)
             const rifleBarrel = new THREE.Mesh(
-                new THREE.BoxGeometry(0.08, 0.08, 0.4),
+                new THREE.BoxGeometry(0.08, 0.4, 0.08),
                 new THREE.MeshLambertMaterial({ color: 0x2a2a2a }) // Darker metal
             );
-            rifleBarrel.position.z = 0.7;
+            rifleBarrel.position.y = 0.7;
             rifle.add(rifleBarrel);
             
-            // Position the rifle perpendicular to the body
-            rifle.rotation.y = Math.PI / 2; // Rotate 90 degrees
-            rifle.position.set(-0.4, 1.1, 0.3); // Position alongside the right arm
+            // Add rifle stock (bottom part)
+            const rifleStock = new THREE.Mesh(
+                new THREE.BoxGeometry(0.14, 0.25, 0.1),
+                new THREE.MeshLambertMaterial({ color: 0x3a2815 }) // Slightly darker wood for stock
+            );
+            rifleStock.position.y = -0.5;
+            rifle.add(rifleStock);
+            
+            // Position the rifle vertically along the body
+            rifle.position.set(-0.35, 0.8, 0); // Position alongside the right side
             this.model.add(rifle);
             
             // Add the model to the scene
