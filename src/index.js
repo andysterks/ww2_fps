@@ -2115,10 +2115,7 @@ class SimpleGame {
     
     // Method to match player speed to static player
     matchPlayerSpeeds() {
-        // The static player moves at exactly delta * playerSpeed
-        // We need to adjust our scaling factor to match that pace
-        
-        // Reset to default values for optimal speed matching
+        // Reset to default values
         this.playerSpeed = 2.0;
         this.sprintMultiplier = 2.0;
         
@@ -2126,9 +2123,10 @@ class SimpleGame {
         this.velocity.x = 0;
         this.velocity.z = 0;
         
-        console.log("Player speeds matched. Both player and static player now move at the same speed.");
-        console.log("Using playerSpeed: 2.0, scalingFactor: 0.05, direct velocity calculation");
-        console.log("Sprint multiplier: 2.0x - Hold SHIFT to sprint");
+        console.log("Player and static player speeds configured.");
+        console.log("Base speed: 2.0 (used by static player at all times)");
+        console.log("Sprint multiplier: 2.0x - Hold SHIFT to sprint (affects only player, not static player)");
+        console.log("Movements are now decoupled - static player maintains constant speed");
         console.log("Drifting has been eliminated - player will stop immediately when keys are released");
         
         return true;
