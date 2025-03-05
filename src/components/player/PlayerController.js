@@ -72,8 +72,9 @@ export class PlayerController {
     }
     
     setupEventListeners() {
-        // Keyboard events for movement
-        const onKeyDown = (event) => {
+        document.addEventListener('keydown', (event) => {
+            if (!this.controls.isLocked) return;
+            
             switch (event.code) {
                 case 'KeyW':
                 case 'ArrowUp':
@@ -101,9 +102,11 @@ export class PlayerController {
                     if (!event.repeat) this.jump();
                     break;
             }
-        };
+        });
 
-        const onKeyUp = (event) => {
+        document.addEventListener('keyup', (event) => {
+            if (!this.controls.isLocked) return;
+            
             switch (event.code) {
                 case 'KeyW':
                 case 'ArrowUp':
@@ -125,10 +128,7 @@ export class PlayerController {
                     this.isSprinting = false;
                     break;
             }
-        };
-
-        document.addEventListener('keydown', onKeyDown);
-        document.addEventListener('keyup', onKeyUp);
+        });
     }
     
     update(deltaTime) {
@@ -142,17 +142,29 @@ export class PlayerController {
         if (this.isSprinting) currentSpeed *= this.sprintMultiplier;
         if (this.isCrouching) currentSpeed *= this.crouchMultiplier;
 
-        // Calculate movement direction
-        this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-        this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-        this.direction.normalize();
+        // Reset velocity
+        this.velocity.x = 0;
+        this.velocity.z = 0;
 
-        // Apply movement
-        if (this.moveForward || this.moveBackward) {
-            this.velocity.z = this.direction.z * currentSpeed;
-        }
-        if (this.moveLeft || this.moveRight) {
-            this.velocity.x = this.direction.x * currentSpeed;
+        // Get movement direction from camera
+        const cameraDirection = new THREE.Vector3();
+        this.camera.getWorldDirection(cameraDirection);
+        cameraDirection.y = 0; // Keep movement in horizontal plane
+        cameraDirection.normalize();
+
+        // Calculate forward and right vectors
+        const forward = cameraDirection;
+        const right = new THREE.Vector3(-forward.z, 0, forward.x);
+
+        // Apply movement based on key states
+        if (this.moveForward) this.velocity.add(forward.multiplyScalar(currentSpeed));
+        if (this.moveBackward) this.velocity.sub(forward.multiplyScalar(currentSpeed));
+        if (this.moveRight) this.velocity.add(right.multiplyScalar(currentSpeed));
+        if (this.moveLeft) this.velocity.sub(right.multiplyScalar(currentSpeed));
+
+        // Normalize velocity if moving diagonally
+        if (this.velocity.lengthSq() > 0) {
+            this.velocity.normalize().multiplyScalar(currentSpeed);
         }
 
         // Apply gravity
@@ -162,11 +174,9 @@ export class PlayerController {
             this.velocity.y = 0;
         }
 
-        // Move the player using PointerLockControls
-        if (this.velocity.x !== 0) this.controls.moveRight(-this.velocity.x * deltaTime);
-        if (this.velocity.z !== 0) this.controls.moveForward(-this.velocity.z * deltaTime);
-        
-        // Update vertical position directly
+        // Move the player
+        this.camera.position.x += this.velocity.x * deltaTime;
+        this.camera.position.z += this.velocity.z * deltaTime;
         this.camera.position.y += this.velocity.y * deltaTime;
 
         // Ensure minimum height
@@ -227,7 +237,6 @@ export class PlayerController {
     }
     
     handleCollisions() {
-        // Basic collision check with collidable objects
         for (const object of this.collidableObjects) {
             if (object.geometry) {
                 const box = new THREE.Box3().setFromObject(object);

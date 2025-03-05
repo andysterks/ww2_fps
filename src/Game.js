@@ -120,6 +120,7 @@ class Game {
         
         // Create weapon system
         this.weaponSystem = new WeaponSystem(this.camera, this.scene);
+        await this.weaponSystem.init();
 
         // Create UI
         this.ui = new GameUI();
@@ -129,21 +130,21 @@ class Game {
 
         // Start game loop
         this.animate();
+        
+        console.log('Game initialized successfully');
     }
 
     setupEventListeners() {
         // Handle window resize
         window.addEventListener('resize', () => this.onWindowResize(), false);
 
-        // Get the game container and instructions elements
+        // Get the game container
         const gameContainer = document.getElementById('game-container');
         const instructions = document.getElementById('instructions');
 
         // Handle click to start
         instructions.addEventListener('click', () => {
-            console.log('Instructions clicked');
             if (!this.isRunning) {
-                // Request pointer lock
                 gameContainer.requestPointerLock = gameContainer.requestPointerLock ||
                                                  gameContainer.mozRequestPointerLock ||
                                                  gameContainer.webkitRequestPointerLock;
@@ -152,29 +153,37 @@ class Game {
         });
 
         // Handle pointer lock change
-        document.addEventListener('pointerlockchange', () => {
-            console.log('Pointer lock change');
+        const onPointerLockChange = () => {
             if (document.pointerLockElement === gameContainer ||
                 document.mozPointerLockElement === gameContainer ||
                 document.webkitPointerLockElement === gameContainer) {
-                console.log('Pointer locked');
                 this.isRunning = true;
                 instructions.style.display = 'none';
                 document.getElementById('crosshair').style.display = 'block';
+                console.log('Game started - pointer locked');
             } else {
-                console.log('Pointer unlocked');
                 this.isRunning = false;
                 instructions.style.display = 'flex';
                 document.getElementById('crosshair').style.display = 'none';
+                console.log('Game paused - pointer unlocked');
             }
-        });
+        };
+
+        document.addEventListener('pointerlockchange', onPointerLockChange);
+        document.addEventListener('mozpointerlockchange', onPointerLockChange);
+        document.addEventListener('webkitpointerlockchange', onPointerLockChange);
 
         // Handle pointer lock error
-        document.addEventListener('pointerlockerror', (event) => {
-            console.error('Pointer lock error:', event);
-        });
+        const onPointerLockError = () => {
+            console.error('Pointer lock failed');
+            this.ui.showMessage('Failed to start game. Please try again.');
+        };
 
-        // Handle keyboard controls
+        document.addEventListener('pointerlockerror', onPointerLockError);
+        document.addEventListener('mozpointerlockerror', onPointerLockError);
+        document.addEventListener('webkitpointerlockerror', onPointerLockError);
+
+        // Handle keyboard controls for weapon
         document.addEventListener('keydown', (event) => {
             if (this.isRunning) {
                 switch (event.code) {
@@ -200,7 +209,7 @@ class Game {
         requestAnimationFrame(() => this.animate());
 
         const currentTime = performance.now();
-        const deltaTime = (currentTime - this.lastFrameTime) / 1000;
+        const deltaTime = Math.min((currentTime - this.lastFrameTime) / 1000, 0.1); // Cap deltaTime at 0.1
         this.lastFrameTime = currentTime;
 
         if (this.isRunning) {
@@ -217,7 +226,7 @@ class Game {
 
             // Render weapon scene directly
             this.renderer.clearDepth();
-            this.renderer.render(this.weaponSystem.weaponScene, this.weaponSystem.weaponCamera);
+            this.renderer.render(this.weaponSystem.weaponScene, this.camera);
         } else {
             // When not running, just render the main scene without post-processing
             this.renderer.clear();
