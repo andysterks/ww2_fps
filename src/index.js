@@ -38,6 +38,12 @@ class SimpleGame {
         this.playerSpeed = 1.0;
         this.sprintMultiplier = 1.5;
         
+        // Animation variables for static player
+        this.animationClock = 0;
+        this.walkingSpeed = 2.0; // Animation speed multiplier
+        this.staticPlayerMoving = true; // Whether the static player is walking
+        this.staticPlayerDirection = new THREE.Vector3(0, 0, -1); // Direction of movement
+        
         // Weapon state
         this.bulletCount = 8;
         this.maxBullets = 8;
@@ -849,8 +855,49 @@ class SimpleGame {
             this.prevTime = time;
         }
         
+        // Animate static player model (even if controls are not locked)
+        this.animateStaticPlayer(delta || 0.016); // Use default delta if not available
+        
         // Render the scene
         this.renderer.render(this.scene, this.camera);
+    }
+    
+    // New method to animate the static player
+    animateStaticPlayer(delta) {
+        if (!this.staticPlayerModel || !this.staticPlayerMoving) return;
+        
+        // Update animation clock
+        this.animationClock += delta * this.walkingSpeed;
+        
+        // Calculate leg and arm swing based on sine wave
+        const legSwing = Math.sin(this.animationClock * Math.PI) * 0.4;
+        const armSwing = Math.sin(this.animationClock * Math.PI) * 0.3;
+        
+        // Apply rotations to legs
+        if (this.staticPlayerModel.leftLegGroup) {
+            this.staticPlayerModel.leftLegGroup.rotation.x = legSwing;
+        }
+        if (this.staticPlayerModel.rightLegGroup) {
+            this.staticPlayerModel.rightLegGroup.rotation.x = -legSwing;
+        }
+        
+        // Apply rotations to arms (opposite to legs for natural walking)
+        if (this.staticPlayerModel.leftArmGroup) {
+            this.staticPlayerModel.leftArmGroup.rotation.x = -armSwing;
+        }
+        if (this.staticPlayerModel.rightArmGroup) {
+            this.staticPlayerModel.rightArmGroup.rotation.x = armSwing;
+        }
+        
+        // Move the player forward
+        if (this.staticPlayerModel) {
+            // Calculate movement distance based on player speed
+            const moveDistance = delta * this.playerSpeed;
+            
+            // Move in the direction the player is facing
+            this.staticPlayerModel.position.x += this.staticPlayerDirection.x * moveDistance;
+            this.staticPlayerModel.position.z += this.staticPlayerDirection.z * moveDistance;
+        }
     }
     
     updateDebugInfo() {
@@ -1300,42 +1347,78 @@ class SimpleGame {
         hip.position.y = 0.9;
         hip.castShadow = true;
         
-        // LEGO-style legs (more blocky) - adjusted position to connect with hip
+        // Create leg groups for animation
+        const leftLegGroup = new THREE.Group();
+        const rightLegGroup = new THREE.Group();
+        leftLegGroup.position.set(-0.12, 0.9, 0);
+        rightLegGroup.position.set(0.12, 0.9, 0);
+        
+        // LEGO-style legs (more blocky) - adjusted for animation
         const legGeometry = new THREE.BoxGeometry(0.18, 0.5, 0.18);
         const legMaterial = uniformMaterial.clone();
         
         const leftLeg = new THREE.Mesh(legGeometry, legMaterial);
-        leftLeg.position.set(-0.12, 0.6, 0); // Raised position to connect with hip
+        leftLeg.position.set(0, -0.3, 0); // Position relative to leg group
         leftLeg.castShadow = true;
+        leftLegGroup.add(leftLeg);
         
         const rightLeg = new THREE.Mesh(legGeometry, legMaterial);
-        rightLeg.position.set(0.12, 0.6, 0); // Raised position to connect with hip
+        rightLeg.position.set(0, -0.3, 0); // Position relative to leg group
         rightLeg.castShadow = true;
+        rightLegGroup.add(rightLeg);
+        
+        // LEGO-style boots (flat on bottom)
+        const bootGeometry = new THREE.BoxGeometry(0.2, 0.1, 0.22);
+        const bootMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x111111,
+            roughness: 0.3,
+            metalness: 0.2
+        });
+        
+        const leftBoot = new THREE.Mesh(bootGeometry, bootMaterial);
+        leftBoot.position.set(0, -0.6, 0.02); // Position relative to leg group
+        leftBoot.castShadow = true;
+        leftLegGroup.add(leftBoot);
+        
+        const rightBoot = new THREE.Mesh(bootGeometry, bootMaterial);
+        rightBoot.position.set(0, -0.6, 0.02); // Position relative to leg group
+        rightBoot.castShadow = true;
+        rightLegGroup.add(rightBoot);
+        
+        // Create arm groups for animation
+        const leftArmGroup = new THREE.Group();
+        const rightArmGroup = new THREE.Group();
+        leftArmGroup.position.set(-0.28, 1.25, 0);
+        rightArmGroup.position.set(0.28, 1.25, 0);
         
         // LEGO-style arms (cylindrical with angle)
         const armGeometry = new THREE.BoxGeometry(0.15, 0.45, 0.15);
         const armMaterial = uniformMaterial.clone();
         
         const leftArm = new THREE.Mesh(armGeometry, armMaterial);
-        leftArm.position.set(-0.28, 1.25, 0);
+        leftArm.position.set(0, 0, 0); // Position relative to arm group
         leftArm.castShadow = true;
+        leftArmGroup.add(leftArm);
         
         const rightArm = new THREE.Mesh(armGeometry, armMaterial);
-        rightArm.position.set(0.28, 1.25, 0);
+        rightArm.position.set(0, 0, 0); // Position relative to arm group
         rightArm.castShadow = true;
+        rightArmGroup.add(rightArm);
         
         // LEGO-style hands (C-shaped)
         const handGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.12, 8);
         
         const leftHand = new THREE.Mesh(handGeometry, skinMaterial);
         leftHand.rotation.x = Math.PI / 2;
-        leftHand.position.set(-0.28, 1.0, 0);
+        leftHand.position.set(0, -0.25, 0); // Position relative to arm group
         leftHand.castShadow = true;
+        leftArmGroup.add(leftHand);
         
         const rightHand = new THREE.Mesh(handGeometry, skinMaterial);
         rightHand.rotation.x = Math.PI / 2;
-        rightHand.position.set(0.28, 1.0, 0);
+        rightHand.position.set(0, -0.25, 0); // Position relative to arm group
         rightHand.castShadow = true;
+        rightArmGroup.add(rightHand);
         
         // Create rifle (Kar98k) - more LEGO-like
         const rifleGroup = new THREE.Group();
@@ -1438,12 +1521,10 @@ class SimpleGame {
         playerGroup.add(belt);
         playerGroup.add(buckle);
         playerGroup.add(hip);
-        playerGroup.add(leftLeg);
-        playerGroup.add(rightLeg);
-        playerGroup.add(leftArm);
-        playerGroup.add(rightArm);
-        playerGroup.add(leftHand);
-        playerGroup.add(rightHand);
+        playerGroup.add(leftLegGroup); // Add leg groups instead of individual legs
+        playerGroup.add(rightLegGroup);
+        playerGroup.add(leftArmGroup); // Add arm groups instead of individual arms
+        playerGroup.add(rightArmGroup);
         playerGroup.add(rifleGroup);
         playerGroup.add(breadBag);
         playerGroup.add(canteen);
@@ -1502,12 +1583,21 @@ class SimpleGame {
         eagleInsignia.rotation.z = Math.PI;
         playerGroup.add(eagleInsignia);
         
+        // Store references for animation
+        playerGroup.leftLegGroup = leftLegGroup;
+        playerGroup.rightLegGroup = rightLegGroup;
+        playerGroup.leftArmGroup = leftArmGroup;
+        playerGroup.rightArmGroup = rightArmGroup;
+        
         // Position the player
         playerGroup.position.set(x, y, z);
         playerGroup.rotation.y = Math.PI; // Face toward the player
         
-        // Add player to scene
+        // Add to scene
         this.scene.add(playerGroup);
+        
+        // Store reference to the player model
+        this.staticPlayerModel = playerGroup;
         
         return playerGroup;
     }
