@@ -641,10 +641,12 @@ class SimpleGame {
     
     setupEventListeners() {
         // Lock pointer on click and shoot
-        document.addEventListener('click', () => {
-            if (!this.controls.isLocked) {
+        document.addEventListener('click', (event) => {
+            // Only handle clicks outside the instructions popup
+            if (!this.controls.isLocked && 
+                (!this.instructionsContainer || !this.instructionsContainer.contains(event.target))) {
                 this.controls.lock();
-            } else {
+            } else if (this.controls.isLocked) {
                 // Always attempt to shoot when clicked
                 console.log('Click detected, attempting to shoot');
                 this.shoot();
@@ -1534,8 +1536,11 @@ class SimpleGame {
             startButton.style.backgroundColor = '#4CAF50';
         });
         
-        startButton.addEventListener('click', () => {
-            this.controls.lock();
+        // Fix the start button click event
+        const self = this; // Store reference to this
+        startButton.addEventListener('click', function() {
+            console.log('Start button clicked');
+            self.controls.lock();
             instructionsContainer.style.display = 'none';
         });
         
@@ -1561,5 +1566,8 @@ class SimpleGame {
         this.controls.addEventListener('unlock', () => {
             instructionsContainer.style.display = 'block';
         });
+        
+        // Store reference to instructions container for access elsewhere
+        this.instructionsContainer = instructionsContainer;
     }
 }
