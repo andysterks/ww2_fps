@@ -23,6 +23,9 @@ class SimpleGame {
         // Player controls
         this.controls = new PointerLockControls(this.camera, document.body);
         
+        // Add camera to scene
+        this.scene.add(this.controls.getObject());
+        
         // Movement variables
         this.moveForward = false;
         this.moveBackward = false;
@@ -71,9 +74,11 @@ class SimpleGame {
         
         // Create a ground plane
         const groundGeometry = new THREE.PlaneGeometry(1000, 1000);
-        const groundMaterial = new THREE.MeshBasicMaterial({ 
+        const groundMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x4CAF50, // Green
-            side: THREE.DoubleSide
+            side: THREE.DoubleSide,
+            roughness: 0.8,
+            metalness: 0.2
         });
         
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
@@ -83,9 +88,11 @@ class SimpleGame {
         
         // Create a street
         const streetGeometry = new THREE.PlaneGeometry(10, 1000);
-        const streetMaterial = new THREE.MeshBasicMaterial({ 
+        const streetMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x444444, // Dark gray
-            side: THREE.DoubleSide
+            side: THREE.DoubleSide,
+            roughness: 0.9,
+            metalness: 0.1
         });
         
         const street = new THREE.Mesh(streetGeometry, streetMaterial);
@@ -93,22 +100,49 @@ class SimpleGame {
         street.position.y = 0.01; // Slightly above ground
         this.scene.add(street);
         
-        // Add buildings
+        // Add buildings with standard materials
         this.addBuilding(0xFF0000, -15, 0, -20); // Red building
         this.addBuilding(0x0000FF, 15, 0, -20);  // Blue building
         this.addBuilding(0xFFFF00, 0, 0, -40);   // Yellow building
         
-        // Add ambient light
-        const ambientLight = new THREE.AmbientLight(0xFFFFFF, 1.0);
+        // Enhanced lighting setup
+        // Ambient light for base illumination
+        const ambientLight = new THREE.AmbientLight(0xFFFFFF, 0.5);
         this.scene.add(ambientLight);
+        
+        // Directional light for sun-like lighting
+        const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 1.0);
+        directionalLight.position.set(100, 100, 0);
+        directionalLight.castShadow = true;
+        this.scene.add(directionalLight);
+        
+        // Enable shadow mapping
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        // Configure shadow properties
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        directionalLight.shadow.camera.near = 0.5;
+        directionalLight.shadow.camera.far = 500;
+        
+        // Make objects cast and receive shadows
+        ground.receiveShadow = true;
+        street.receiveShadow = true;
     }
     
     addBuilding(color, x, y, z) {
         const buildingGeometry = new THREE.BoxGeometry(10, 10, 10);
-        const buildingMaterial = new THREE.MeshBasicMaterial({ color: color });
+        const buildingMaterial = new THREE.MeshStandardMaterial({ 
+            color: color,
+            roughness: 0.7,
+            metalness: 0.3
+        });
         
         const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
         building.position.set(x, y + 5, z);
+        building.castShadow = true;
+        building.receiveShadow = true;
         
         this.scene.add(building);
     }
@@ -176,17 +210,15 @@ class SimpleGame {
         // Store iron sights reference for visibility toggling
         this.ironSights = ironSightsGroup;
         
-        // Position weapon in hip-fire position (default)
-        weaponGroup.position.copy(this.weaponDefaultPosition);
-        weaponGroup.rotation.copy(this.weaponDefaultRotation);
-        
-        // Store original position for returning from aim
+        // Define positions first
         this.weaponDefaultPosition = new THREE.Vector3(0.3, -0.3, -0.5);
         this.weaponDefaultRotation = new THREE.Vector3(0, Math.PI / 12, 0);
-        
-        // Store aim position - centered and closer to simulate looking down sights
-        this.weaponAimPosition = new THREE.Vector3(0, -0.0585, -0.2); // Adjusted for proper sight alignment
+        this.weaponAimPosition = new THREE.Vector3(0, -0.0585, -0.2);
         this.weaponAimRotation = new THREE.Vector3(0, 0, 0);
+        
+        // Then position weapon in hip-fire position
+        weaponGroup.position.copy(this.weaponDefaultPosition);
+        weaponGroup.rotation.copy(this.weaponDefaultRotation);
         
         // Add weapon to camera
         this.camera.add(weaponGroup);
@@ -197,7 +229,7 @@ class SimpleGame {
         // Add aiming properties
         this.aimTransitionSpeed = 8.0;
         this.defaultFOV = 75;
-        this.aimFOV = 60; // Slightly wider FOV for better peripheral vision
+        this.aimFOV = 60;
         this.isAimingDownSights = false;
     }
     
