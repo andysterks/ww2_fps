@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         // Uncomment to run the test scene instead of the full game
-        return testScene();
+        // return testScene();
         
         // Create game container if it doesn't exist
         let gameContainer = document.getElementById('game-container');
@@ -315,65 +315,79 @@ class Player {
     update(delta) {
         if (this.isLocal) {
             // Local player's position is controlled by the camera/controls
-            // We just need to update our stored position for network sync
             if (this.game && this.game.camera) {
                 this.position.copy(this.game.camera.position);
                 this.rotation.y = this.game.camera.rotation.y;
             }
         } else {
-            // Remote player - interpolate towards target position for smoother movement
-            const LERP_FACTOR = 0.2; // Adjust for smoother/faster interpolation
+            // Remote player - use improved interpolation
+            const LERP_FACTOR = Math.min(1, delta * 15); // Adjust interpolation speed
             
-            // Interpolate position
+            // Interpolate position with improved smoothing
             this.position.lerp(this.targetPosition, LERP_FACTOR);
             
-            // Interpolate rotation (simple Y rotation for now)
-            this.rotation.y += LERP_FACTOR * ((this.targetRotation.y - this.rotation.y + Math.PI) % (Math.PI * 2) - Math.PI);
+            // Interpolate rotation with improved smoothing
+            const deltaRotation = this.targetRotation.y - this.rotation.y;
+            const adjustedRotation = deltaRotation > Math.PI ? deltaRotation - Math.PI * 2 : 
+                                   deltaRotation < -Math.PI ? deltaRotation + Math.PI * 2 : 
+                                   deltaRotation;
+            this.rotation.y += adjustedRotation * LERP_FACTOR;
             
-            // Animate the model if it exists
+            // Update model position and rotation
             if (this.model) {
-                // Determine if the player is moving based on movement flags
-                const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
-                
-                // Only animate if the player is moving
-                if (isMoving) {
-                    // Calculate animation speed based on whether sprinting
-                    const animSpeed = this.isSprinting ? 15 : 10;
-                    
-                    // Update leg and arm swing based on a sine wave
-                    this.legSwing += delta * animSpeed;
-                    this.armSwing = this.legSwing;
-                    
-                    // Apply animations to the model parts
-                    if (this.model.children) {
-                        this.model.children.forEach(part => {
-                            if (part.name === 'leftLeg') {
-                                part.rotation.x = Math.sin(this.legSwing) * 0.5;
-                            } else if (part.name === 'rightLeg') {
-                                part.rotation.x = Math.sin(this.legSwing + Math.PI) * 0.5;
-                            } else if (part.name === 'leftArm') {
-                                part.rotation.x = Math.sin(this.armSwing + Math.PI) * 0.5;
-                            } else if (part.name === 'rightArm') {
-                                part.rotation.x = Math.sin(this.armSwing) * 0.5;
-                            }
-                        });
-                    }
-                } else {
-                    // Reset animations if not moving
-                    if (this.model.children) {
-                        this.model.children.forEach(part => {
-                            if (['leftLeg', 'rightLeg', 'leftArm', 'rightArm'].includes(part.name)) {
-                                part.rotation.x = 0;
-                            }
-                        });
-                    }
-                }
-                
-                // Update the model's position and rotation
                 this.model.position.copy(this.position);
                 this.model.position.y = 0; // Keep y at 0 to ensure feet are on ground
                 this.model.rotation.y = this.rotation.y;
+                
+                // Animate the model based on movement
+                this.animateModel(delta);
             }
+        }
+    }
+    
+    // Separate method for model animation
+    animateModel(delta) {
+        if (!this.model || !this.model.children) return;
+        
+        const isMoving = 
+            this.position.distanceTo(this.targetPosition) > 0.01 ||
+            Math.abs(this.rotation.y - this.targetRotation.y) > 0.01;
+        
+        if (isMoving) {
+            // Calculate animation speed
+            const animSpeed = this.isSprinting ? 15 : 10;
+            
+            // Update animation timers
+            if (!this.legSwing) this.legSwing = 0;
+            if (!this.armSwing) this.armSwing = 0;
+            
+            this.legSwing += delta * animSpeed;
+            this.armSwing = this.legSwing;
+            
+            // Apply animations
+            this.model.children.forEach(part => {
+                switch(part.name) {
+                    case 'leftLeg':
+                        part.rotation.x = Math.sin(this.legSwing) * 0.5;
+                        break;
+                    case 'rightLeg':
+                        part.rotation.x = Math.sin(this.legSwing + Math.PI) * 0.5;
+                        break;
+                    case 'leftArm':
+                        part.rotation.x = Math.sin(this.armSwing + Math.PI) * 0.5;
+                        break;
+                    case 'rightArm':
+                        part.rotation.x = Math.sin(this.armSwing) * 0.5;
+                        break;
+                }
+            });
+        } else {
+            // Reset animations when not moving
+            this.model.children.forEach(part => {
+                if (['leftLeg', 'rightLeg', 'leftArm', 'rightArm'].includes(part.name)) {
+                    part.rotation.x = 0;
+                }
+            });
         }
     }
     
@@ -388,25 +402,28 @@ class Player {
     
     // Update player position based on network data (for remote players)
     updateFromNetwork(position, rotation) {
-        // Store the raw position and rotation from the network
-        if (position) {
-            // Set the target position for interpolation
+        if (!this.isLocal) {
+            const timestamp = Date.now();
+            
+            // Store the position update with timestamp
+            if (!this.positionBuffer) {
+                this.positionBuffer = [];
+            }
+            
+            this.positionBuffer.push({
+                position: new THREE.Vector3(position.x, position.y, position.z),
+                rotation: new THREE.Euler(rotation.x, rotation.y, rotation.z),
+                timestamp
+            });
+            
+            // Keep only the last 10 updates
+            while (this.positionBuffer.length > 10) {
+                this.positionBuffer.shift();
+            }
+            
+            // Set immediate target for interpolation
             this.targetPosition.set(position.x, position.y, position.z);
-        }
-        
-        if (rotation) {
-            // Set the target rotation for interpolation
             this.targetRotation.set(rotation.x, rotation.y, rotation.z);
-        }
-        
-        // If this is the local player, we don't update the model
-        // as it's controlled by the camera
-        if (this.isLocal) return;
-        
-        // For remote players, if the model exists, update it immediately
-        // This will be smoothed by the interpolation in the update method
-        if (this.model) {
-            console.log(`Updating remote player ${this.id} to position:`, position);
         }
     }
 
@@ -698,10 +715,10 @@ class SimpleGame {
         
         try {
             // Use socket.io for WebSocket communication
-            // Use the correct URL for the server
+            // Connect directly to WebSocket server for lowest latency
             const serverUrl = window.location.hostname === 'localhost' ? 
-                'http://localhost:3000' : // Local development
-                window.location.origin.replace(/:\d+$/, ':3000'); // Production with correct port
+                'http://localhost:3001' : // Local development
+                `http://${window.location.hostname.replace('www.', '')}:3001`; // Production - direct connection
             
             console.log('Connecting to server at:', serverUrl);
             this.socket = io(serverUrl);
@@ -784,8 +801,12 @@ class SimpleGame {
             });
             
             // Set network update interval (milliseconds)
-            this.networkUpdateInterval = 50; // Increased frequency for smoother movement
+            this.networkUpdateInterval = 16; // Increased frequency (approximately 60fps) for smoother movement
             this.lastNetworkUpdate = 0;
+            
+            // Add interpolation settings
+            this.interpolationDelay = 100; // ms
+            this.positionBuffer = new Map(); // Store position updates for interpolation
         } catch (error) {
             console.error("Error initializing network:", error);
         }
