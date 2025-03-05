@@ -150,30 +150,54 @@ class SimpleGame {
     createWeapon() {
         const weaponGroup = new THREE.Group();
         
-        // Rifle body (receiver) - more authentic proportions
+        // Common material properties for all weapon parts
+        const metalMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x2c2c2c, 
+            roughness: 0.7,
+            metalness: 0.3,
+            transparent: false,
+            opacity: 1.0,
+            depthWrite: true,
+            depthTest: true,
+            side: THREE.FrontSide
+        });
+
+        const woodMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x4a2a0a,
+            roughness: 0.9,
+            metalness: 0.1,
+            transparent: false,
+            opacity: 1.0,
+            depthWrite: true,
+            depthTest: true,
+            side: THREE.FrontSide
+        });
+
+        const blackMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x000000,
+            roughness: 0.5,
+            metalness: 0.5,
+            transparent: false,
+            opacity: 1.0,
+            depthWrite: true,
+            depthTest: true,
+            side: THREE.FrontSide
+        });
+        
+        // Rifle body (receiver)
         const rifleBody = new THREE.Mesh(
             new THREE.BoxGeometry(0.08, 0.12, 0.9),
-            new THREE.MeshStandardMaterial({ 
-                color: 0x2c2c2c, 
-                roughness: 0.6,
-                metalness: 0.4,
-                transparent: false,
-                opacity: 1.0
-            })
+            metalMaterial.clone()
         );
+        rifleBody.renderOrder = 1;
         
-        // Rifle stock - more authentic shape
+        // Rifle stock
         const rifleStock = new THREE.Mesh(
             new THREE.BoxGeometry(0.1, 0.18, 0.7),
-            new THREE.MeshStandardMaterial({ 
-                color: 0x4a2a0a, // Darker wood color
-                roughness: 0.9,
-                metalness: 0.1,
-                transparent: false,
-                opacity: 1.0
-            })
+            woodMaterial.clone()
         );
         rifleStock.position.set(0, -0.03, 0.35);
+        rifleStock.renderOrder = 1;
         
         // Create iron sights group
         const ironSightsGroup = new THREE.Group();
@@ -181,80 +205,50 @@ class SimpleGame {
         // Front sight protective wings
         const leftWing = new THREE.Mesh(
             new THREE.BoxGeometry(0.02, 0.04, 0.02),
-            new THREE.MeshStandardMaterial({ 
-                color: 0x2c2c2c,
-                transparent: false,
-                opacity: 1.0,
-                roughness: 0.7,
-                metalness: 0.3
-            })
+            metalMaterial.clone()
         );
         leftWing.position.set(-0.015, 0.09, -0.6);
+        leftWing.renderOrder = 2;
         
         const rightWing = new THREE.Mesh(
             new THREE.BoxGeometry(0.02, 0.04, 0.02),
-            new THREE.MeshStandardMaterial({ 
-                color: 0x2c2c2c,
-                transparent: false,
-                opacity: 1.0,
-                roughness: 0.7,
-                metalness: 0.3
-            })
+            metalMaterial.clone()
         );
         rightWing.position.set(0.015, 0.09, -0.6);
+        rightWing.renderOrder = 2;
         
-        // Front sight post - thinner and taller
+        // Front sight post
         const frontSightPost = new THREE.Mesh(
             new THREE.BoxGeometry(0.002, 0.035, 0.002),
-            new THREE.MeshStandardMaterial({ 
-                color: 0x000000,
-                roughness: 0.5,
-                metalness: 0.5,
-                transparent: false,
-                opacity: 1.0
-            })
+            blackMaterial.clone()
         );
         frontSightPost.position.set(0, 0.095, -0.6);
+        frontSightPost.renderOrder = 3;
         
         // Front sight base
         const frontSightBase = new THREE.Mesh(
             new THREE.BoxGeometry(0.04, 0.02, 0.02),
-            new THREE.MeshStandardMaterial({ 
-                color: 0x2c2c2c,
-                transparent: false,
-                opacity: 1.0,
-                roughness: 0.7,
-                metalness: 0.3
-            })
+            metalMaterial.clone()
         );
         frontSightBase.position.set(0, 0.07, -0.6);
+        frontSightBase.renderOrder = 2;
         
-        // Rear sight housing (characteristic M1 Garand rear sight)
+        // Rear sight housing
         const rearSightHousing = new THREE.Mesh(
             new THREE.BoxGeometry(0.06, 0.03, 0.04),
-            new THREE.MeshStandardMaterial({ 
-                color: 0x2c2c2c,
-                transparent: false,
-                opacity: 1.0,
-                roughness: 0.7,
-                metalness: 0.3
-            })
+            metalMaterial.clone()
         );
         rearSightHousing.position.set(0, 0.09, 0.1);
+        rearSightHousing.renderOrder = 2;
         
-        // Rear sight aperture (peep sight)
+        // Rear sight aperture
         const rearSightAperture = new THREE.Mesh(
             new THREE.CylinderGeometry(0.003, 0.003, 0.04, 16),
-            new THREE.MeshStandardMaterial({ 
-                color: 0x000000,
-                roughness: 0.5,
-                metalness: 0.5,
-                transparent: false,
-                opacity: 1.0
-            })
+            blackMaterial.clone()
         );
         rearSightAperture.rotation.x = Math.PI / 2;
         rearSightAperture.position.set(0, 0.09, 0.1);
+        rearSightAperture.renderOrder = 3;
         
         // Add sights to group
         ironSightsGroup.add(leftWing);
@@ -272,15 +266,15 @@ class SimpleGame {
         // Store iron sights reference
         this.ironSights = ironSightsGroup;
         
-        // Define positions first
-        this.weaponDefaultPosition = new THREE.Vector3(0.3, -0.3, -0.5);
+        // Define positions with adjusted z-depth
+        this.weaponDefaultPosition = new THREE.Vector3(0.3, -0.3, -0.6);
         this.weaponDefaultRotation = new THREE.Vector3(0, Math.PI / 12, 0);
         
-        // Adjusted aim position to match M1 Garand sight picture
-        this.weaponAimPosition = new THREE.Vector3(0, -0.0585, -0.25);
+        // Adjusted aim position
+        this.weaponAimPosition = new THREE.Vector3(0, -0.0585, -0.35);
         this.weaponAimRotation = new THREE.Vector3(0, 0, 0);
         
-        // Then position weapon in hip-fire position
+        // Position weapon in hip-fire position
         weaponGroup.position.copy(this.weaponDefaultPosition);
         weaponGroup.rotation.copy(this.weaponDefaultRotation);
         
@@ -293,7 +287,7 @@ class SimpleGame {
         // Add aiming properties
         this.aimTransitionSpeed = 8.0;
         this.defaultFOV = 75;
-        this.aimFOV = 55; // Narrower FOV for more authentic sight picture
+        this.aimFOV = 55;
         this.isAimingDownSights = false;
     }
     
