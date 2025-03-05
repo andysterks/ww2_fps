@@ -49,6 +49,10 @@ export class Environment {
             this.scene.add(ground);
             this.collidableObjects.push(ground);
             
+            // Create sky and lighting
+            this.createSky();
+            this.createLighting();
+            
             console.log('Environment initialized successfully');
         } catch (error) {
             console.error('Error initializing environment:', error);
