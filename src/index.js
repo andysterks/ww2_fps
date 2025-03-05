@@ -119,6 +119,28 @@ class Player {
         this.position.set(position.x, position.y, position.z);
         this.rotation.set(rotation.x, rotation.y, rotation.z);
     }
+
+    // Serialize player data for network transmission
+    serialize() {
+        return {
+            id: this.id,
+            position: {
+                x: this.position.x,
+                y: this.position.y,
+                z: this.position.z
+            },
+            rotation: {
+                x: this.rotation.x,
+                y: this.rotation.y,
+                z: this.rotation.z
+            },
+            moveForward: this.moveForward,
+            moveBackward: this.moveBackward,
+            moveLeft: this.moveLeft,
+            moveRight: this.moveRight,
+            isSprinting: this.isSprinting
+        };
+    }
 }
 
 class SimpleGame {
@@ -233,7 +255,86 @@ class SimpleGame {
     // Initialize network functionality (placeholder)
     initNetwork() {
         console.log("Network functionality initialized (placeholder)");
+        
         // This would be replaced with actual WebSocket or WebRTC implementation
+        // For now, we'll simulate network updates with a timer
+        this.networkUpdateInterval = 100; // ms
+        this.lastNetworkUpdate = 0;
+        
+        // Create a mock server connection
+        this.mockServerConnection = {
+            // Simulate sending data to server
+            send: (data) => {
+                console.log("Sending data to server:", data);
+                // In a real implementation, this would send data to a WebSocket server
+                
+                // Simulate network latency (50ms)
+                setTimeout(() => {
+                    this.receiveNetworkUpdate(data);
+                }, 50);
+            },
+            
+            // Simulate receiving data from server
+            receive: (callback) => {
+                // In a real implementation, this would be a WebSocket onmessage handler
+                this.onNetworkUpdate = callback;
+            }
+        };
+        
+        // Set up network update handler
+        this.mockServerConnection.receive((data) => {
+            this.handleNetworkUpdate(data);
+        });
+    }
+    
+    // Send local player data to the network
+    sendNetworkUpdate() {
+        if (!this.localPlayer) return;
+        
+        // Serialize local player data
+        const playerData = this.localPlayer.serialize();
+        
+        // Send to mock server
+        this.mockServerConnection.send(playerData);
+    }
+    
+    // Receive network update (simulated server-side logic)
+    receiveNetworkUpdate(data) {
+        // In a real implementation, the server would broadcast this to all other clients
+        // For our simulation, we'll just handle it directly
+        
+        // Don't send updates back to the originating player
+        if (data.id === this.localPlayer.id) return;
+        
+        // Simulate server broadcasting to all clients
+        if (this.onNetworkUpdate) {
+            this.onNetworkUpdate(data);
+        }
+    }
+    
+    // Handle incoming network update
+    handleNetworkUpdate(data) {
+        // Check if this is our own data (should be filtered out by the server)
+        if (data.id === this.localPlayer.id) return;
+        
+        // Check if we know this player
+        if (!this.players.has(data.id)) {
+            // New player, add them
+            this.addRemotePlayer(data.id, data.position);
+        }
+        
+        // Update the player with the received data
+        const player = this.players.get(data.id);
+        player.updateFromNetwork(data.position, data.rotation);
+        
+        // Update movement flags
+        player.setMovementFlags(
+            data.moveForward,
+            data.moveBackward,
+            data.moveLeft,
+            data.moveRight,
+            data.isSprinting
+        );
     }
     
     // Add a new remote player
@@ -1118,6 +1219,12 @@ class SimpleGame {
             this.players.forEach(player => {
                 player.update(delta);
             });
+            
+            // Send network updates at fixed intervals
+            if (time - this.lastNetworkUpdate > this.networkUpdateInterval) {
+                this.sendNetworkUpdate();
+                this.lastNetworkUpdate = time;
+            }
             
             // Update debug info
             if (this.debugMode) {
