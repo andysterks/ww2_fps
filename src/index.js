@@ -185,22 +185,22 @@ class SimpleGame {
             depthTest: true
         });
         
-        // Create rifle body - moved back to avoid blocking view
+        // Create rifle body - make it narrower to not block view
         const rifleBody = new THREE.Mesh(
-            new THREE.BoxGeometry(0.08, 0.12, 0.7),
+            new THREE.BoxGeometry(0.04, 0.08, 0.9),
             metalMaterial.clone()
         );
-        rifleBody.position.set(0, 0, 0.1);
+        rifleBody.position.set(0, -0.03, 0);
         rifleBody.castShadow = true;
         rifleBody.receiveShadow = true;
         rifleBody.renderOrder = 1;
         
-        // Create rifle stock - moved back to avoid blocking view
+        // Create rifle stock - position it lower
         const rifleStock = new THREE.Mesh(
             new THREE.BoxGeometry(0.08, 0.15, 0.5),
             woodMaterial.clone()
         );
-        rifleStock.position.set(0, -0.02, 0.5);
+        rifleStock.position.set(0, -0.05, 0.4);
         rifleStock.castShadow = true;
         rifleStock.receiveShadow = true;
         rifleStock.renderOrder = 1;
@@ -208,46 +208,46 @@ class SimpleGame {
         // Create iron sights group
         const ironSightsGroup = new THREE.Group();
         
-        // Front sight post - thinner and taller
+        // Front sight post - make it thinner
         const frontSightPost = new THREE.Mesh(
-            new THREE.BoxGeometry(0.002, 0.04, 0.002),
+            new THREE.BoxGeometry(0.002, 0.025, 0.002),
             blackMaterial.clone()
         );
         frontSightPost.position.set(0, 0.09, -0.4);
         frontSightPost.renderOrder = 3;
         frontSightPost.castShadow = true;
         
-        // Front sight protective wings - smaller and more spaced out
+        // Front sight protective wings - make them thinner
         const frontSightBase = new THREE.Mesh(
-            new THREE.BoxGeometry(0.04, 0.02, 0.02),
+            new THREE.BoxGeometry(0.03, 0.015, 0.015),
             metalMaterial.clone()
         );
         frontSightBase.position.set(0, 0.075, -0.4);
         frontSightBase.renderOrder = 2;
         frontSightBase.castShadow = true;
         
-        // Left wing - thinner
+        // Left wing - make it thinner
         const leftWing = new THREE.Mesh(
-            new THREE.BoxGeometry(0.003, 0.03, 0.02),
+            new THREE.BoxGeometry(0.003, 0.025, 0.015),
             metalMaterial.clone()
         );
-        leftWing.position.set(-0.02, 0.09, -0.4);
+        leftWing.position.set(-0.015, 0.09, -0.4);
         leftWing.renderOrder = 2;
         leftWing.castShadow = true;
         
-        // Right wing - thinner
+        // Right wing - make it thinner
         const rightWing = new THREE.Mesh(
-            new THREE.BoxGeometry(0.003, 0.03, 0.02),
+            new THREE.BoxGeometry(0.003, 0.025, 0.015),
             metalMaterial.clone()
         );
-        rightWing.position.set(0.02, 0.09, -0.4);
+        rightWing.position.set(0.015, 0.09, -0.4);
         rightWing.renderOrder = 2;
         rightWing.castShadow = true;
         
         // Create a proper rear sight assembly
-        // Main rear sight housing - smaller and more open
+        // Main rear sight housing - make it smaller
         const rearSightBase = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.02, 0.02, 0.03, 16),
+            new THREE.CylinderGeometry(0.015, 0.015, 0.03, 16),
             metalMaterial.clone()
         );
         rearSightBase.rotation.x = Math.PI / 2;
@@ -255,37 +255,61 @@ class SimpleGame {
         rearSightBase.renderOrder = 2;
         rearSightBase.castShadow = true;
         
-        // Create a hollow aperture using a ring geometry
-        // This is the key part - we'll create a very thin ring
-        const rearSightAperture = new THREE.Mesh(
-            new THREE.RingGeometry(0.006, 0.008, 32),
-            new THREE.MeshBasicMaterial({
-                color: 0x000000,
-                side: THREE.DoubleSide,
-                transparent: false,
-                depthWrite: false  // Critical for seeing through the aperture
-            })
-        );
-        rearSightAperture.position.set(0, 0.09, 0.1);
-        rearSightAperture.rotation.y = Math.PI / 2;
-        rearSightAperture.renderOrder = 3;
+        // Create a true hollow aperture using a ring geometry
+        // We'll create a custom ring geometry to ensure it's truly hollow
+        const innerRadius = 0.006;
+        const outerRadius = 0.008;
+        const thetaSegments = 32;
         
-        // Add adjustment knobs on sides - smaller
+        const ringGeometry = new THREE.RingGeometry(innerRadius, outerRadius, thetaSegments);
+        const apertureMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 1.0,
+            depthWrite: false, // Critical for seeing through the aperture
+            depthTest: true
+        });
+        
+        const rearSightAperture = new THREE.Mesh(ringGeometry, apertureMaterial);
+        rearSightAperture.rotation.x = Math.PI / 2;
+        rearSightAperture.position.set(0, 0.09, 0.1);
+        rearSightAperture.renderOrder = 1000; // Very high render order to ensure it renders last
+        
+        // Create a sight line - a transparent cylinder that creates a "hole" through the weapon
+        const sightLineMaterial = new THREE.MeshBasicMaterial({
+            color: 0x000000,
+            transparent: true,
+            opacity: 0, // Completely invisible
+            depthWrite: false, // Don't write to depth buffer
+            depthTest: false, // Don't test against depth buffer
+            side: THREE.DoubleSide
+        });
+        
+        const sightLine = new THREE.Mesh(
+            new THREE.CylinderGeometry(innerRadius, innerRadius, 1.5, 16),
+            sightLineMaterial
+        );
+        sightLine.rotation.x = Math.PI / 2;
+        sightLine.position.set(0, 0.09, -0.15); // Position it to go through the weapon
+        sightLine.renderOrder = 2000; // Render after everything else
+        
+        // Add adjustment knobs on sides - make them smaller
         const leftKnob = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.006, 0.006, 0.01, 8),
+            new THREE.CylinderGeometry(0.006, 0.006, 0.008, 8),
             metalMaterial.clone()
         );
         leftKnob.rotation.z = Math.PI / 2;
-        leftKnob.position.set(-0.025, 0.09, 0.1);
+        leftKnob.position.set(-0.02, 0.09, 0.1);
         leftKnob.renderOrder = 2;
         leftKnob.castShadow = true;
         
         const rightKnob = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.006, 0.006, 0.01, 8),
+            new THREE.CylinderGeometry(0.006, 0.006, 0.008, 8),
             metalMaterial.clone()
         );
         rightKnob.rotation.z = Math.PI / 2;
-        rightKnob.position.set(0.025, 0.09, 0.1);
+        rightKnob.position.set(0.02, 0.09, 0.1);
         rightKnob.renderOrder = 2;
         rightKnob.castShadow = true;
         
@@ -298,6 +322,7 @@ class SimpleGame {
         ironSightsGroup.add(rearSightAperture);
         ironSightsGroup.add(leftKnob);
         ironSightsGroup.add(rightKnob);
+        ironSightsGroup.add(sightLine); // Add the sight line to the group
         
         // Add all parts to weapon group
         weaponGroup.add(rifleBody);
@@ -311,8 +336,8 @@ class SimpleGame {
         this.weaponDefaultPosition = new THREE.Vector3(0.3, -0.3, -0.6);
         this.weaponDefaultRotation = new THREE.Vector3(0, Math.PI / 12, 0);
         
-        // Adjusted aim position for proper sight picture - moved closer to camera
-        this.weaponAimPosition = new THREE.Vector3(0, -0.045, -0.15);
+        // Adjusted aim position for proper sight picture - move it further away
+        this.weaponAimPosition = new THREE.Vector3(0, -0.035, -0.18);
         this.weaponAimRotation = new THREE.Vector3(0, 0, 0);
         
         // Position weapon in hip-fire position
@@ -328,7 +353,7 @@ class SimpleGame {
         // Add aiming properties
         this.aimTransitionSpeed = 8.0;
         this.defaultFOV = 75;
-        this.aimFOV = 70; // Wider FOV to better see through sights
+        this.aimFOV = 72; // Wider FOV to better see through sights
         this.isAimingDownSights = false;
     }
     
