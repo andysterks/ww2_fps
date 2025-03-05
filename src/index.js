@@ -53,6 +53,9 @@ class SimpleGame {
             this.camera.position.y = 1.6; // Eye level
             this.controls = new PointerLockControls(this.camera, this.renderer.domElement);
             
+            // Add controls to scene to ensure they're properly initialized
+            this.scene.add(this.controls.getObject());
+            
             // Movement variables
             this.moveForward = false;
             this.moveBackward = false;
@@ -1132,45 +1135,33 @@ class SimpleGame {
             // Check if any movement keys are pressed
             const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
             
-            // Reset velocity completely when no movement keys are pressed
-            if (!isMoving) {
-                // Immediately zero out velocity
-                this.velocity.x = 0;
-                this.velocity.z = 0;
+            // Basic movement implementation
+            if (isMoving) {
+                // Calculate the base movement speed
+                const baseSpeed = this.playerSpeed * delta;
                 
-                // Skip the rest of the movement code
-            } else {
-                // Set movement direction
-                this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-                this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-                this.direction.normalize(); // Ensure consistent movement in all directions
-                
-                // Calculate movement speed (with sprint)
+                // Apply sprint multiplier if sprinting
                 const speedMultiplier = this.isSprinting ? this.sprintMultiplier : 1.0;
                 
-                // Direct velocity calculation without friction
-                // This ensures immediate response to input and no drifting
-                const scalingFactor = 0.05;
+                // Calculate final movement speed
+                const moveSpeed = baseSpeed * speedMultiplier * 0.1; // Scaling factor
                 
-                // Apply sprint multiplier only to player movement, not static player
-                const effectivePlayerSpeed = this.playerSpeed * speedMultiplier;
-                
-                // Calculate move speed with sprint
-                const moveSpeed = effectivePlayerSpeed * delta * scalingFactor;
-                
-                // Set velocity directly based on input direction
-                this.velocity.z = -this.direction.z * moveSpeed;
-                this.velocity.x = -this.direction.x * moveSpeed;
+                // Apply movement based on key presses
+                if (this.moveForward) {
+                    this.controls.moveForward(moveSpeed);
+                }
+                if (this.moveBackward) {
+                    this.controls.moveForward(-moveSpeed);
+                }
+                if (this.moveLeft) {
+                    this.controls.moveRight(-moveSpeed);
+                }
+                if (this.moveRight) {
+                    this.controls.moveRight(moveSpeed);
+                }
             }
             
-            // Move the player only if there's velocity
-            if (Math.abs(this.velocity.x) > 0.0001 || Math.abs(this.velocity.z) > 0.0001) {
-                this.controls.moveRight(-this.velocity.x);
-                this.controls.moveForward(-this.velocity.z);
-            }
-            
-            // Animate static player - do NOT pass the sprint multiplier
-            // This keeps the static player's speed constant regardless of player sprint
+            // Animate static player with constant speed
             this.animateSimpleStaticPlayer(delta);
             
             // Update debug info
@@ -1250,18 +1241,6 @@ class SimpleGame {
             // Static player always uses base speed
             const staticPlayerSpeed = this.playerSpeed;
             
-            // Calculate actual player velocity magnitude
-            const playerVelocityMagnitude = Math.sqrt(
-                this.velocity.x * this.velocity.x + 
-                this.velocity.z * this.velocity.z
-            );
-            
-            // Calculate static player movement for this frame (constant speed)
-            const staticPlayerDistance = delta * staticPlayerSpeed;
-            
-            // Current scaling factor
-            const scalingFactor = 0.05;
-            
             // Check if player is moving
             const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
             
@@ -1277,9 +1256,7 @@ class SimpleGame {
                 <div>Sprint: ${this.isSprinting ? 'ON' : 'OFF'} (Multiplier: ${this.sprintMultiplier.toFixed(1)}x)</div>
                 <div>Player Speed: ${playerEffectiveSpeed.toFixed(1)} (with sprint)</div>
                 <div>Static Player Speed: ${staticPlayerSpeed.toFixed(1)} (constant)</div>
-                <div>Player Velocity: ${playerVelocityMagnitude.toFixed(3)}</div>
-                <div>Static Player Distance: ${staticPlayerDistance.toFixed(3)}</div>
-                <div>Speed Settings: Scale=${scalingFactor}, Direct Velocity</div>
+                <div>Movement System: Direct control</div>
             `;
         }
     }
