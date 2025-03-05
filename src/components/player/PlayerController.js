@@ -146,25 +146,17 @@ export class PlayerController {
         this.velocity.x = 0;
         this.velocity.z = 0;
 
-        // Get movement direction from camera
-        const cameraDirection = new THREE.Vector3();
-        this.camera.getWorldDirection(cameraDirection);
-        cameraDirection.y = 0; // Keep movement in horizontal plane
-        cameraDirection.normalize();
-
-        // Calculate forward and right vectors
-        const forward = cameraDirection;
-        const right = new THREE.Vector3(-forward.z, 0, forward.x);
-
-        // Apply movement based on key states
-        if (this.moveForward) this.velocity.add(forward.multiplyScalar(currentSpeed));
-        if (this.moveBackward) this.velocity.sub(forward.multiplyScalar(currentSpeed));
-        if (this.moveRight) this.velocity.add(right.multiplyScalar(currentSpeed));
-        if (this.moveLeft) this.velocity.sub(right.multiplyScalar(currentSpeed));
-
-        // Normalize velocity if moving diagonally
-        if (this.velocity.lengthSq() > 0) {
-            this.velocity.normalize().multiplyScalar(currentSpeed);
+        // Calculate movement direction
+        this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+        this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
+        
+        // Normalize diagonal movement
+        if (this.direction.lengthSq() > 0) {
+            this.direction.normalize();
+            
+            // Apply movement speed
+            this.velocity.x = this.direction.x * currentSpeed;
+            this.velocity.z = this.direction.z * currentSpeed;
         }
 
         // Apply gravity
@@ -174,10 +166,20 @@ export class PlayerController {
             this.velocity.y = 0;
         }
 
+        // Get the camera's rotation
+        const rotation = this.camera.rotation.y;
+
+        // Apply rotation to movement
+        const rotatedVelocity = new THREE.Vector3(
+            this.velocity.x * Math.cos(rotation) - this.velocity.z * Math.sin(rotation),
+            this.velocity.y,
+            this.velocity.x * Math.sin(rotation) + this.velocity.z * Math.cos(rotation)
+        );
+
         // Move the player
-        this.camera.position.x += this.velocity.x * deltaTime;
-        this.camera.position.z += this.velocity.z * deltaTime;
-        this.camera.position.y += this.velocity.y * deltaTime;
+        this.camera.position.x += rotatedVelocity.x * deltaTime;
+        this.camera.position.z += rotatedVelocity.z * deltaTime;
+        this.camera.position.y += rotatedVelocity.y * deltaTime;
 
         // Ensure minimum height
         const minHeight = this.isCrouching ? this.crouchingHeight : this.standingHeight;
