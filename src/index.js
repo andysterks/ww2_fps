@@ -204,7 +204,10 @@ class SimpleGame {
             // Create local player
             this.createLocalPlayer();
             
-            // Create some test remote players
+            // Initialize network (before creating test players)
+            this.initNetwork();
+            
+            // Create some test remote players (only if not connected to real server)
             this.createTestRemotePlayers();
             
             // Set up event listeners
@@ -212,9 +215,6 @@ class SimpleGame {
             
             // Start animation loop
             this.animate();
-            
-            // Initialize network (placeholder)
-            this.initNetwork();
             
             console.log("Game initialized successfully");
         } catch (error) {
@@ -235,6 +235,14 @@ class SimpleGame {
     
     // Create some test remote players (for development)
     createTestRemotePlayers() {
+        // Only create test players if we're in test mode or not connected to a server
+        if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+            console.log("Connected to real server, skipping test players");
+            return;
+        }
+        
+        console.log("Creating test remote players");
+        
         // Create 3 test remote players at different positions
         const positions = [
             { x: 5, y: 0, z: -15 },
@@ -248,7 +256,7 @@ class SimpleGame {
             remotePlayer.createModel();
             this.players.set(playerId, remotePlayer);
             
-            console.log("Remote player created with ID:", playerId);
+            console.log("Test remote player created with ID:", playerId);
         });
     }
     
