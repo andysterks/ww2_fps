@@ -112,9 +112,11 @@
             left: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
-            z-index: 11;
+            z-index: 999;
             width: 40px;
             height: 40px;
+            display: block;
+            opacity: 1;
         }
 
         #front-post {
@@ -122,10 +124,10 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 2px;
-            height: 20px;
-            background: rgba(255, 255, 255, 0.8);
-            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            width: 4px;
+            height: 24px;
+            background: white;
+            box-shadow: 0 0 4px black;
         }
 
         #rear-sight {
@@ -133,18 +135,18 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 30px;
-            height: 30px;
+            width: 40px;
+            height: 40px;
         }
 
         #rear-sight::before,
         #rear-sight::after {
             content: '';
             position: absolute;
-            width: 2px;
-            height: 30px;
-            background: rgba(255, 255, 255, 0.8);
-            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+            width: 4px;
+            height: 40px;
+            background: white;
+            box-shadow: 0 0 4px black;
         }
 
         #rear-sight::before {
