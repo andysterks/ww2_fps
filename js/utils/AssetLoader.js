@@ -16,6 +16,9 @@ class AssetLoader {
         
         // For low-poly mode optimization
         this.lowPolyMode = true;
+        
+        // Flag to use placeholder assets when real assets are not available
+        this.usePlaceholders = true;
     }
     
     /**
@@ -48,6 +51,7 @@ class AssetLoader {
      */
     loadTexture(name, path) {
         return new Promise((resolve, reject) => {
+            // Try to load the texture from file
             this.textureLoader.load(
                 path,
                 (texture) => {
@@ -62,8 +66,35 @@ class AssetLoader {
                 },
                 undefined,  // onProgress callback not supported by TextureLoader
                 (error) => {
-                    console.error(`Error loading texture ${name}:`, error);
-                    reject(error);
+                    console.warn(`Error loading texture ${name} from ${path}:`, error);
+                    
+                    // If placeholders are enabled, generate a placeholder texture
+                    if (this.usePlaceholders) {
+                        console.log(`Generating placeholder texture for ${name}`);
+                        let texture;
+                        
+                        // Generate different placeholder textures based on name
+                        if (name === 'ground') {
+                            texture = TextureGenerator.generateGroundTexture();
+                        } else if (name === 'sky') {
+                            texture = TextureGenerator.generateSkyTexture();
+                        } else if (name.includes('weapon') || name.includes('rifle')) {
+                            texture = TextureGenerator.generateWeaponTexture();
+                        } else if (name.includes('enemy')) {
+                            texture = TextureGenerator.generateEnemyTexture();
+                        } else if (name.includes('building')) {
+                            texture = TextureGenerator.generateBuildingTexture(256, 256, 'brick');
+                        } else {
+                            // Default placeholder texture
+                            texture = new THREE.Texture(this.createPlaceholderImage(name));
+                            texture.needsUpdate = true;
+                        }
+                        
+                        this.textures[name] = texture;
+                        resolve(texture);
+                    } else {
+                        reject(error);
+                    }
                 }
             );
         });
@@ -77,6 +108,7 @@ class AssetLoader {
      */
     loadModel(name, path) {
         return new Promise((resolve, reject) => {
+            // Try to load the model from file
             this.gltfLoader.load(
                 path,
                 (gltf) => {
@@ -85,8 +117,10 @@ class AssetLoader {
                         gltf.scene.traverse((child) => {
                             if (child.isMesh) {
                                 // Simplify geometry
-                                child.geometry.dispose();
-                                child.geometry = new THREE.BufferGeometry().fromGeometry(child.geometry);
+                                if (child.geometry) {
+                                    child.geometry.dispose();
+                                    child.geometry = new THREE.BufferGeometry().fromGeometry(child.geometry);
+                                }
                                 
                                 // Simplify materials
                                 if (child.material) {
@@ -105,8 +139,17 @@ class AssetLoader {
                     // console.log(`${name} model: ${(xhr.loaded / xhr.total) * 100}% loaded`);
                 },
                 (error) => {
-                    console.error(`Error loading model ${name}:`, error);
-                    reject(error);
+                    console.warn(`Error loading model ${name} from ${path}:`, error);
+                    
+                    // If placeholders are enabled, generate a placeholder model
+                    if (this.usePlaceholders) {
+                        console.log(`Generating placeholder model for ${name}`);
+                        const placeholderModel = this.createPlaceholderModel(name);
+                        this.models[name] = placeholderModel;
+                        resolve(placeholderModel);
+                    } else {
+                        reject(error);
+                    }
                 }
             );
         });
@@ -120,6 +163,7 @@ class AssetLoader {
      */
     loadSound(name, path) {
         return new Promise((resolve, reject) => {
+            // Try to load the sound from file
             this.audioLoader.load(
                 path,
                 (buffer) => {
@@ -131,8 +175,19 @@ class AssetLoader {
                     // console.log(`${name} sound: ${(xhr.loaded / xhr.total) * 100}% loaded`);
                 },
                 (error) => {
-                    console.error(`Error loading sound ${name}:`, error);
-                    reject(error);
+                    console.warn(`Error loading sound ${name} from ${path}:`, error);
+                    
+                    // If placeholders are enabled, generate a placeholder sound
+                    if (this.usePlaceholders) {
+                        console.log(`Using placeholder sound for ${name}`);
+                        // Create an empty audio buffer as placeholder
+                        const context = new (window.AudioContext || window.webkitAudioContext)();
+                        const placeholderBuffer = context.createBuffer(2, 44100, 44100);
+                        this.sounds[name] = placeholderBuffer;
+                        resolve(placeholderBuffer);
+                    } else {
+                        reject(error);
+                    }
                 }
             );
         });
@@ -222,6 +277,96 @@ class AssetLoader {
         const model = this.getModel(name);
         if (!model) return null;
         
-        return model.scene.clone();
+        if (model.scene) {
+            return model.scene.clone();
+        } else if (model.isGroup || model.isObject3D) {
+            return model.clone();
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Create a placeholder image with text
+     * @param {string} text - Text to display on the placeholder
+     * @returns {HTMLCanvasElement} Canvas element with placeholder image
+     */
+    createPlaceholderImage(text) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const context = canvas.getContext('2d');
+        
+        // Fill with checkerboard pattern
+        const tileSize = 32;
+        for (let x = 0; x < canvas.width; x += tileSize) {
+            for (let y = 0; y < canvas.height; y += tileSize) {
+                const isEven = ((x / tileSize) + (y / tileSize)) % 2 === 0;
+                context.fillStyle = isEven ? '#FF00FF' : '#00FFFF';
+                context.fillRect(x, y, tileSize, tileSize);
+            }
+        }
+        
+        // Add text
+        context.fillStyle = '#000000';
+        context.font = '20px Arial';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(`Missing: ${text}`, canvas.width / 2, canvas.height / 2);
+        
+        return canvas;
+    }
+    
+    /**
+     * Create a placeholder model
+     * @param {string} name - Name of the model to create a placeholder for
+     * @returns {Object} Placeholder model object
+     */
+    createPlaceholderModel(name) {
+        let geometry, material;
+        
+        // Create different placeholder models based on name
+        if (name === 'player') {
+            // Player placeholder (blue box)
+            geometry = new THREE.BoxGeometry(1, 2, 1);
+            material = new THREE.MeshBasicMaterial({ color: 0x0000FF });
+        } else if (name === 'enemy') {
+            // Enemy placeholder (red box)
+            geometry = new THREE.BoxGeometry(1, 2, 1);
+            material = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
+        } else if (name === 'rifle' || name.includes('weapon')) {
+            // Weapon placeholder (long thin box)
+            geometry = new THREE.BoxGeometry(0.1, 0.1, 1);
+            material = new THREE.MeshBasicMaterial({ color: 0x888888 });
+        } else if (name.includes('building')) {
+            // Building placeholder
+            const type = name.includes('1') ? 1 : 2;
+            const width = type === 1 ? 10 : 8;
+            const height = type === 1 ? 15 : 10;
+            const depth = type === 1 ? 10 : 8;
+            
+            geometry = new THREE.BoxGeometry(width, height, depth);
+            material = new THREE.MeshBasicMaterial({ 
+                color: type === 1 ? 0xA52A2A : 0x808080,
+                wireframe: true
+            });
+        } else {
+            // Default placeholder (white cube)
+            geometry = new THREE.BoxGeometry(1, 1, 1);
+            material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, wireframe: true });
+        }
+        
+        // Create mesh
+        const mesh = new THREE.Mesh(geometry, material);
+        
+        // Create a group to mimic GLTF structure
+        const group = new THREE.Group();
+        group.add(mesh);
+        
+        // Create a placeholder object that mimics a GLTF result
+        return {
+            scene: group,
+            isPlaceholder: true
+        };
     }
 } 
