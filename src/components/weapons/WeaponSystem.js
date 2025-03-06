@@ -438,19 +438,21 @@ export class WeaponSystem {
         this.isAiming = !this.isAiming;
         console.log('WEAPON SYSTEM - toggleAim called, isAiming:', this.isAiming);
         
-        // Directly control the always-visible-sight element
-        const alwaysVisibleSight = document.getElementById('always-visible-sight');
-        if (alwaysVisibleSight) {
-            alwaysVisibleSight.style.display = this.isAiming ? 'block' : 'none';
-            console.log('Always visible sight toggled via F key:', alwaysVisibleSight.style.display);
-        } else {
-            console.error('Always visible sight element not found');
-        }
-        
-        // Toggle crosshair visibility
-        const crosshair = document.getElementById('crosshair');
-        if (crosshair) {
-            crosshair.style.display = this.isAiming ? 'none' : 'block';
+        // Safely toggle the always-visible-sight element
+        try {
+            const alwaysVisibleSight = document.getElementById('always-visible-sight');
+            if (alwaysVisibleSight) {
+                alwaysVisibleSight.style.display = this.isAiming ? 'block' : 'none';
+                console.log('Always visible sight toggled via toggleAim:', alwaysVisibleSight.style.display);
+            }
+            
+            // Toggle crosshair visibility
+            const crosshair = document.getElementById('crosshair');
+            if (crosshair) {
+                crosshair.style.display = this.isAiming ? 'none' : 'block';
+            }
+        } catch (error) {
+            console.error('Error toggling iron sights:', error);
         }
         
         // Adjust weapon position for aiming
