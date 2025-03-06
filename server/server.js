@@ -65,16 +65,33 @@ io.on('connection', (socket) => {
     
     // Handle player updates
     socket.on('player-update', (data) => {
+        // Validate and sanitize data
+        const validatedData = {
+            id: socket.id,
+            position: data.position ? {
+                x: Number(data.position.x) || 0,
+                y: Number(data.position.y) || 0,
+                z: Number(data.position.z) || 0
+            } : null,
+            rotation: data.rotation ? {
+                x: Number(data.rotation.x) || 0,
+                y: Number(data.rotation.y) || 0,
+                z: Number(data.rotation.z) || 0
+            } : null,
+            moveForward: Boolean(data.moveForward),
+            moveBackward: Boolean(data.moveBackward),
+            moveLeft: Boolean(data.moveLeft),
+            moveRight: Boolean(data.moveRight),
+            isSprinting: Boolean(data.isSprinting)
+        };
+
         // Update player data in our records
         const player = players.get(socket.id);
         if (player) {
-            Object.assign(player, data);
+            Object.assign(player, validatedData);
             
             // Broadcast to all other players
-            socket.broadcast.emit('player-update', {
-                id: socket.id,
-                ...data
-            });
+            socket.broadcast.emit('player-update', validatedData);
         }
     });
     

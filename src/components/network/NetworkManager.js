@@ -85,8 +85,21 @@ export class NetworkManager {
         playerModel.scale.set(1.5, 1.5, 1.5); // Scale up the model a bit
         
         // Set initial position and rotation
-        playerModel.position.copy(data.position);
-        playerModel.rotation.copy(data.rotation);
+        if (data.position) {
+            playerModel.position.set(
+                data.position.x || 0,
+                data.position.y || 0,
+                data.position.z || 0
+            );
+        }
+        
+        if (data.rotation) {
+            playerModel.rotation.set(
+                data.rotation.x || 0,
+                data.rotation.y || 0,
+                data.rotation.z || 0
+            );
+        }
         
         // Add to scene
         this.game.scene.add(playerModel);
@@ -95,10 +108,12 @@ export class NetworkManager {
         this.players.set(data.id, {
             mesh: playerModel,
             lastUpdate: performance.now(),
-            position: new THREE.Vector3().copy(data.position),
-            rotation: new THREE.Euler().copy(data.rotation),
-            targetPosition: new THREE.Vector3().copy(data.position),
-            targetRotation: new THREE.Euler().copy(data.rotation)
+            position: new THREE.Vector3().copy(playerModel.position),
+            rotation: new THREE.Euler().copy(playerModel.rotation),
+            targetPosition: new THREE.Vector3().copy(playerModel.position),
+            targetRotation: new THREE.Euler().copy(playerModel.rotation),
+            quaternion: new THREE.Quaternion(),
+            targetQuaternion: new THREE.Quaternion()
         });
     }
     
@@ -113,9 +128,26 @@ export class NetworkManager {
     updatePlayer(data) {
         const player = this.players.get(data.id);
         if (player) {
-            // Update target position and rotation for interpolation
-            player.targetPosition.copy(data.position);
-            player.targetRotation.copy(data.rotation);
+            // Update target position
+            if (data.position) {
+                player.targetPosition.set(
+                    data.position.x || player.targetPosition.x,
+                    data.position.y || player.targetPosition.y,
+                    data.position.z || player.targetPosition.z
+                );
+            }
+            
+            // Update target rotation
+            if (data.rotation) {
+                player.targetRotation.set(
+                    data.rotation.x || player.targetRotation.x,
+                    data.rotation.y || player.targetRotation.y,
+                    data.rotation.z || player.targetRotation.z
+                );
+                // Convert Euler to Quaternion for smoother interpolation
+                player.targetQuaternion.setFromEuler(player.targetRotation);
+            }
+            
             player.lastUpdate = performance.now();
         }
     }
@@ -142,29 +174,18 @@ export class NetworkManager {
             
             // Interpolate position
             player.mesh.position.lerpVectors(player.position, player.targetPosition, t);
-            
-            // Store current position for next interpolation
             player.position.copy(player.mesh.position);
             
-            // Interpolate rotation
-            player.mesh.rotation.x = THREE.MathUtils.lerp(
-                player.rotation.x,
-                player.targetRotation.x,
+            // Interpolate rotation using quaternions for smoother rotation
+            player.quaternion.slerpQuaternions(
+                player.mesh.quaternion,
+                player.targetQuaternion,
                 t
             );
-            player.mesh.rotation.y = THREE.MathUtils.lerp(
-                player.rotation.y,
-                player.targetRotation.y,
-                t
-            );
-            player.mesh.rotation.z = THREE.MathUtils.lerp(
-                player.rotation.z,
-                player.targetRotation.z,
-                t
-            );
+            player.mesh.quaternion.copy(player.quaternion);
             
-            // Store current rotation for next interpolation
-            player.rotation.copy(player.mesh.rotation);
+            // Update Euler angles from quaternion
+            player.rotation.setFromQuaternion(player.quaternion);
         });
     }
     
