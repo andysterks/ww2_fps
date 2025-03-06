@@ -586,98 +586,49 @@ export class WeaponSystem {
             return;
         }
         
-        // Create a completely new iron sights element
+        // Create a completely new iron sights element with inline styles
         const ironSights = document.createElement('div');
         ironSights.id = 'standalone-iron-sights';
+        ironSights.innerHTML = `
+            <div style="position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 10px !important; height: 10px !important; background-color: red !important; border-radius: 50% !important; box-shadow: 0 0 10px red !important;"></div>
+            <div style="position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 40px !important; height: 40px !important; border: 3px solid red !important; border-radius: 50% !important; box-shadow: 0 0 10px red !important;"></div>
+            <div style="position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 100px !important; height: 3px !important; background-color: red !important; box-shadow: 0 0 10px red !important;"></div>
+            <div style="position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 3px !important; height: 100px !important; background-color: red !important; box-shadow: 0 0 10px red !important;"></div>
+            <div style="position: absolute !important; top: 20px !important; left: 50% !important; transform: translateX(-50%) !important; color: red !important; font-size: 20px !important; font-weight: bold !important; text-shadow: 0 0 5px black !important;">IRON SIGHTS ACTIVE</div>
+        `;
         
         // Apply styles directly to make it unmissable
         Object.assign(ironSights.style, {
-            position: 'fixed',
-            top: '0',
-            left: '0',
-            width: '100%',
-            height: '100%',
-            zIndex: '9999',
-            pointerEvents: 'none'
+            position: 'fixed !important',
+            top: '0 !important',
+            left: '0 !important',
+            width: '100% !important',
+            height: '100% !important',
+            zIndex: '999999 !important',
+            pointerEvents: 'none !important',
+            backgroundColor: 'rgba(0,0,0,0.2) !important'
         });
-        
-        // Create a bright red dot in the center
-        const centerDot = document.createElement('div');
-        Object.assign(centerDot.style, {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '6px',
-            height: '6px',
-            backgroundColor: '#ff0000',
-            borderRadius: '50%',
-            boxShadow: '0 0 5px #ff0000'
-        });
-        
-        // Create a red circle around the dot
-        const circle = document.createElement('div');
-        Object.assign(circle.style, {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '30px',
-            height: '30px',
-            border: '2px solid #ff0000',
-            borderRadius: '50%',
-            boxShadow: '0 0 5px #ff0000'
-        });
-        
-        // Create horizontal line
-        const horizontalLine = document.createElement('div');
-        Object.assign(horizontalLine.style, {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '80px',
-            height: '2px',
-            backgroundColor: '#ff0000',
-            boxShadow: '0 0 5px #ff0000'
-        });
-        
-        // Create vertical line
-        const verticalLine = document.createElement('div');
-        Object.assign(verticalLine.style, {
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '2px',
-            height: '80px',
-            backgroundColor: '#ff0000',
-            boxShadow: '0 0 5px #ff0000'
-        });
-        
-        // Add a text label to confirm it's working
-        const label = document.createElement('div');
-        Object.assign(label.style, {
-            position: 'absolute',
-            top: '20px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            color: '#ff0000',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            textShadow: '0 0 3px #000000'
-        });
-        label.textContent = 'IRON SIGHTS ACTIVE';
-        
-        // Add all elements to the iron sights container
-        ironSights.appendChild(centerDot);
-        ironSights.appendChild(circle);
-        ironSights.appendChild(horizontalLine);
-        ironSights.appendChild(verticalLine);
-        ironSights.appendChild(label);
         
         // Add to document body directly
         document.body.appendChild(ironSights);
+        
+        // Force the element to be visible
+        setTimeout(() => {
+            const addedElement = document.getElementById('standalone-iron-sights');
+            if (addedElement) {
+                addedElement.style.cssText = `
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    z-index: 999999 !important;
+                    pointer-events: none !important;
+                    background-color: rgba(0,0,0,0.2) !important;
+                    display: block !important;
+                `;
+            }
+        }, 100);
         
         console.log('Standalone iron sights created and added to DOM:', ironSights);
     }

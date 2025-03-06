@@ -37,7 +37,16 @@ class Game {
         this.renderer.autoClear = false; // Important for rendering both scenes
 
         // Add to DOM
-        document.getElementById('game-container').appendChild(this.renderer.domElement);
+        const canvas = this.renderer.domElement;
+        
+        // Set canvas style to ensure it doesn't cover our HUD elements
+        canvas.style.position = 'absolute';
+        canvas.style.zIndex = '1'; // Lower z-index so HUD elements appear on top
+        
+        document.getElementById('game-container').appendChild(canvas);
+        
+        // Debug: Log canvas z-index
+        console.log('Canvas z-index set to:', canvas.style.zIndex);
 
         // Post-processing
         this.composer = null;
@@ -73,7 +82,16 @@ class Game {
         this.renderer.autoClear = false; // Important for rendering both scenes
 
         // Add to DOM
-        document.getElementById('game-container').appendChild(this.renderer.domElement);
+        const canvas = this.renderer.domElement;
+        
+        // Set canvas style to ensure it doesn't cover our HUD elements
+        canvas.style.position = 'absolute';
+        canvas.style.zIndex = '1'; // Lower z-index so HUD elements appear on top
+        
+        document.getElementById('game-container').appendChild(canvas);
+        
+        // Debug: Log canvas z-index
+        console.log('Canvas z-index set to:', canvas.style.zIndex);
     }
 
     setupPostProcessing() {
@@ -106,52 +124,44 @@ class Game {
     }
 
     async init() {
+        console.log('Game initializing...');
+        
+        // Debug: Log DOM structure
+        this.logDOMStructure();
+        
         try {
-            console.log('Initializing game...');
-            
-            // Initialize audio
-            await this.audioManager.init();
-            console.log('Audio initialized');
-
-            // Create environment first
+            // Setup environment
             this.environment = new Environment(this.scene);
             await this.environment.init();
-            console.log('Environment initialized');
             
-            // Create player and set initial position
-            this.player = new PlayerController(this.camera, this.scene);
-            console.log('Player controller created');
+            // Setup player controller
+            this.playerController = new PlayerController(this.camera, this.scene);
+            this.playerController.setCollidableObjects(this.environment.getCollidableObjects());
             
-            // Set collidable objects for player
-            const collidableObjects = this.environment.getCollidableObjects();
-            this.player.setCollidableObjects(collidableObjects);
-            console.log('Collidable objects set:', collidableObjects.length);
-            
-            // Create UI first so weapon system can use it
-            this.ui = new GameUI();
-            console.log('UI initialized');
-            
-            // Create weapon system and pass game instance
+            // Setup weapon system
             this.weaponSystem = new WeaponSystem(this.camera, this.scene);
-            this.weaponSystem.game = this; // Pass game instance to weapon system
             await this.weaponSystem.init();
-            console.log('Weapon system initialized');
-
-            // Initialize network manager
+            
+            // Setup network manager
             this.networkManager = new NetworkManager(this);
-            console.log('Network manager initialized');
-
-            // Set up event listeners
+            this.networkManager.init();
+            
+            // Setup event listeners
             this.setupEventListeners();
-            console.log('Event listeners set up');
             
             // Start game loop
-            this.animate();
             console.log('Game loop started');
+            this.isRunning = true;
+            this.animate();
             
+            // Game initialized successfully
             console.log('Game initialized successfully');
+            
+            // Debug: Log DOM structure again after initialization
+            setTimeout(() => this.logDOMStructure(), 2000);
+            
         } catch (error) {
-            console.error('Error during game initialization:', error);
+            console.error('Error initializing game:', error);
         }
     }
 
@@ -220,6 +230,11 @@ class Game {
                         console.log('T key pressed - FORCE SHOWING IRON SIGHTS');
                         this.testIronSights();
                         break;
+                    // Another debug key for a different approach
+                    case 'KeyY':
+                        console.log('Y key pressed - DIRECT DOM IRON SIGHTS');
+                        this.createDirectIronSights();
+                        break;
                 }
             }
         });
@@ -242,7 +257,7 @@ class Game {
         if (this.isRunning) {
             try {
                 // Update game systems
-                this.player.update(deltaTime);
+                this.playerController.update(deltaTime);
                 this.weaponSystem.update(deltaTime);
                 this.environment.update(deltaTime);
                 this.networkManager.update(deltaTime);
@@ -340,6 +355,60 @@ class Game {
             document.body.appendChild(testSight);
             console.log('Test iron sight added to DOM');
         }
+    }
+
+    // Direct DOM manipulation for iron sights
+    createDirectIronSights() {
+        console.log('Creating direct DOM iron sights');
+        
+        // Toggle an existing element if it exists
+        const existingElement = document.getElementById('direct-iron-sights');
+        if (existingElement) {
+            document.body.removeChild(existingElement);
+            console.log('Direct iron sights removed');
+            return;
+        }
+        
+        // Create a new element directly in the body
+        const ironSight = document.createElement('div');
+        ironSight.id = 'direct-iron-sights';
+        
+        // Set inline styles to ensure visibility
+        ironSight.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.3);
+            z-index: 9999999;
+            pointer-events: none;
+        `;
+        
+        // Add inner elements with inline styles
+        ironSight.innerHTML = `
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; background-color: #ff0000; border-radius: 50%; box-shadow: 0 0 20px #ff0000;"></div>
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border: 4px solid #ff0000; border-radius: 50%; box-shadow: 0 0 20px #ff0000;"></div>
+            <div style="position: absolute; top: 30%; left: 50%; transform: translateX(-50%); color: #ff0000; font-size: 24px; font-weight: bold; text-shadow: 0 0 10px #000000;">DIRECT IRON SIGHTS TEST</div>
+            <div style="position: absolute; top: 35%; left: 50%; transform: translateX(-50%); color: #ff0000; font-size: 18px; text-shadow: 0 0 10px #000000;">Press Y again to remove</div>
+        `;
+        
+        // Add to document body
+        document.body.appendChild(ironSight);
+        console.log('Direct iron sights added to DOM');
+    }
+
+    // Debug function to log DOM structure
+    logDOMStructure() {
+        console.log('--- DOM STRUCTURE ---');
+        console.log('Body children:', document.body.children);
+        console.log('Game container:', document.getElementById('game-container'));
+        console.log('HUD elements:', document.getElementById('hud'));
+        console.log('Crosshair:', document.getElementById('crosshair'));
+        console.log('Permanent iron sight:', document.getElementById('permanent-iron-sight'));
+        console.log('Canvas elements:', document.getElementsByTagName('canvas'));
+        console.log('z-index of canvas:', document.querySelector('canvas')?.style.zIndex);
+        console.log('--- END DOM STRUCTURE ---');
     }
 }
 
