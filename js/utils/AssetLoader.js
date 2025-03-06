@@ -323,45 +323,76 @@ class AssetLoader {
      * @returns {Object} Placeholder model object
      */
     createPlaceholderModel(name) {
-        let geometry, material;
+        let model;
         
-        // Create different placeholder models based on name
-        if (name === 'player') {
-            // Player placeholder (blue box)
-            geometry = new THREE.BoxGeometry(1, 2, 1);
-            material = new THREE.MeshBasicMaterial({ color: 0x0000FF });
-        } else if (name === 'enemy') {
-            // Enemy placeholder (red box)
-            geometry = new THREE.BoxGeometry(1, 2, 1);
-            material = new THREE.MeshBasicMaterial({ color: 0xFF0000 });
+        // Create different placeholder models based on name using ModelGenerator
+        if (name === 'player' || name.includes('player')) {
+            // Player placeholder using ModelGenerator
+            model = ModelGenerator.generateCharacter({
+                isEnemy: false,
+                color: 0x1E3F8A, // Blue for player
+                hasHelmet: true,
+                hasWeapon: true
+            });
+        } else if (name === 'enemy' || name.includes('enemy')) {
+            // Enemy placeholder using ModelGenerator
+            model = ModelGenerator.generateCharacter({
+                isEnemy: true,
+                color: 0x4F5F43, // Green for enemies
+                hasHelmet: true,
+                hasWeapon: true
+            });
         } else if (name === 'rifle' || name.includes('weapon')) {
-            // Weapon placeholder (long thin box)
-            geometry = new THREE.BoxGeometry(0.1, 0.1, 1);
-            material = new THREE.MeshBasicMaterial({ color: 0x888888 });
+            // Weapon placeholder using ModelGenerator
+            model = ModelGenerator.generateWeapon({
+                type: name.includes('rifle') ? 'rifle' : 'pistol',
+                color: 0x8B4513 // Brown
+            });
         } else if (name.includes('building')) {
-            // Building placeholder
-            const type = name.includes('1') ? 1 : 2;
-            const width = type === 1 ? 10 : 8;
-            const height = type === 1 ? 15 : 10;
-            const depth = type === 1 ? 10 : 8;
+            // Building placeholder using ModelGenerator
+            const damaged = name.includes('damaged') || name.includes('ruin');
+            const type = name.includes('house') ? 'house' : 'building';
             
-            geometry = new THREE.BoxGeometry(width, height, depth);
-            material = new THREE.MeshBasicMaterial({ 
-                color: type === 1 ? 0xA52A2A : 0x808080,
-                wireframe: true
+            model = ModelGenerator.generateBuilding({
+                type: type,
+                width: 10,
+                height: 8,
+                depth: 10,
+                color: 0xA52A2A, // Brown
+                damaged: damaged
+            });
+        } else if (name.includes('barrel')) {
+            // Barrel placeholder
+            model = ModelGenerator.generateProp({
+                type: 'barrel',
+                color: 0x8B4513 // Brown
+            });
+        } else if (name.includes('crate')) {
+            // Crate placeholder
+            model = ModelGenerator.generateProp({
+                type: 'crate',
+                color: 0x8B4513 // Brown
+            });
+        } else if (name.includes('sandbag')) {
+            // Sandbag placeholder
+            model = ModelGenerator.generateProp({
+                type: 'sandbag'
             });
         } else {
             // Default placeholder (white cube)
-            geometry = new THREE.BoxGeometry(1, 1, 1);
-            material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, wireframe: true });
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const material = new THREE.MeshBasicMaterial({ color: 0xFFFFFF, wireframe: true });
+            model = new THREE.Mesh(geometry, material);
         }
         
-        // Create mesh
-        const mesh = new THREE.Mesh(geometry, material);
-        
-        // Create a group to mimic GLTF structure
-        const group = new THREE.Group();
-        group.add(mesh);
+        // Create a group to mimic GLTF structure if the model isn't already a group
+        let group;
+        if (model.isGroup) {
+            group = model;
+        } else {
+            group = new THREE.Group();
+            group.add(model);
+        }
         
         // Create a placeholder object that mimics a GLTF result
         return {
