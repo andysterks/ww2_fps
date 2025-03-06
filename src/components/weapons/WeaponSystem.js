@@ -441,6 +441,66 @@ export class WeaponSystem {
         // Create standalone iron sights that don't rely on existing elements
         this.createStandaloneIronSights(this.isAiming);
         
+        // Toggle the permanent iron sight in the HTML
+        const permanentIronSight = document.getElementById('permanent-iron-sight');
+        if (permanentIronSight) {
+            permanentIronSight.style.display = this.isAiming ? 'block' : 'none';
+            console.log('Permanent iron sight toggled:', this.isAiming);
+        } else {
+            console.error('Permanent iron sight element not found in DOM');
+        }
+        
+        // Direct DOM manipulation for iron sights (fallback approach)
+        if (this.isAiming) {
+            // Create a simple red dot sight directly in the DOM
+            const simpleSight = document.createElement('div');
+            simpleSight.id = 'simple-iron-sight';
+            
+            // Style it to be unmissable
+            Object.assign(simpleSight.style, {
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '20px',
+                height: '20px',
+                backgroundColor: 'red',
+                borderRadius: '50%',
+                zIndex: '999999',
+                pointerEvents: 'none',
+                boxShadow: '0 0 10px red'
+            });
+            
+            // Remove any existing simple sight
+            const existingSimpleSight = document.getElementById('simple-iron-sight');
+            if (existingSimpleSight) {
+                existingSimpleSight.remove();
+            }
+            
+            // Add to document body
+            document.body.appendChild(simpleSight);
+            console.log('Simple iron sight added to DOM');
+            
+            // Hide crosshair
+            const crosshair = document.getElementById('crosshair');
+            if (crosshair) {
+                crosshair.style.display = 'none';
+            }
+        } else {
+            // Remove simple sight when not aiming
+            const simpleSight = document.getElementById('simple-iron-sight');
+            if (simpleSight) {
+                simpleSight.remove();
+                console.log('Simple iron sight removed from DOM');
+            }
+            
+            // Show crosshair
+            const crosshair = document.getElementById('crosshair');
+            if (crosshair) {
+                crosshair.style.display = 'block';
+            }
+        }
+        
         // Adjust weapon position for aiming
         if (this.currentWeapon) {
             const targetPosition = this.isAiming
@@ -526,47 +586,47 @@ export class WeaponSystem {
             return;
         }
         
-        // Create a super simple, unmissable iron sight
+        // Create a completely new iron sights element
         const ironSights = document.createElement('div');
         ironSights.id = 'standalone-iron-sights';
         
-        // Apply styles directly - make it unmissable
+        // Apply styles directly to make it unmissable
         Object.assign(ironSights.style, {
             position: 'fixed',
             top: '0',
             left: '0',
             width: '100%',
             height: '100%',
-            zIndex: '99999',
+            zIndex: '9999',
             pointerEvents: 'none'
         });
         
-        // Create a simple red dot in the center
-        const redDot = document.createElement('div');
-        Object.assign(redDot.style, {
+        // Create a bright red dot in the center
+        const centerDot = document.createElement('div');
+        Object.assign(centerDot.style, {
             position: 'absolute',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '8px',
-            height: '8px',
+            width: '6px',
+            height: '6px',
             backgroundColor: '#ff0000',
             borderRadius: '50%',
-            boxShadow: '0 0 10px #ff0000, 0 0 20px #ff0000'
+            boxShadow: '0 0 5px #ff0000'
         });
         
         // Create a red circle around the dot
-        const redCircle = document.createElement('div');
-        Object.assign(redCircle.style, {
+        const circle = document.createElement('div');
+        Object.assign(circle.style, {
             position: 'absolute',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '40px',
-            height: '40px',
+            width: '30px',
+            height: '30px',
             border: '2px solid #ff0000',
             borderRadius: '50%',
-            boxShadow: '0 0 10px #ff0000, 0 0 20px #ff0000'
+            boxShadow: '0 0 5px #ff0000'
         });
         
         // Create horizontal line
@@ -576,10 +636,10 @@ export class WeaponSystem {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '100px',
+            width: '80px',
             height: '2px',
             backgroundColor: '#ff0000',
-            boxShadow: '0 0 10px #ff0000, 0 0 20px #ff0000'
+            boxShadow: '0 0 5px #ff0000'
         });
         
         // Create vertical line
@@ -590,19 +650,10 @@ export class WeaponSystem {
             left: '50%',
             transform: 'translate(-50%, -50%)',
             width: '2px',
-            height: '100px',
+            height: '80px',
             backgroundColor: '#ff0000',
-            boxShadow: '0 0 10px #ff0000, 0 0 20px #ff0000'
+            boxShadow: '0 0 5px #ff0000'
         });
-        
-        // Add elements to DOM
-        ironSights.appendChild(redDot);
-        ironSights.appendChild(redCircle);
-        ironSights.appendChild(horizontalLine);
-        ironSights.appendChild(verticalLine);
-        
-        // Add to document body directly
-        document.body.appendChild(ironSights);
         
         // Add a text label to confirm it's working
         const label = document.createElement('div');
@@ -612,13 +663,21 @@ export class WeaponSystem {
             left: '50%',
             transform: 'translateX(-50%)',
             color: '#ff0000',
-            fontSize: '20px',
+            fontSize: '16px',
             fontWeight: 'bold',
-            textShadow: '0 0 5px #ff0000',
-            fontFamily: 'Arial, sans-serif'
+            textShadow: '0 0 3px #000000'
         });
         label.textContent = 'IRON SIGHTS ACTIVE';
+        
+        // Add all elements to the iron sights container
+        ironSights.appendChild(centerDot);
+        ironSights.appendChild(circle);
+        ironSights.appendChild(horizontalLine);
+        ironSights.appendChild(verticalLine);
         ironSights.appendChild(label);
+        
+        // Add to document body directly
+        document.body.appendChild(ironSights);
         
         console.log('Standalone iron sights created and added to DOM:', ironSights);
     }

@@ -209,10 +209,16 @@ class Game {
             if (this.isRunning) {
                 switch (event.code) {
                     case 'KeyF':
+                        console.log('F key pressed - toggling aim');
                         this.weaponSystem.toggleAim();
                         break;
                     case 'KeyR':
                         this.weaponSystem.reload();
+                        break;
+                    // Debug key to force iron sights
+                    case 'KeyT':
+                        console.log('T key pressed - FORCE SHOWING IRON SIGHTS');
+                        this.testIronSights();
                         break;
                 }
             }
@@ -274,6 +280,66 @@ class Game {
         // Update renderer and composer
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.composer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // Debug function to test iron sights
+    testIronSights() {
+        console.log('Testing iron sights directly');
+        
+        // Create a test iron sight element
+        const testSight = document.createElement('div');
+        testSight.id = 'test-iron-sight';
+        
+        // Style it to be unmissable
+        Object.assign(testSight.style, {
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            zIndex: '999999',
+            pointerEvents: 'none'
+        });
+        
+        // Add a bright red crosshair
+        const crosshair = document.createElement('div');
+        Object.assign(crosshair.style, {
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '50px',
+            height: '50px',
+            border: '3px solid red',
+            borderRadius: '50%'
+        });
+        
+        // Add a text label
+        const label = document.createElement('div');
+        Object.assign(label.style, {
+            position: 'absolute',
+            top: '30%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            color: 'red',
+            fontSize: '24px',
+            fontWeight: 'bold'
+        });
+        label.textContent = 'TEST IRON SIGHT (Press T again to remove)';
+        
+        testSight.appendChild(crosshair);
+        testSight.appendChild(label);
+        
+        // Toggle the test sight
+        const existingTest = document.getElementById('test-iron-sight');
+        if (existingTest) {
+            existingTest.remove();
+            console.log('Test iron sight removed');
+        } else {
+            document.body.appendChild(testSight);
+            console.log('Test iron sight added to DOM');
+        }
     }
 }
 

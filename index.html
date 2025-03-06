@@ -129,6 +129,18 @@
             height: 2px;
             background: black;
         }
+        
+        /* Ensure standalone iron sights are visible */
+        #standalone-iron-sights {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            z-index: 99999 !important;
+            pointer-events: none !important;
+            display: block !important;
+        }
     </style>
     <!-- Socket.io client library -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
@@ -146,6 +158,13 @@
         <div id="sound-toggle" class="sound-on">🔊</div>
         <div id="audio-status">Click anywhere to enable audio</div>
         <div id="debug-info" style="position: absolute; bottom: 50px; left: 20px; color: white; background: rgba(0,0,0,0.5); padding: 5px; font-size: 12px; display: none;"></div>
+        
+        <!-- Permanent iron sight that can be toggled with JavaScript -->
+        <div id="permanent-iron-sight" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; border: 2px solid red; border-radius: 50%; z-index: 99999; pointer-events: none; display: none; box-shadow: 0 0 10px red;">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 6px; height: 6px; background-color: red; border-radius: 50%;"></div>
+            <div style="position: absolute; top: 50%; left: 0; transform: translateY(-50%); width: 100%; height: 2px; background-color: red;"></div>
+            <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 2px; height: 100%; background-color: red;"></div>
+        </div>
     </div>
     <script type="module" src="/src/index.js"></script>
 </body>
