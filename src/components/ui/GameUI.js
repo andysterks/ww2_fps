@@ -9,6 +9,8 @@ class GameUI {
         this.crosshair = document.getElementById('crosshair');
         this.scopeOverlay = document.getElementById('scope-overlay');
         this.ironSights = document.getElementById('iron-sights');
+        this.frontPost = document.getElementById('front-post');
+        this.rearSight = document.getElementById('rear-sight');
         this.ammoDisplay = document.getElementById('ammo');
         this.healthDisplay = document.getElementById('health');
         this.instructions = document.getElementById('instructions');
@@ -26,7 +28,13 @@ class GameUI {
         // Set up event listeners
         this.setupEventListeners();
         
-        // Initialize UI elements
+        // Initialize UI elements with detailed logging
+        console.log('Iron sights elements:', {
+            ironSights: this.ironSights,
+            frontPost: this.frontPost,
+            rearSight: this.rearSight
+        });
+        
         if (this.ironSights) {
             this.ironSights.style.display = 'none';
             this.ironSights.style.opacity = '0';
@@ -68,60 +76,73 @@ class GameUI {
     
     toggleScope(isAiming) {
         this.isAiming = isAiming;
+        console.log('TOGGLE SCOPE CALLED with isAiming:', isAiming);
         
-        // Toggle iron sights with proper z-index and visibility
+        // Direct approach to toggle iron sights
         if (this.ironSights) {
-            // Force display block first to ensure visibility
-            this.ironSights.style.display = 'block';
-            
-            // Set opacity with a slight delay to ensure transition works
-            setTimeout(() => {
-                this.ironSights.style.opacity = isAiming ? '1' : '0';
+            if (isAiming) {
+                // Show iron sights immediately when aiming
+                this.ironSights.style.display = 'block';
+                this.ironSights.style.opacity = '1';
+                this.ironSights.style.zIndex = '99999';
                 
-                // Only hide after transition completes if not aiming
-                if (!isAiming) {
-                    setTimeout(() => {
-                        this.ironSights.style.display = 'none';
-                    }, 200);
-                }
-            }, 10);
-            
-            this.ironSights.style.zIndex = isAiming ? '99999' : '0';
+                // Force browser to recognize the change
+                void this.ironSights.offsetWidth;
+                
+                console.log('SHOWING IRON SIGHTS:', {
+                    display: this.ironSights.style.display,
+                    opacity: this.ironSights.style.opacity,
+                    zIndex: this.ironSights.style.zIndex
+                });
+            } else {
+                // Hide iron sights when not aiming
+                this.ironSights.style.opacity = '0';
+                setTimeout(() => {
+                    this.ironSights.style.display = 'none';
+                }, 200);
+                
+                console.log('HIDING IRON SIGHTS');
+            }
+        } else {
+            console.error('Iron sights element not available for toggle!');
         }
         
-        // Toggle crosshair with fade
+        // Toggle crosshair
         if (this.crosshair) {
-            this.crosshair.style.opacity = isAiming ? '0' : '1';
-            setTimeout(() => {
-                this.crosshair.style.display = isAiming ? 'none' : 'block';
-            }, isAiming ? 200 : 0);
+            if (isAiming) {
+                this.crosshair.style.opacity = '0';
+                setTimeout(() => {
+                    this.crosshair.style.display = 'none';
+                }, 200);
+            } else {
+                this.crosshair.style.display = 'block';
+                setTimeout(() => {
+                    this.crosshair.style.opacity = '1';
+                }, 10);
+            }
         }
         
-        // Toggle scope overlay with fade
+        // Toggle scope overlay
         if (this.scopeOverlay) {
-            this.scopeOverlay.style.display = 'block';
-            this.scopeOverlay.style.opacity = isAiming ? '1' : '0';
-            if (!isAiming) {
+            if (isAiming) {
+                this.scopeOverlay.style.display = 'block';
+                setTimeout(() => {
+                    this.scopeOverlay.style.opacity = '1';
+                }, 10);
+            } else {
+                this.scopeOverlay.style.opacity = '0';
                 setTimeout(() => {
                     this.scopeOverlay.style.display = 'none';
                 }, 200);
             }
         }
         
-        // Add/remove aiming class to body for additional styling
-        document.body.classList.toggle('aiming', isAiming);
-        
-        // Log state for debugging
-        console.log('Toggling scope:', {
-            isAiming,
-            ironSights: {
-                display: this.ironSights?.style.display,
-                opacity: this.ironSights?.style.opacity,
-                zIndex: this.ironSights?.style.zIndex
-            },
-            crosshair: this.crosshair?.style.display,
-            scopeOverlay: this.scopeOverlay?.style.display
-        });
+        // Add/remove aiming class to body
+        if (isAiming) {
+            document.body.classList.add('aiming');
+        } else {
+            document.body.classList.remove('aiming');
+        }
     }
     
     updateAmmo(current, max) {

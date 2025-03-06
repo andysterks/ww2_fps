@@ -436,10 +436,20 @@ export class WeaponSystem {
     
     toggleAim() {
         this.isAiming = !this.isAiming;
+        console.log('WEAPON SYSTEM - toggleAim called, isAiming:', this.isAiming);
         
-        // Update UI first
+        // Update UI first with explicit reference
         if (this.game && this.game.ui) {
+            console.log('Calling UI toggleScope with:', this.isAiming);
             this.game.ui.toggleScope(this.isAiming);
+        } else {
+            console.error('Game UI not available!', {
+                game: !!this.game,
+                ui: !!this.game?.ui
+            });
+            
+            // Direct DOM manipulation as fallback
+            this.directlyToggleIronSights(this.isAiming);
         }
         
         // Adjust weapon position for aiming
@@ -503,13 +513,69 @@ export class WeaponSystem {
                 this.fovAnimationId = requestAnimationFrame(animateFOV);
             }
         }
+    }
+    
+    // Direct DOM manipulation fallback
+    directlyToggleIronSights(isAiming) {
+        console.log('Using direct DOM manipulation fallback for iron sights');
         
-        // Log for debugging
-        console.log('Weapon aim toggled:', {
-            isAiming: this.isAiming,
-            weaponModel: !!this.currentWeapon,
-            ui: !!this.game?.ui
-        });
+        // Get elements directly
+        const ironSights = document.getElementById('iron-sights');
+        const crosshair = document.getElementById('crosshair');
+        const scopeOverlay = document.getElementById('scope-overlay');
+        
+        if (ironSights) {
+            if (isAiming) {
+                ironSights.style.display = 'block';
+                ironSights.style.opacity = '1';
+                ironSights.style.zIndex = '99999';
+                console.log('Directly showing iron sights');
+            } else {
+                ironSights.style.opacity = '0';
+                setTimeout(() => {
+                    ironSights.style.display = 'none';
+                }, 200);
+            }
+        } else {
+            console.error('Iron sights element not found for direct manipulation!');
+        }
+        
+        // Toggle crosshair
+        if (crosshair) {
+            if (isAiming) {
+                crosshair.style.opacity = '0';
+                setTimeout(() => {
+                    crosshair.style.display = 'none';
+                }, 200);
+            } else {
+                crosshair.style.display = 'block';
+                setTimeout(() => {
+                    crosshair.style.opacity = '1';
+                }, 10);
+            }
+        }
+        
+        // Toggle scope overlay
+        if (scopeOverlay) {
+            if (isAiming) {
+                scopeOverlay.style.display = 'block';
+                setTimeout(() => {
+                    scopeOverlay.style.opacity = '1';
+                }, 10);
+            } else {
+                scopeOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    scopeOverlay.style.display = 'none';
+                }, 200);
+            }
+        }
+        
+        // Add/remove aiming class to body
+        if (isAiming) {
+            document.body.classList.add('aiming');
+        } else {
+            document.body.classList.remove('aiming');
+        }
     }
     
     onWindowResize() {

@@ -144,6 +144,9 @@ class Game {
             // Set up event listeners
             this.setupEventListeners();
             console.log('Event listeners set up');
+            
+            // Ensure iron sights are properly initialized
+            this.initializeIronSights();
 
             // Start game loop
             this.animate();
@@ -274,6 +277,33 @@ class Game {
         // Update renderer and composer
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.composer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // Ensure iron sights are properly initialized
+    initializeIronSights() {
+        const ironSights = document.getElementById('iron-sights');
+        const frontPost = document.getElementById('front-post');
+        const rearSight = document.getElementById('rear-sight');
+        
+        console.log('Directly initializing iron sights:', {
+            ironSights: !!ironSights,
+            frontPost: !!frontPost,
+            rearSight: !!rearSight
+        });
+        
+        if (ironSights) {
+            // Ensure proper initial state
+            ironSights.style.display = 'none';
+            ironSights.style.opacity = '0';
+            ironSights.style.zIndex = '99999';
+            
+            // Force browser to recognize the element
+            void ironSights.offsetWidth;
+            
+            console.log('Iron sights initialized directly in Game class');
+        } else {
+            console.error('Iron sights element not found in Game initialization!');
+        }
     }
 }
 

@@ -120,6 +120,7 @@
             opacity: 1;
             mix-blend-mode: normal;
             transition: all 0.2s ease-in-out;
+            background-color: transparent;
         }
 
         #front-post {
@@ -127,12 +128,12 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 2px;
-            height: 16px;
+            width: 3px;
+            height: 20px;
             background: #ffffff;
             box-shadow: 
-                0 0 2px rgba(255, 255, 255, 0.8),
-                0 0 4px rgba(255, 255, 255, 0.6);
+                0 0 3px rgba(255, 255, 255, 1.0),
+                0 0 5px rgba(255, 255, 255, 0.8);
         }
 
         #rear-sight {
@@ -140,13 +141,13 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 24px;
-            height: 24px;
-            border: 2px solid #ffffff;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #ffffff;
             border-radius: 50%;
             box-shadow: 
-                0 0 2px rgba(255, 255, 255, 0.8),
-                0 0 4px rgba(255, 255, 255, 0.6);
+                0 0 3px rgba(255, 255, 255, 1.0),
+                0 0 5px rgba(255, 255, 255, 0.8);
         }
 
         #rear-sight::before,
@@ -155,23 +156,23 @@
             position: absolute;
             background: #ffffff;
             box-shadow: 
-                0 0 2px rgba(255, 255, 255, 0.8),
-                0 0 4px rgba(255, 255, 255, 0.6);
+                0 0 3px rgba(255, 255, 255, 1.0),
+                0 0 5px rgba(255, 255, 255, 0.8);
         }
 
         #rear-sight::before {
             top: 50%;
-            left: -8px;
-            width: 40px;
-            height: 2px;
+            left: -10px;
+            width: 50px;
+            height: 3px;
             transform: translateY(-50%);
         }
 
         #rear-sight::after {
-            top: -8px;
+            top: -10px;
             left: 50%;
-            width: 2px;
-            height: 40px;
+            width: 3px;
+            height: 50px;
             transform: translateX(-50%);
         }
 
