@@ -71,9 +71,28 @@ export class PlayerController {
     }
     
     setupEventListeners() {
+        // Add debug logging for pointer lock state
+        console.log('Setting up player controller event listeners');
+        
+        // Debug function to log movement state
+        const logMovementState = () => {
+            console.log('Movement state:', {
+                forward: this.moveForward,
+                backward: this.moveBackward,
+                left: this.moveLeft,
+                right: this.moveRight,
+                sprint: this.isSprinting,
+                crouch: this.isCrouching,
+                jump: this.isJumping,
+                isLocked: this.controls.isLocked
+            });
+        };
+        
         document.addEventListener('keydown', (event) => {
-            if (!this.controls.isLocked) return;
+            // Debug log for all key presses
+            console.log('PlayerController keydown:', event.code, 'isLocked:', this.controls.isLocked);
             
+            // Process movement keys even if not locked (will be checked in update)
             switch (event.code) {
                 case 'KeyW':
                     this.moveForward = true;
@@ -93,10 +112,16 @@ export class PlayerController {
                 case 'Space':
                     if (!event.repeat) this.jump();
                     break;
+                case 'KeyP': // Debug key to log movement state
+                    logMovementState();
+                    break;
             }
         });
 
         document.addEventListener('keyup', (event) => {
+            // Debug log for all key releases
+            console.log('PlayerController keyup:', event.code);
+            
             switch (event.code) {
                 case 'KeyW':
                     this.moveForward = false;
@@ -115,10 +140,42 @@ export class PlayerController {
                     break;
             }
         });
+        
+        // Monitor pointer lock changes
+        document.addEventListener('pointerlockchange', () => {
+            const isLocked = document.pointerLockElement === document.getElementById('game-container');
+            console.log('Pointer lock changed:', isLocked);
+            
+            // If we just got locked, make sure movement state is reset
+            if (isLocked) {
+                this.moveForward = false;
+                this.moveBackward = false;
+                this.moveLeft = false;
+                this.moveRight = false;
+                this.isSprinting = false;
+            }
+        });
     }
     
     update(deltaTime) {
-        if (!this.controls.isLocked) return;
+        // Check if controls are locked - if not, don't process movement
+        if (!this.controls.isLocked) {
+            // Debug log when not locked
+            if (this.moveForward || this.moveBackward || this.moveLeft || this.moveRight) {
+                console.log('Movement keys pressed but controls not locked');
+            }
+            return;
+        }
+
+        // Debug log for movement state when keys are pressed
+        if (this.moveForward || this.moveBackward || this.moveLeft || this.moveRight) {
+            console.log('Processing movement:', {
+                forward: this.moveForward,
+                backward: this.moveBackward,
+                left: this.moveLeft,
+                right: this.moveRight
+            });
+        }
 
         // Calculate movement speed
         let currentSpeed = this.moveSpeed;
@@ -160,7 +217,10 @@ export class PlayerController {
         }
 
         // Move the camera holder
-        this.cameraHolder.position.addScaledVector(this.velocity, deltaTime);
+        if (this.velocity.length() > 0) {
+            console.log('Applying velocity:', this.velocity);
+            this.cameraHolder.position.addScaledVector(this.velocity, deltaTime);
+        }
 
         // Ensure minimum height
         const minHeight = this.isCrouching ? 1.0 : 2.0;
@@ -172,8 +232,10 @@ export class PlayerController {
         // Handle collisions
         this.handleCollisions();
 
-        // Update camera effects
-        this.updateCameraEffects(deltaTime);
+        // Update camera effects if moving
+        if (this.isMoving()) {
+            this.updateCameraEffects(deltaTime);
+        }
     }
     
     updateCameraEffects(deltaTime) {
