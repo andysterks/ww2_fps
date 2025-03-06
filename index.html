@@ -168,10 +168,21 @@
     </div>
     
     <!-- Always visible iron sight for testing - press U to toggle -->
-    <div id="always-visible-sight" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999999; pointer-events: none; display: none;">
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 15px; height: 15px; background-color: lime; border-radius: 50%; box-shadow: 0 0 15px lime;"></div>
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; border: 3px solid lime; border-radius: 50%; box-shadow: 0 0 15px lime;"></div>
-        <div style="position: absolute; top: 25%; left: 50%; transform: translateX(-50%); color: lime; font-size: 20px; font-weight: bold; text-shadow: 0 0 5px black;">ALWAYS VISIBLE SIGHT (PRESS U TO TOGGLE)</div>
+    <div id="always-visible-sight" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999999; pointer-events: none; display: none; background-color: rgba(0,0,0,0.15);">
+        <!-- Front post (vertical line) -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 3px; height: 20px; background-color: #ffffff; box-shadow: 0 0 5px #ffffff, 0 0 10px #ffffff; border-radius: 1px;"></div>
+        
+        <!-- Rear sight (circle) -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 0 5px #ffffff, 0 0 10px #ffffff;"></div>
+        
+        <!-- Horizontal line -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 3px; background-color: #ffffff; box-shadow: 0 0 5px #ffffff, 0 0 10px #ffffff; border-radius: 1px;"></div>
+        
+        <!-- Vertical line -->
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 3px; height: 60px; background-color: #ffffff; box-shadow: 0 0 5px #ffffff, 0 0 10px #ffffff; border-radius: 1px;"></div>
+        
+        <!-- Text label -->
+        <div style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); color: #ffffff; font-size: 16px; font-weight: bold; text-shadow: 0 0 5px #000000;">IRON SIGHTS ACTIVE (PRESS F TO TOGGLE)</div>
     </div>
     
     <script type="module" src="/src/index.js"></script>
@@ -182,8 +193,17 @@
             if (event.code === 'KeyU') {
                 const alwaysVisibleSight = document.getElementById('always-visible-sight');
                 if (alwaysVisibleSight) {
-                    alwaysVisibleSight.style.display = alwaysVisibleSight.style.display === 'none' ? 'block' : 'none';
-                    console.log('Always visible sight toggled:', alwaysVisibleSight.style.display);
+                    // Toggle the display
+                    const isVisible = alwaysVisibleSight.style.display === 'block';
+                    alwaysVisibleSight.style.display = isVisible ? 'none' : 'block';
+                    
+                    // Toggle the crosshair
+                    const crosshair = document.getElementById('crosshair');
+                    if (crosshair) {
+                        crosshair.style.display = isVisible ? 'block' : 'none';
+                    }
+                    
+                    console.log('Always visible sight toggled with U key:', alwaysVisibleSight.style.display);
                 }
             }
         });

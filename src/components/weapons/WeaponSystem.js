@@ -438,67 +438,19 @@ export class WeaponSystem {
         this.isAiming = !this.isAiming;
         console.log('WEAPON SYSTEM - toggleAim called, isAiming:', this.isAiming);
         
-        // Create standalone iron sights that don't rely on existing elements
-        this.createStandaloneIronSights(this.isAiming);
-        
-        // Toggle the permanent iron sight in the HTML
-        const permanentIronSight = document.getElementById('permanent-iron-sight');
-        if (permanentIronSight) {
-            permanentIronSight.style.display = this.isAiming ? 'block' : 'none';
-            console.log('Permanent iron sight toggled:', this.isAiming);
+        // Use the same approach as the working U key implementation
+        const alwaysVisibleSight = document.getElementById('always-visible-sight');
+        if (alwaysVisibleSight) {
+            alwaysVisibleSight.style.display = this.isAiming ? 'block' : 'none';
+            console.log('Always visible sight toggled via F key:', alwaysVisibleSight.style.display);
         } else {
-            console.error('Permanent iron sight element not found in DOM');
+            console.error('Always visible sight element not found');
         }
         
-        // Direct DOM manipulation for iron sights (fallback approach)
-        if (this.isAiming) {
-            // Create a simple red dot sight directly in the DOM
-            const simpleSight = document.createElement('div');
-            simpleSight.id = 'simple-iron-sight';
-            
-            // Style it to be unmissable
-            Object.assign(simpleSight.style, {
-                position: 'fixed',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '20px',
-                height: '20px',
-                backgroundColor: 'red',
-                borderRadius: '50%',
-                zIndex: '999999',
-                pointerEvents: 'none',
-                boxShadow: '0 0 10px red'
-            });
-            
-            // Remove any existing simple sight
-            const existingSimpleSight = document.getElementById('simple-iron-sight');
-            if (existingSimpleSight) {
-                existingSimpleSight.remove();
-            }
-            
-            // Add to document body
-            document.body.appendChild(simpleSight);
-            console.log('Simple iron sight added to DOM');
-            
-            // Hide crosshair
-            const crosshair = document.getElementById('crosshair');
-            if (crosshair) {
-                crosshair.style.display = 'none';
-            }
-        } else {
-            // Remove simple sight when not aiming
-            const simpleSight = document.getElementById('simple-iron-sight');
-            if (simpleSight) {
-                simpleSight.remove();
-                console.log('Simple iron sight removed from DOM');
-            }
-            
-            // Show crosshair
-            const crosshair = document.getElementById('crosshair');
-            if (crosshair) {
-                crosshair.style.display = 'block';
-            }
+        // Toggle crosshair visibility
+        const crosshair = document.getElementById('crosshair');
+        if (crosshair) {
+            crosshair.style.display = this.isAiming ? 'none' : 'block';
         }
         
         // Adjust weapon position for aiming
@@ -562,75 +514,6 @@ export class WeaponSystem {
                 this.fovAnimationId = requestAnimationFrame(animateFOV);
             }
         }
-    }
-    
-    // Completely standalone iron sights implementation
-    createStandaloneIronSights(isAiming) {
-        console.log('Creating standalone iron sights, isAiming:', isAiming);
-        
-        // Remove any existing standalone iron sights
-        const existingIronSights = document.getElementById('standalone-iron-sights');
-        if (existingIronSights) {
-            existingIronSights.remove();
-        }
-        
-        // Toggle crosshair visibility
-        const crosshair = document.getElementById('crosshair');
-        if (crosshair) {
-            crosshair.style.display = isAiming ? 'none' : 'block';
-        }
-        
-        // If not aiming, we're done
-        if (!isAiming) {
-            console.log('Not aiming, iron sights hidden');
-            return;
-        }
-        
-        // Create a completely new iron sights element with inline styles
-        const ironSights = document.createElement('div');
-        ironSights.id = 'standalone-iron-sights';
-        ironSights.innerHTML = `
-            <div style="position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 10px !important; height: 10px !important; background-color: red !important; border-radius: 50% !important; box-shadow: 0 0 10px red !important;"></div>
-            <div style="position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 40px !important; height: 40px !important; border: 3px solid red !important; border-radius: 50% !important; box-shadow: 0 0 10px red !important;"></div>
-            <div style="position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 100px !important; height: 3px !important; background-color: red !important; box-shadow: 0 0 10px red !important;"></div>
-            <div style="position: absolute !important; top: 50% !important; left: 50% !important; transform: translate(-50%, -50%) !important; width: 3px !important; height: 100px !important; background-color: red !important; box-shadow: 0 0 10px red !important;"></div>
-            <div style="position: absolute !important; top: 20px !important; left: 50% !important; transform: translateX(-50%) !important; color: red !important; font-size: 20px !important; font-weight: bold !important; text-shadow: 0 0 5px black !important;">IRON SIGHTS ACTIVE</div>
-        `;
-        
-        // Apply styles directly to make it unmissable
-        Object.assign(ironSights.style, {
-            position: 'fixed !important',
-            top: '0 !important',
-            left: '0 !important',
-            width: '100% !important',
-            height: '100% !important',
-            zIndex: '999999 !important',
-            pointerEvents: 'none !important',
-            backgroundColor: 'rgba(0,0,0,0.2) !important'
-        });
-        
-        // Add to document body directly
-        document.body.appendChild(ironSights);
-        
-        // Force the element to be visible
-        setTimeout(() => {
-            const addedElement = document.getElementById('standalone-iron-sights');
-            if (addedElement) {
-                addedElement.style.cssText = `
-                    position: fixed !important;
-                    top: 0 !important;
-                    left: 0 !important;
-                    width: 100% !important;
-                    height: 100% !important;
-                    z-index: 999999 !important;
-                    pointer-events: none !important;
-                    background-color: rgba(0,0,0,0.2) !important;
-                    display: block !important;
-                `;
-            }
-        }, 100);
-        
-        console.log('Standalone iron sights created and added to DOM:', ironSights);
     }
     
     onWindowResize() {

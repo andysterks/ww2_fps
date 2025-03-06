@@ -220,7 +220,19 @@ class Game {
                 switch (event.code) {
                     case 'KeyF':
                         console.log('F key pressed - toggling aim');
+                        // Log the DOM structure before toggling aim
+                        console.log('DOM before toggleAim:');
+                        console.log('- always-visible-sight:', document.getElementById('always-visible-sight'));
+                        console.log('- always-visible-sight display:', document.getElementById('always-visible-sight')?.style.display);
+                        
                         this.weaponSystem.toggleAim();
+                        
+                        // Log the DOM structure after toggling aim
+                        setTimeout(() => {
+                            console.log('DOM after toggleAim:');
+                            console.log('- always-visible-sight:', document.getElementById('always-visible-sight'));
+                            console.log('- always-visible-sight display:', document.getElementById('always-visible-sight')?.style.display);
+                        }, 100);
                         break;
                     case 'KeyR':
                         this.weaponSystem.reload();
