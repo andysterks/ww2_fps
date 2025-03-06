@@ -1,0 +1,173 @@
+/* Reset default browser styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Set up full-screen canvas */
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Prevent scrollbars */
+    font-family: 'Arial', sans-serif;
+    background-color: #000;
+}
+
+/* Game container styles */
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Loading screen styles */
+#loading-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #1a1a1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+
+.loading-content {
+    text-align: center;
+    color: #fff;
+}
+
+.loading-content h1 {
+    font-size: 3rem;
+    margin-bottom: 2rem;
+    color: #d4af37; /* Gold color for WW2 theme */
+    text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+}
+
+.progress-bar {
+    width: 300px;
+    height: 20px;
+    background-color: #333;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 0 auto 1rem;
+}
+
+.progress-value {
+    height: 100%;
+    width: 0%;
+    background-color: #d4af37;
+    transition: width 0.3s ease;
+}
+
+/* HUD styles */
+#hud {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allow clicks to pass through to the game */
+}
+
+#hud.hidden {
+    display: none;
+}
+
+#health-bar {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    width: 200px;
+    height: 15px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 2px solid #555;
+    border-radius: 5px;
+}
+
+#health-value {
+    height: 100%;
+    width: 100%;
+    background-color: #ff3333;
+    border-radius: 3px;
+}
+
+#ammo-counter {
+    position: absolute;
+    bottom: 30px;
+    right: 30px;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.8);
+}
+
+#weapon-indicator {
+    position: absolute;
+    bottom: 60px;
+    right: 30px;
+    color: white;
+    font-size: 1rem;
+    text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.8);
+}
+
+#crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 2rem;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+}
+
+/* Game over screen */
+#game-over {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+}
+
+#game-over.hidden {
+    display: none;
+}
+
+.game-over-content {
+    text-align: center;
+    color: #fff;
+    padding: 2rem;
+    background-color: rgba(50, 50, 50, 0.8);
+    border-radius: 10px;
+    border: 2px solid #d4af37;
+}
+
+.game-over-content h2 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    color: #d4af37;
+}
+
+#restart-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 1.2rem;
+    background-color: #d4af37;
+    color: #333;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    pointer-events: auto; /* Make button clickable */
+}
+
+#restart-button:hover {
+    background-color: #f5d76e;
+    transform: scale(1.05);
+} 

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WW2 FPS Game</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <!-- Game canvas container -->
+    <div id="game-container">
+        <!-- Loading screen that will be hidden when game loads -->
+        <div id="loading-screen">
+            <div class="loading-content">
+                <h1>WW2 FPS</h1>
+                <div class="progress-bar">
+                    <div class="progress-value"></div>
+                </div>
+                <p id="loading-status">Loading assets...</p>
+            </div>
+        </div>
+        
+        <!-- HUD elements -->
+        <div id="hud" class="hidden">
+            <div id="health-bar">
+                <div id="health-value"></div>
+            </div>
+            <div id="ammo-counter">30/120</div>
+            <div id="weapon-indicator">M1 Garand</div>
+            <div id="crosshair">+</div>
+        </div>
+        
+        <!-- Game over screen -->
+        <div id="game-over" class="hidden">
+            <div class="game-over-content">
+                <h2>Mission Failed</h2>
+                <button id="restart-button">Restart Mission</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Three.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <!-- Cannon.js for physics -->
+    <script src="https://cdn.jsdelivr.net/npm/cannon@0.6.2/build/cannon.min.js"></script>
+    <!-- Game scripts -->
+    <script src="js/utils/AssetLoader.js"></script>
+    <script src="js/utils/InputHandler.js"></script>
+    <script src="js/world/World.js"></script>
+    <script src="js/entities/Player.js"></script>
+    <script src="js/entities/Enemy.js"></script>
+    <script src="js/weapons/Weapon.js"></script>
+    <script src="js/Game.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html> 
