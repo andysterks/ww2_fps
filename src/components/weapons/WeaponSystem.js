@@ -436,7 +436,7 @@ export class WeaponSystem {
     toggleAim() {
         this.isAiming = !this.isAiming;
         
-        // Update UI
+        // Update UI first
         if (this.game && this.game.ui) {
             this.game.ui.toggleScope(this.isAiming);
         }
@@ -460,6 +460,13 @@ export class WeaponSystem {
                 progress: 0,
                 duration: 0.2 // seconds
             };
+            
+            // Update camera FOV
+            if (this.camera) {
+                const targetFOV = this.isAiming ? this.aimingFOV : this.defaultFOV;
+                this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFOV, 0.1);
+                this.camera.updateProjectionMatrix();
+            }
         }
         
         // Log for debugging

@@ -64,6 +64,7 @@ class GameUI {
         // Toggle iron sights
         if (this.ironSights) {
             this.ironSights.style.display = isAiming ? 'block' : 'none';
+            this.ironSights.style.opacity = isAiming ? '1' : '0';
         }
         
         // Toggle crosshair
