@@ -114,11 +114,11 @@
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 99999;
-            width: 200px;
-            height: 200px;
+            width: 100px;
+            height: 100px;
             display: none;
             opacity: 1;
-            mix-blend-mode: screen;
+            mix-blend-mode: normal;
         }
 
         #front-post {
@@ -127,11 +127,11 @@
             left: 50%;
             transform: translate(-50%, -50%);
             width: 2px;
-            height: 20px;
-            background: #ff0000;
+            height: 16px;
+            background: #ffffff;
             box-shadow: 
-                0 0 10px #ff0000,
-                0 0 20px #ff0000;
+                0 0 2px rgba(255, 255, 255, 0.8),
+                0 0 4px rgba(255, 255, 255, 0.6);
         }
 
         #rear-sight {
@@ -139,38 +139,38 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
-            border: 2px solid #ff0000;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #ffffff;
             border-radius: 50%;
             box-shadow: 
-                0 0 10px #ff0000,
-                0 0 20px #ff0000;
+                0 0 2px rgba(255, 255, 255, 0.8),
+                0 0 4px rgba(255, 255, 255, 0.6);
         }
 
         #rear-sight::before,
         #rear-sight::after {
             content: '';
             position: absolute;
-            background: #ff0000;
+            background: #ffffff;
             box-shadow: 
-                0 0 10px #ff0000,
-                0 0 20px #ff0000;
+                0 0 2px rgba(255, 255, 255, 0.8),
+                0 0 4px rgba(255, 255, 255, 0.6);
         }
 
         #rear-sight::before {
             top: 50%;
-            left: -10px;
-            width: 60px;
+            left: -8px;
+            width: 40px;
             height: 2px;
             transform: translateY(-50%);
         }
 
         #rear-sight::after {
-            top: -10px;
+            top: -8px;
             left: 50%;
             width: 2px;
-            height: 60px;
+            height: 40px;
             transform: translateX(-50%);
         }
 
@@ -204,14 +204,13 @@
         <p>Press F to aim | R to reload | Click to shoot</p>
         <p>WASD to move | SHIFT to sprint | SPACE to jump</p>
     </div>
-    <!-- Iron sights moved outside HUD -->
-    <div id="iron-sights">
-        <div id="front-post"></div>
-        <div id="rear-sight"></div>
-    </div>
     <div id="hud">
         <div id="crosshair">+</div>
         <div id="scope-overlay"></div>
+        <div id="iron-sights">
+            <div id="front-post"></div>
+            <div id="rear-sight"></div>
+        </div>
         <div id="ammo">8/8</div>
         <div id="health">100</div>
     </div>

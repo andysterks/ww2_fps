@@ -33,15 +33,15 @@ class GameUI {
             crosshair: !!this.crosshair
         });
 
-        // Ensure iron sights are visible
+        // Initialize iron sights state
         if (this.ironSights) {
+            this.ironSights.style.display = 'none';
             this.ironSights.style.opacity = '1';
-            this.ironSights.style.display = 'block';
         }
 
-        // Hide crosshair initially since we're showing iron sights
+        // Show crosshair by default
         if (this.crosshair) {
-            this.crosshair.style.display = 'none';
+            this.crosshair.style.display = 'block';
         }
     }
     
@@ -61,14 +61,19 @@ class GameUI {
     toggleScope(isAiming) {
         this.isAiming = isAiming;
         
-        // Toggle scope overlay and iron sights
-        if (this.scopeOverlay) {
-            this.scopeOverlay.style.display = isAiming ? 'block' : 'none';
-        }
-        
         // Toggle iron sights
         if (this.ironSights) {
             this.ironSights.style.display = isAiming ? 'block' : 'none';
+        }
+        
+        // Toggle crosshair
+        if (this.crosshair) {
+            this.crosshair.style.display = isAiming ? 'none' : 'block';
+        }
+        
+        // Toggle scope overlay
+        if (this.scopeOverlay) {
+            this.scopeOverlay.style.display = isAiming ? 'block' : 'none';
         }
         
         // Add/remove aiming class to body for additional styling
@@ -77,9 +82,9 @@ class GameUI {
         // Log state for debugging
         console.log('Toggling scope:', {
             isAiming,
-            scopeOverlay: this.scopeOverlay?.style.display,
             ironSights: this.ironSights?.style.display,
-            crosshair: 'hidden'
+            crosshair: this.crosshair?.style.display,
+            scopeOverlay: this.scopeOverlay?.style.display
         });
     }
     
