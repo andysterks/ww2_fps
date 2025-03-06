@@ -21,6 +21,7 @@ export class WeaponSystem {
         this.isShooting = false;
         this.canShoot = true;
         this.reloading = false;
+        this.fovAnimationId = null; // Track FOV animation
         
         // Weapon properties
         this.defaultFOV = 75;
@@ -461,25 +462,45 @@ export class WeaponSystem {
                 duration: 0.3 // Slightly longer duration for smoother transition
             };
             
-            // Update camera FOV with smoother transition
+            // Update camera FOV with fixed transition
             if (this.camera) {
-                const targetFOV = this.isAiming ? this.aimingFOV : this.defaultFOV;
-                const currentFOV = this.camera.fov;
-                const fovDiff = targetFOV - currentFOV;
+                // Cancel any existing FOV animation
+                if (this.fovAnimationId) {
+                    cancelAnimationFrame(this.fovAnimationId);
+                    this.fovAnimationId = null;
+                }
                 
-                // Animate FOV change
-                const animateFOV = () => {
-                    if (Math.abs(this.camera.fov - targetFOV) > 0.1) {
-                        this.camera.fov += fovDiff * 0.1;
+                const targetFOV = this.isAiming ? this.aimingFOV : this.defaultFOV;
+                const startFOV = this.camera.fov;
+                const fovDiff = targetFOV - startFOV;
+                const animationDuration = 300; // ms
+                const startTime = performance.now();
+                
+                // Fixed duration animation
+                const animateFOV = (currentTime) => {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / animationDuration, 1.0);
+                    
+                    if (progress < 1.0) {
+                        // Use easing function for smoother transition
+                        const easedProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease out
+                        this.camera.fov = startFOV + fovDiff * easedProgress;
                         this.camera.updateProjectionMatrix();
-                        requestAnimationFrame(animateFOV);
+                        this.fovAnimationId = requestAnimationFrame(animateFOV);
                     } else {
+                        // Ensure we end exactly at the target value
                         this.camera.fov = targetFOV;
                         this.camera.updateProjectionMatrix();
+                        this.fovAnimationId = null;
+                        
+                        console.log('FOV animation completed:', {
+                            finalFOV: this.camera.fov,
+                            targetFOV: targetFOV
+                        });
                     }
                 };
                 
-                animateFOV();
+                this.fovAnimationId = requestAnimationFrame(animateFOV);
             }
         }
         
