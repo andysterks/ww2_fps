@@ -23,13 +23,23 @@ export class WeaponSystem {
         this.reloading = false;
         
         // Weapon properties
-        this.defaultFOV = 60;
-        this.aimingFOV = 40;
-        this.shootingCooldown = 100; // milliseconds between shots
-        this.reloadTime = 2000; // milliseconds
+        this.defaultFOV = 75;
+        this.aimingFOV = 35; // Tighter FOV when aiming down sights
+        this.shootingCooldown = 100;
+        this.reloadTime = 2000;
         this.lastShotTime = 0;
-        this.ammoCount = 8; // M1 Garand clip size
-        this.maxAmmo = 8;
+        this.ammoCount = 5; // Kar98k clip size
+        this.maxAmmo = 5;
+
+        // Weapon positions
+        this.defaultPosition = new THREE.Vector3(0.3, -0.3, -0.5);
+        this.aimingPosition = new THREE.Vector3(0, -0.265, -0.35); // Position when aiming down sights
+        this.defaultRotation = new THREE.Euler(0, Math.PI, 0);
+        this.aimingRotation = new THREE.Euler(0, Math.PI, 0);
+
+        // Aiming transition
+        this.aimTransitionSpeed = 8.0;
+        this.currentAimProgress = 0;
         
         // Weapon movement
         this.weaponBob = { x: 0, y: 0 };
@@ -335,14 +345,37 @@ export class WeaponSystem {
         // Update shell casings
         this.updateShellCasings(deltaTime);
         
-        // Apply all movement to weapon
+        // Update aiming transition
         if (this.currentWeapon) {
-            this.currentWeapon.position.x = 0.3 + this.weaponBob.x + this.recoil.x + this.sway.x;
-            this.currentWeapon.position.y = -0.3 + this.weaponBob.y + this.recoil.y + this.sway.y;
+            const targetProgress = this.isAiming ? 1 : 0;
+            this.currentAimProgress += (targetProgress - this.currentAimProgress) * this.aimTransitionSpeed * deltaTime;
             
-            // Smooth weapon rotation
-            this.currentWeapon.rotation.x = this.recoil.y * 2;
-            this.currentWeapon.rotation.z = -this.sway.x * 2;
+            // Interpolate position
+            const position = new THREE.Vector3();
+            position.lerpVectors(this.defaultPosition, this.aimingPosition, this.currentAimProgress);
+            
+            // Interpolate rotation
+            const rotation = new THREE.Euler();
+            rotation.x = THREE.MathUtils.lerp(this.defaultRotation.x, this.aimingRotation.x, this.currentAimProgress);
+            rotation.y = THREE.MathUtils.lerp(this.defaultRotation.y, this.aimingRotation.y, this.currentAimProgress);
+            rotation.z = THREE.MathUtils.lerp(this.defaultRotation.z, this.aimingRotation.z, this.currentAimProgress);
+            
+            // Apply position and rotation
+            this.currentWeapon.position.copy(position);
+            this.currentWeapon.position.add(new THREE.Vector3(
+                this.weaponBob.x + this.recoil.x + this.sway.x,
+                this.weaponBob.y + this.recoil.y + this.sway.y,
+                0
+            ));
+            this.currentWeapon.rotation.copy(rotation);
+            
+            // Add slight tilt based on sway when aiming
+            this.currentWeapon.rotation.z = -this.sway.x * (1 - this.currentAimProgress);
+            
+            // Update FOV
+            const targetFOV = this.isAiming ? this.aimingFOV : this.defaultFOV;
+            this.camera.fov += (targetFOV - this.camera.fov) * this.aimTransitionSpeed * deltaTime;
+            this.camera.updateProjectionMatrix();
         }
     }
     
@@ -400,22 +433,10 @@ export class WeaponSystem {
     toggleAim() {
         this.isAiming = !this.isAiming;
         
-        // Smoothly transition FOV
-        const targetFOV = this.isAiming ? this.aimingFOV : this.defaultFOV;
-        const currentFOV = this.weaponCamera.fov;
-        
-        const animateFOV = () => {
-            const diff = targetFOV - currentFOV;
-            if (Math.abs(diff) < 0.1) {
-                this.weaponCamera.fov = targetFOV;
-            } else {
-                this.weaponCamera.fov += diff * 0.1;
-                requestAnimationFrame(animateFOV);
-            }
-            this.weaponCamera.updateProjectionMatrix();
-        };
-        
-        animateFOV();
+        // Update UI scope overlay
+        if (this.game && this.game.ui) {
+            this.game.ui.toggleScope(this.isAiming);
+        }
         
         return this.isAiming;
     }

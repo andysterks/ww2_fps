@@ -93,6 +93,55 @@
             font-size: 24px;
             color: white;
         }
+
+        #scope-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, transparent 0.5%, rgba(0, 0, 0, 0.95) 2%);
+            display: none;
+            pointer-events: none;
+        }
+
+        #iron-sights {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            pointer-events: none;
+        }
+
+        #front-post {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 15px;
+            background: black;
+        }
+
+        #rear-sight {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #rear-sight::before,
+        #rear-sight::after {
+            content: '';
+            width: 1px;
+            height: 100%;
+            background: black;
+        }
     </style>
 </head>
 <body>
@@ -105,6 +154,12 @@
     </div>
     <div id="hud">
         <div id="crosshair">+</div>
+        <div id="scope-overlay" class="hidden">
+            <div id="iron-sights">
+                <div id="front-post"></div>
+                <div id="rear-sight"></div>
+            </div>
+        </div>
         <div id="ammo">8/8</div>
         <div id="health">100</div>
     </div>
