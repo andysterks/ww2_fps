@@ -215,10 +215,78 @@
                     
                     console.log('Always visible sight toggled with U key:', alwaysVisibleSight.style.display);
                 }
+                
+                // Prevent default behavior for the U key to avoid conflicts
+                event.preventDefault();
             }
             
             // DO NOT handle F key directly in HTML anymore - let the game handle it
             // This was causing conflicts with the game's movement controls
+        });
+    </script>
+    
+    <!-- Keyboard diagnostic script -->
+    <script>
+        // Create a diagnostic div to show key presses
+        const createDiagnosticDiv = () => {
+            const div = document.createElement('div');
+            div.id = 'key-diagnostic';
+            div.style.position = 'fixed';
+            div.style.bottom = '10px';
+            div.style.right = '10px';
+            div.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            div.style.color = 'white';
+            div.style.padding = '10px';
+            div.style.fontFamily = 'monospace';
+            div.style.zIndex = '10000';
+            div.style.pointerEvents = 'none';
+            div.innerHTML = '<h3>Key Diagnostic</h3><div id="key-log"></div>';
+            document.body.appendChild(div);
+            return div;
+        };
+        
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            const diagnosticDiv = createDiagnosticDiv();
+            const keyLog = document.getElementById('key-log');
+            
+            // Keep track of pressed keys
+            const pressedKeys = {
+                KeyW: false,
+                KeyA: false,
+                KeyS: false,
+                KeyD: false
+            };
+            
+            // Update the display
+            const updateKeyDisplay = () => {
+                keyLog.innerHTML = `
+                    <div>W: ${pressedKeys.KeyW ? '✅' : '❌'}</div>
+                    <div>A: ${pressedKeys.KeyA ? '✅' : '❌'}</div>
+                    <div>S: ${pressedKeys.KeyS ? '✅' : '❌'}</div>
+                    <div>D: ${pressedKeys.KeyD ? '✅' : '❌'}</div>
+                `;
+            };
+            
+            // Listen for key events
+            document.addEventListener('keydown', (event) => {
+                if (pressedKeys.hasOwnProperty(event.code)) {
+                    pressedKeys[event.code] = true;
+                    updateKeyDisplay();
+                    console.log(`Key pressed: ${event.code}`);
+                }
+            });
+            
+            document.addEventListener('keyup', (event) => {
+                if (pressedKeys.hasOwnProperty(event.code)) {
+                    pressedKeys[event.code] = false;
+                    updateKeyDisplay();
+                    console.log(`Key released: ${event.code}`);
+                }
+            });
+            
+            // Initial display
+            updateKeyDisplay();
         });
     </script>
 </body>
