@@ -24,7 +24,7 @@ export class WeaponSystem {
         
         // Weapon properties
         this.defaultFOV = 75;
-        this.aimingFOV = 35; // Tighter FOV when aiming down sights
+        this.aimingFOV = 45; // Adjusted FOV when aiming
         this.shootingCooldown = 100;
         this.reloadTime = 2000;
         this.lastShotTime = 0;
@@ -33,7 +33,7 @@ export class WeaponSystem {
 
         // Weapon positions
         this.defaultPosition = new THREE.Vector3(0.3, -0.3, -0.5);
-        this.aimingPosition = new THREE.Vector3(0, -0.265, -0.35); // Position when aiming down sights
+        this.aimingPosition = new THREE.Vector3(0, -0.25, -0.4); // Adjusted position when aiming
         this.defaultRotation = new THREE.Euler(0, Math.PI, 0);
         this.aimingRotation = new THREE.Euler(0, Math.PI, 0);
 
@@ -444,12 +444,12 @@ export class WeaponSystem {
         // Adjust weapon position for aiming
         if (this.currentWeapon) {
             const targetPosition = this.isAiming
-                ? new THREE.Vector3(0, -0.2, -0.3) // Aimed position
-                : new THREE.Vector3(0.3, -0.3, -0.5); // Hip position
+                ? this.aimingPosition.clone() // Use predefined aiming position
+                : this.defaultPosition.clone(); // Use predefined default position
             
             const targetRotation = this.isAiming
-                ? new THREE.Euler(0, Math.PI, 0) // Aimed rotation
-                : new THREE.Euler(0, Math.PI, 0); // Hip rotation
+                ? this.aimingRotation.clone()
+                : this.defaultRotation.clone();
             
             // Smoothly transition to new position
             this.aimTransition = {
@@ -458,14 +458,28 @@ export class WeaponSystem {
                 startRot: this.currentWeapon.rotation.clone(),
                 targetRot: targetRotation,
                 progress: 0,
-                duration: 0.2 // seconds
+                duration: 0.3 // Slightly longer duration for smoother transition
             };
             
-            // Update camera FOV
+            // Update camera FOV with smoother transition
             if (this.camera) {
                 const targetFOV = this.isAiming ? this.aimingFOV : this.defaultFOV;
-                this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, targetFOV, 0.1);
-                this.camera.updateProjectionMatrix();
+                const currentFOV = this.camera.fov;
+                const fovDiff = targetFOV - currentFOV;
+                
+                // Animate FOV change
+                const animateFOV = () => {
+                    if (Math.abs(this.camera.fov - targetFOV) > 0.1) {
+                        this.camera.fov += fovDiff * 0.1;
+                        this.camera.updateProjectionMatrix();
+                        requestAnimationFrame(animateFOV);
+                    } else {
+                        this.camera.fov = targetFOV;
+                        this.camera.updateProjectionMatrix();
+                    }
+                };
+                
+                animateFOV();
             }
         }
         
