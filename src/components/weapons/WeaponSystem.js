@@ -438,7 +438,7 @@ export class WeaponSystem {
         this.isAiming = !this.isAiming;
         console.log('WEAPON SYSTEM - toggleAim called, isAiming:', this.isAiming);
         
-        // Use the same approach as the working U key implementation
+        // Directly control the always-visible-sight element
         const alwaysVisibleSight = document.getElementById('always-visible-sight');
         if (alwaysVisibleSight) {
             alwaysVisibleSight.style.display = this.isAiming ? 'block' : 'none';
