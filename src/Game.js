@@ -173,9 +173,18 @@ class Game {
         const gameContainer = document.getElementById('game-container');
         const instructions = document.getElementById('instructions');
 
+        // Make sure the game container has proper styling for pointer lock
+        gameContainer.style.width = '100%';
+        gameContainer.style.height = '100%';
+        gameContainer.style.position = 'absolute';
+        gameContainer.style.top = '0';
+        gameContainer.style.left = '0';
+        gameContainer.style.zIndex = '1';
+
         // Handle click to start
         instructions.addEventListener('click', () => {
             if (!this.isRunning) {
+                console.log('Requesting pointer lock...');
                 gameContainer.requestPointerLock = gameContainer.requestPointerLock ||
                                                  gameContainer.mozRequestPointerLock ||
                                                  gameContainer.webkitRequestPointerLock;
@@ -193,9 +202,8 @@ class Game {
                 document.getElementById('crosshair').style.display = 'block';
                 console.log('Game started - pointer locked');
             } else {
-                this.isRunning = false;
                 instructions.style.display = 'flex';
-                document.getElementById('crosshair').style.display = 'none';
+                this.isRunning = false;
                 console.log('Game paused - pointer unlocked');
             }
         };
@@ -207,15 +215,15 @@ class Game {
         // Handle pointer lock error
         const onPointerLockError = () => {
             console.error('Pointer lock failed');
-            this.ui.showMessage('Failed to start game. Please try again.');
+            alert('Failed to start game. Please try again.');
         };
 
         document.addEventListener('pointerlockerror', onPointerLockError);
         document.addEventListener('mozpointerlockerror', onPointerLockError);
         document.addEventListener('webkitpointerlockerror', onPointerLockError);
 
-        // Handle keyboard controls for weapon
-        document.addEventListener('keydown', (event) => {
+        // Handle keyboard controls for weapon - use a separate event listener to avoid conflicts
+        const weaponKeyHandler = (event) => {
             if (this.isRunning) {
                 switch (event.code) {
                     case 'KeyF':
@@ -242,7 +250,10 @@ class Game {
                         break;
                 }
             }
-        });
+        };
+        
+        // Add the weapon key handler with a lower priority (useCapture = false)
+        document.addEventListener('keydown', weaponKeyHandler, false);
 
         // Handle mouse click for shooting
         document.addEventListener('click', () => {

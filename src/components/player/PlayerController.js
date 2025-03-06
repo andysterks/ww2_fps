@@ -36,6 +36,9 @@ export class PlayerController {
         const gameContainer = document.getElementById('game-container');
         this.controls = new PointerLockControls(this.cameraHolder, gameContainer);
         
+        // Log the controls to ensure they're properly initialized
+        console.log('PointerLockControls initialized:', this.controls);
+        
         // Set initial position
         this.cameraHolder.position.set(0, 2, 10);
         
