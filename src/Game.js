@@ -130,6 +130,7 @@ class Game {
             // Create weapon system
             this.weaponSystem = new WeaponSystem(this.camera, this.scene);
             await this.weaponSystem.init();
+            this.weaponSystem.game = this;
             console.log('Weapon system initialized');
 
             // Create UI

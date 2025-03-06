@@ -41,6 +41,8 @@ class GameUI {
     
     toggleScope(isAiming) {
         this.isAiming = isAiming;
+        
+        // Toggle scope overlay and crosshair
         this.scopeOverlay.style.display = isAiming ? 'block' : 'none';
         this.crosshair.style.display = isAiming ? 'none' : 'block';
         
@@ -49,6 +51,9 @@ class GameUI {
         if (ironSights) {
             ironSights.style.display = isAiming ? 'block' : 'none';
         }
+        
+        // Add/remove aiming class to body for additional styling
+        document.body.classList.toggle('aiming', isAiming);
     }
     
     updateAmmo(current, max) {

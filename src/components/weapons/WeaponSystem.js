@@ -54,6 +54,9 @@ export class WeaponSystem {
         this.shellEjectionSystem = null;
         this.impactEffects = null;
         
+        // Game reference
+        this.game = null;
+        
         // Initialize
         this.init();
     }
