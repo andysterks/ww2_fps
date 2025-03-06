@@ -438,7 +438,10 @@ export class WeaponSystem {
         this.isAiming = !this.isAiming;
         console.log('WEAPON SYSTEM - toggleAim called, isAiming:', this.isAiming);
         
-        // Update UI first with explicit reference
+        // Always use direct DOM manipulation for reliability
+        this.directlyToggleIronSights(this.isAiming);
+        
+        // Also update UI if available (as a backup)
         if (this.game && this.game.ui) {
             console.log('Calling UI toggleScope with:', this.isAiming);
             this.game.ui.toggleScope(this.isAiming);
@@ -447,9 +450,6 @@ export class WeaponSystem {
                 game: !!this.game,
                 ui: !!this.game?.ui
             });
-            
-            // Direct DOM manipulation as fallback
-            this.directlyToggleIronSights(this.isAiming);
         }
         
         // Adjust weapon position for aiming
@@ -520,16 +520,161 @@ export class WeaponSystem {
         console.log('Using direct DOM manipulation fallback for iron sights');
         
         // Get elements directly
-        const ironSights = document.getElementById('iron-sights');
-        const crosshair = document.getElementById('crosshair');
-        const scopeOverlay = document.getElementById('scope-overlay');
+        let ironSights = document.getElementById('iron-sights');
+        let crosshair = document.getElementById('crosshair');
+        let scopeOverlay = document.getElementById('scope-overlay');
         
+        // Create iron sights if they don't exist
+        if (!ironSights) {
+            console.log('Iron sights element not found, creating it');
+            
+            // Get the HUD container
+            const hudContainer = document.getElementById('hud');
+            if (!hudContainer) {
+                console.error('HUD container not found!');
+                return;
+            }
+            
+            // Create iron sights container
+            ironSights = document.createElement('div');
+            ironSights.id = 'iron-sights';
+            ironSights.style.position = 'fixed';
+            ironSights.style.top = '50%';
+            ironSights.style.left = '50%';
+            ironSights.style.transform = 'translate(-50%, -50%)';
+            ironSights.style.pointerEvents = 'none';
+            ironSights.style.zIndex = '99999';
+            ironSights.style.width = '100px';
+            ironSights.style.height = '100px';
+            ironSights.style.display = 'none';
+            ironSights.style.opacity = '0';
+            ironSights.style.mixBlendMode = 'normal';
+            ironSights.style.transition = 'all 0.2s ease-in-out';
+            ironSights.style.backgroundColor = 'transparent';
+            
+            // Create front post
+            const frontPost = document.createElement('div');
+            frontPost.id = 'front-post';
+            frontPost.style.position = 'absolute';
+            frontPost.style.top = '50%';
+            frontPost.style.left = '50%';
+            frontPost.style.transform = 'translate(-50%, -50%)';
+            frontPost.style.width = '3px';
+            frontPost.style.height = '20px';
+            frontPost.style.background = '#ffffff';
+            frontPost.style.boxShadow = '0 0 3px rgba(255, 255, 255, 1.0), 0 0 5px rgba(255, 255, 255, 0.8)';
+            
+            // Create rear sight
+            const rearSight = document.createElement('div');
+            rearSight.id = 'rear-sight';
+            rearSight.style.position = 'absolute';
+            rearSight.style.top = '50%';
+            rearSight.style.left = '50%';
+            rearSight.style.transform = 'translate(-50%, -50%)';
+            rearSight.style.width = '30px';
+            rearSight.style.height = '30px';
+            rearSight.style.border = '3px solid #ffffff';
+            rearSight.style.borderRadius = '50%';
+            rearSight.style.boxShadow = '0 0 3px rgba(255, 255, 255, 1.0), 0 0 5px rgba(255, 255, 255, 0.8)';
+            
+            // Add elements to DOM
+            ironSights.appendChild(frontPost);
+            ironSights.appendChild(rearSight);
+            hudContainer.appendChild(ironSights);
+            
+            // Create pseudo-elements for rear sight cross
+            const style = document.createElement('style');
+            style.textContent = `
+                #rear-sight::before, #rear-sight::after {
+                    content: '';
+                    position: absolute;
+                    background: #ffffff;
+                    box-shadow: 0 0 3px rgba(255, 255, 255, 1.0), 0 0 5px rgba(255, 255, 255, 0.8);
+                }
+                #rear-sight::before {
+                    top: 50%;
+                    left: -10px;
+                    width: 50px;
+                    height: 3px;
+                    transform: translateY(-50%);
+                }
+                #rear-sight::after {
+                    top: -10px;
+                    left: 50%;
+                    width: 3px;
+                    height: 50px;
+                    transform: translateX(-50%);
+                }
+            `;
+            document.head.appendChild(style);
+            
+            console.log('Created iron sights element:', ironSights);
+            
+            // Update UI reference if it exists
+            if (this.game && this.game.ui) {
+                this.game.ui.ironSights = ironSights;
+            }
+        }
+        
+        // Create crosshair if it doesn't exist
+        if (!crosshair) {
+            console.log('Crosshair element not found, creating it');
+            
+            const hudContainer = document.getElementById('hud');
+            if (hudContainer) {
+                crosshair = document.createElement('div');
+                crosshair.id = 'crosshair';
+                crosshair.style.position = 'absolute';
+                crosshair.style.top = '50%';
+                crosshair.style.left = '50%';
+                crosshair.style.transform = 'translate(-50%, -50%)';
+                crosshair.style.color = 'white';
+                crosshair.style.fontSize = '24px';
+                crosshair.style.pointerEvents = 'none';
+                crosshair.style.zIndex = '99';
+                crosshair.textContent = '+';
+                hudContainer.appendChild(crosshair);
+                
+                if (this.game && this.game.ui) {
+                    this.game.ui.crosshair = crosshair;
+                }
+            }
+        }
+        
+        // Create scope overlay if it doesn't exist
+        if (!scopeOverlay) {
+            console.log('Scope overlay element not found, creating it');
+            
+            const hudContainer = document.getElementById('hud');
+            if (hudContainer) {
+                scopeOverlay = document.createElement('div');
+                scopeOverlay.id = 'scope-overlay';
+                scopeOverlay.style.position = 'absolute';
+                scopeOverlay.style.top = '0';
+                scopeOverlay.style.left = '0';
+                scopeOverlay.style.width = '100%';
+                scopeOverlay.style.height = '100%';
+                scopeOverlay.style.background = 'radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.95) 45%)';
+                scopeOverlay.style.display = 'none';
+                scopeOverlay.style.pointerEvents = 'none';
+                scopeOverlay.style.zIndex = '10';
+                hudContainer.appendChild(scopeOverlay);
+                
+                if (this.game && this.game.ui) {
+                    this.game.ui.scopeOverlay = scopeOverlay;
+                }
+            }
+        }
+        
+        // Now toggle the iron sights
         if (ironSights) {
             if (isAiming) {
                 ironSights.style.display = 'block';
+                // Force reflow
+                void ironSights.offsetWidth;
                 ironSights.style.opacity = '1';
                 ironSights.style.zIndex = '99999';
-                console.log('Directly showing iron sights');
+                console.log('Directly showing iron sights:', ironSights);
             } else {
                 ironSights.style.opacity = '0';
                 setTimeout(() => {
@@ -537,7 +682,7 @@ export class WeaponSystem {
                 }, 200);
             }
         } else {
-            console.error('Iron sights element not found for direct manipulation!');
+            console.error('Iron sights element still not available after creation attempt!');
         }
         
         // Toggle crosshair
