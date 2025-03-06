@@ -26,6 +26,7 @@
             position: absolute;
             top: 0;
             left: 0;
+            z-index: 1;
         }
 
         #instructions {
@@ -75,7 +76,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            z-index: 98;
+            z-index: 9999;
         }
 
         #ammo {
@@ -107,17 +108,18 @@
         }
 
         #iron-sights {
-            position: absolute;
+            position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             pointer-events: none;
-            z-index: 999;
-            width: 100px;
-            height: 100px;
+            z-index: 99999;
+            width: 200px;
+            height: 200px;
             display: block !important;
             opacity: 1 !important;
-            background: rgba(255, 0, 0, 0.1);
+            background: rgba(255, 0, 0, 0.3);
+            mix-blend-mode: screen;
         }
 
         #front-post {
@@ -125,10 +127,12 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 6px;
-            height: 40px;
-            background: red;
-            box-shadow: 0 0 8px black;
+            width: 10px;
+            height: 80px;
+            background: #ff0000;
+            box-shadow: 
+                0 0 20px #ff0000,
+                0 0 40px #ff0000;
         }
 
         #rear-sight {
@@ -136,19 +140,21 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 80px;
-            height: 80px;
-            background: rgba(0, 255, 0, 0.1);
+            width: 160px;
+            height: 160px;
+            background: rgba(0, 255, 0, 0.3);
         }
 
         #rear-sight::before,
         #rear-sight::after {
             content: '';
             position: absolute;
-            width: 6px;
-            height: 60px;
-            background: red;
-            box-shadow: 0 0 8px black;
+            width: 10px;
+            height: 120px;
+            background: #ff0000;
+            box-shadow: 
+                0 0 20px #ff0000,
+                0 0 40px #ff0000;
         }
 
         #rear-sight::before {
@@ -173,6 +179,12 @@
         #crosshair {
             transition: all 0.2s ease-in-out;
         }
+
+        /* Make sure the canvas doesn't overlap our HUD */
+        canvas {
+            z-index: 1;
+            position: relative;
+        }
     </style>
 </head>
 <body>
@@ -183,13 +195,14 @@
         <p>Press F to aim | R to reload | Click to shoot</p>
         <p>WASD to move | SHIFT to sprint | SPACE to jump</p>
     </div>
+    <!-- Iron sights moved outside HUD -->
+    <div id="iron-sights">
+        <div id="front-post"></div>
+        <div id="rear-sight"></div>
+    </div>
     <div id="hud">
         <div id="crosshair">+</div>
         <div id="scope-overlay"></div>
-        <div id="iron-sights">
-            <div id="front-post"></div>
-            <div id="rear-sight"></div>
-        </div>
         <div id="ammo">8/8</div>
         <div id="health">100</div>
     </div>
