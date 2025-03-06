@@ -61,9 +61,14 @@ class GameUI {
     toggleScope(isAiming) {
         this.isAiming = isAiming;
         
-        // Toggle scope overlay only
+        // Toggle scope overlay and iron sights
         if (this.scopeOverlay) {
             this.scopeOverlay.style.display = isAiming ? 'block' : 'none';
+        }
+        
+        // Toggle iron sights
+        if (this.ironSights) {
+            this.ironSights.style.display = isAiming ? 'block' : 'none';
         }
         
         // Add/remove aiming class to body for additional styling
@@ -73,7 +78,7 @@ class GameUI {
         console.log('Toggling scope:', {
             isAiming,
             scopeOverlay: this.scopeOverlay?.style.display,
-            ironSights: 'visible',
+            ironSights: this.ironSights?.style.display,
             crosshair: 'hidden'
         });
     }

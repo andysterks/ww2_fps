@@ -116,9 +116,8 @@
             z-index: 99999;
             width: 200px;
             height: 200px;
-            display: block !important;
-            opacity: 1 !important;
-            background: rgba(255, 0, 0, 0.3);
+            display: none;
+            opacity: 1;
             mix-blend-mode: screen;
         }
 
@@ -127,12 +126,12 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 10px;
-            height: 80px;
+            width: 2px;
+            height: 20px;
             background: #ff0000;
             box-shadow: 
-                0 0 20px #ff0000,
-                0 0 40px #ff0000;
+                0 0 10px #ff0000,
+                0 0 20px #ff0000;
         }
 
         #rear-sight {
@@ -140,29 +139,39 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 160px;
-            height: 160px;
-            background: rgba(0, 255, 0, 0.3);
+            width: 40px;
+            height: 40px;
+            border: 2px solid #ff0000;
+            border-radius: 50%;
+            box-shadow: 
+                0 0 10px #ff0000,
+                0 0 20px #ff0000;
         }
 
         #rear-sight::before,
         #rear-sight::after {
             content: '';
             position: absolute;
-            width: 10px;
-            height: 120px;
             background: #ff0000;
             box-shadow: 
-                0 0 20px #ff0000,
-                0 0 40px #ff0000;
+                0 0 10px #ff0000,
+                0 0 20px #ff0000;
         }
 
         #rear-sight::before {
-            left: 0;
+            top: 50%;
+            left: -10px;
+            width: 60px;
+            height: 2px;
+            transform: translateY(-50%);
         }
 
         #rear-sight::after {
-            right: 0;
+            top: -10px;
+            left: 50%;
+            width: 2px;
+            height: 60px;
+            transform: translateX(-50%);
         }
 
         /* Reduce HUD elements opacity when aiming */

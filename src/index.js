@@ -65,6 +65,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             debugInfo.style.fontSize = '12px';
             debugInfo.style.display = 'none';
             hudContainer.appendChild(debugInfo);
+
+            // Create iron sights
+            const ironSights = document.createElement('div');
+            ironSights.id = 'iron-sights';
+            ironSights.style.display = 'none';
+            
+            const frontPost = document.createElement('div');
+            frontPost.id = 'front-post';
+            ironSights.appendChild(frontPost);
+            
+            const rearSight = document.createElement('div');
+            rearSight.id = 'rear-sight';
+            ironSights.appendChild(rearSight);
+            
+            hudContainer.appendChild(ironSights);
         }
         
         // Create instructions
