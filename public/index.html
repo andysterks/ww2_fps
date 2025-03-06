@@ -113,10 +113,11 @@
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 999;
-            width: 40px;
-            height: 40px;
-            display: block;
-            opacity: 1;
+            width: 100px;
+            height: 100px;
+            display: block !important;
+            opacity: 1 !important;
+            background: rgba(255, 0, 0, 0.1);
         }
 
         #front-post {
@@ -124,10 +125,10 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 4px;
-            height: 24px;
-            background: white;
-            box-shadow: 0 0 4px black;
+            width: 6px;
+            height: 40px;
+            background: red;
+            box-shadow: 0 0 8px black;
         }
 
         #rear-sight {
@@ -135,18 +136,19 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 40px;
-            height: 40px;
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 255, 0, 0.1);
         }
 
         #rear-sight::before,
         #rear-sight::after {
             content: '';
             position: absolute;
-            width: 4px;
-            height: 40px;
-            background: white;
-            box-shadow: 0 0 4px black;
+            width: 6px;
+            height: 60px;
+            background: red;
+            box-shadow: 0 0 8px black;
         }
 
         #rear-sight::before {
@@ -183,11 +185,10 @@
     </div>
     <div id="hud">
         <div id="crosshair">+</div>
-        <div id="scope-overlay">
-            <div id="iron-sights">
-                <div id="front-post"></div>
-                <div id="rear-sight"></div>
-            </div>
+        <div id="scope-overlay"></div>
+        <div id="iron-sights">
+            <div id="front-post"></div>
+            <div id="rear-sight"></div>
         </div>
         <div id="ammo">8/8</div>
         <div id="health">100</div>
