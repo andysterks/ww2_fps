@@ -225,7 +225,24 @@ class Game {
                         console.log('- always-visible-sight:', document.getElementById('always-visible-sight'));
                         console.log('- always-visible-sight display:', document.getElementById('always-visible-sight')?.style.display);
                         
+                        // Call the weapon system's toggleAim method
                         this.weaponSystem.toggleAim();
+                        
+                        // ALSO directly toggle the always-visible-sight element as a backup
+                        const alwaysVisibleSight = document.getElementById('always-visible-sight');
+                        if (alwaysVisibleSight) {
+                            // Toggle based on current state
+                            const isCurrentlyVisible = alwaysVisibleSight.style.display === 'block';
+                            alwaysVisibleSight.style.display = isCurrentlyVisible ? 'none' : 'block';
+                            
+                            // Toggle crosshair visibility
+                            const crosshair = document.getElementById('crosshair');
+                            if (crosshair) {
+                                crosshair.style.display = isCurrentlyVisible ? 'block' : 'none';
+                            }
+                            
+                            console.log('F key directly toggled always-visible-sight:', alwaysVisibleSight.style.display);
+                        }
                         
                         // Log the DOM structure after toggling aim
                         setTimeout(() => {

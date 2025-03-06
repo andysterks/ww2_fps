@@ -206,6 +206,25 @@
                     console.log('Always visible sight toggled with U key:', alwaysVisibleSight.style.display);
                 }
             }
+            
+            // Also handle F key directly in the HTML
+            if (event.code === 'KeyF') {
+                console.log('F key pressed in HTML script');
+                const alwaysVisibleSight = document.getElementById('always-visible-sight');
+                if (alwaysVisibleSight) {
+                    // Toggle the display
+                    const isVisible = alwaysVisibleSight.style.display === 'block';
+                    alwaysVisibleSight.style.display = isVisible ? 'none' : 'block';
+                    
+                    // Toggle the crosshair
+                    const crosshair = document.getElementById('crosshair');
+                    if (crosshair) {
+                        crosshair.style.display = isVisible ? 'block' : 'none';
+                    }
+                    
+                    console.log('Always visible sight toggled with F key in HTML:', alwaysVisibleSight.style.display);
+                }
+            }
         });
     </script>
 </body>
