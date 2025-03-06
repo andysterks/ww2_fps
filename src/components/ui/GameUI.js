@@ -47,13 +47,16 @@ class GameUI {
         this.crosshair.style.display = isAiming ? 'none' : 'block';
         
         // Toggle iron sights
-        const ironSights = document.getElementById('iron-sights');
+        const ironSights = this.scopeOverlay.querySelector('#iron-sights');
         if (ironSights) {
             ironSights.style.display = isAiming ? 'block' : 'none';
         }
         
         // Add/remove aiming class to body for additional styling
         document.body.classList.toggle('aiming', isAiming);
+        
+        // Log for debugging
+        console.log('Toggling scope:', isAiming, 'Iron sights found:', !!ironSights);
     }
     
     updateAmmo(current, max) {
