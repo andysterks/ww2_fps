@@ -526,48 +526,47 @@ export class WeaponSystem {
             return;
         }
         
-        // Create a new iron sights element
+        // Create a super simple, unmissable iron sight
         const ironSights = document.createElement('div');
         ironSights.id = 'standalone-iron-sights';
         
-        // Apply styles directly
+        // Apply styles directly - make it unmissable
         Object.assign(ironSights.style, {
             position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '100px',
-            height: '100px',
+            top: '0',
+            left: '0',
+            width: '100%',
+            height: '100%',
             zIndex: '99999',
             pointerEvents: 'none'
         });
         
-        // Create front post (vertical line)
-        const frontPost = document.createElement('div');
-        Object.assign(frontPost.style, {
+        // Create a simple red dot in the center
+        const redDot = document.createElement('div');
+        Object.assign(redDot.style, {
             position: 'absolute',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '4px',
-            height: '24px',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 0 5px #ffffff, 0 0 10px #ffffff',
-            borderRadius: '2px'
+            width: '8px',
+            height: '8px',
+            backgroundColor: '#ff0000',
+            borderRadius: '50%',
+            boxShadow: '0 0 10px #ff0000, 0 0 20px #ff0000'
         });
         
-        // Create rear sight (circle)
-        const rearSight = document.createElement('div');
-        Object.assign(rearSight.style, {
+        // Create a red circle around the dot
+        const redCircle = document.createElement('div');
+        Object.assign(redCircle.style, {
             position: 'absolute',
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
             width: '40px',
             height: '40px',
-            border: '4px solid #ffffff',
+            border: '2px solid #ff0000',
             borderRadius: '50%',
-            boxShadow: '0 0 5px #ffffff, 0 0 10px #ffffff'
+            boxShadow: '0 0 10px #ff0000, 0 0 20px #ff0000'
         });
         
         // Create horizontal line
@@ -577,11 +576,10 @@ export class WeaponSystem {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '60px',
-            height: '4px',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 0 5px #ffffff, 0 0 10px #ffffff',
-            borderRadius: '2px'
+            width: '100px',
+            height: '2px',
+            backgroundColor: '#ff0000',
+            boxShadow: '0 0 10px #ff0000, 0 0 20px #ff0000'
         });
         
         // Create vertical line
@@ -591,21 +589,36 @@ export class WeaponSystem {
             top: '50%',
             left: '50%',
             transform: 'translate(-50%, -50%)',
-            width: '4px',
-            height: '60px',
-            backgroundColor: '#ffffff',
-            boxShadow: '0 0 5px #ffffff, 0 0 10px #ffffff',
-            borderRadius: '2px'
+            width: '2px',
+            height: '100px',
+            backgroundColor: '#ff0000',
+            boxShadow: '0 0 10px #ff0000, 0 0 20px #ff0000'
         });
         
         // Add elements to DOM
-        ironSights.appendChild(frontPost);
-        ironSights.appendChild(rearSight);
+        ironSights.appendChild(redDot);
+        ironSights.appendChild(redCircle);
         ironSights.appendChild(horizontalLine);
         ironSights.appendChild(verticalLine);
         
-        // Add to document
+        // Add to document body directly
         document.body.appendChild(ironSights);
+        
+        // Add a text label to confirm it's working
+        const label = document.createElement('div');
+        Object.assign(label.style, {
+            position: 'absolute',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            color: '#ff0000',
+            fontSize: '20px',
+            fontWeight: 'bold',
+            textShadow: '0 0 5px #ff0000',
+            fontFamily: 'Arial, sans-serif'
+        });
+        label.textContent = 'IRON SIGHTS ACTIVE';
+        ironSights.appendChild(label);
         
         console.log('Standalone iron sights created and added to DOM:', ironSights);
     }
