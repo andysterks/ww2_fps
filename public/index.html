@@ -113,7 +113,8 @@
             transform: translate(-50%, -50%);
             pointer-events: none;
             z-index: 11;
-            display: none;
+            width: 40px;
+            height: 40px;
         }
 
         #front-post {
@@ -123,8 +124,8 @@
             transform: translate(-50%, -50%);
             width: 2px;
             height: 20px;
-            background: white;
-            box-shadow: 0 0 2px black;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
         }
 
         #rear-sight {
@@ -132,19 +133,26 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 20px;
+            width: 30px;
             height: 30px;
-            display: flex;
-            justify-content: space-between;
         }
 
         #rear-sight::before,
         #rear-sight::after {
             content: '';
+            position: absolute;
             width: 2px;
-            height: 100%;
-            background: white;
-            box-shadow: 0 0 2px black;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+        }
+
+        #rear-sight::before {
+            left: 0;
+        }
+
+        #rear-sight::after {
+            right: 0;
         }
 
         /* Reduce HUD elements opacity when aiming */

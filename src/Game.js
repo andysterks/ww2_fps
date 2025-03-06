@@ -127,15 +127,15 @@ class Game {
             this.player.setCollidableObjects(collidableObjects);
             console.log('Collidable objects set:', collidableObjects.length);
             
-            // Create weapon system
-            this.weaponSystem = new WeaponSystem(this.camera, this.scene);
-            await this.weaponSystem.init();
-            this.weaponSystem.game = this;
-            console.log('Weapon system initialized');
-
-            // Create UI
+            // Create UI first so weapon system can use it
             this.ui = new GameUI();
             console.log('UI initialized');
+            
+            // Create weapon system and pass game instance
+            this.weaponSystem = new WeaponSystem(this.camera, this.scene);
+            this.weaponSystem.game = this; // Pass game instance to weapon system
+            await this.weaponSystem.init();
+            console.log('Weapon system initialized');
 
             // Initialize network manager
             this.networkManager = new NetworkManager(this);

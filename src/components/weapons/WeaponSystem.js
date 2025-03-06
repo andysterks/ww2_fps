@@ -336,50 +336,50 @@ export class WeaponSystem {
     }
     
     update(deltaTime) {
-        // Update weapon sway
-        this.updateWeaponSway(deltaTime);
+        // Handle aim transition
+        if (this.aimTransition) {
+            this.aimTransition.progress += deltaTime / this.aimTransition.duration;
+            
+            if (this.aimTransition.progress >= 1) {
+                // Finish transition
+                this.currentWeapon.position.copy(this.aimTransition.targetPos);
+                this.currentWeapon.rotation.copy(this.aimTransition.targetRot);
+                this.aimTransition = null;
+            } else {
+                // Interpolate position and rotation
+                this.currentWeapon.position.lerpVectors(
+                    this.aimTransition.startPos,
+                    this.aimTransition.targetPos,
+                    this.aimTransition.progress
+                );
+                
+                this.currentWeapon.rotation.x = THREE.MathUtils.lerp(
+                    this.aimTransition.startRot.x,
+                    this.aimTransition.targetRot.x,
+                    this.aimTransition.progress
+                );
+                this.currentWeapon.rotation.y = THREE.MathUtils.lerp(
+                    this.aimTransition.startRot.y,
+                    this.aimTransition.targetRot.y,
+                    this.aimTransition.progress
+                );
+                this.currentWeapon.rotation.z = THREE.MathUtils.lerp(
+                    this.aimTransition.startRot.z,
+                    this.aimTransition.targetRot.z,
+                    this.aimTransition.progress
+                );
+            }
+        }
         
-        // Update weapon bob
-        this.updateWeaponBob(deltaTime);
-        
-        // Update recoil
-        this.updateRecoil(deltaTime);
+        // Update weapon sway and bob
+        if (this.currentWeapon) {
+            this.updateWeaponSway(deltaTime);
+            this.updateWeaponBob(deltaTime);
+            this.updateRecoil(deltaTime);
+        }
         
         // Update shell casings
         this.updateShellCasings(deltaTime);
-        
-        // Update aiming transition
-        if (this.currentWeapon) {
-            const targetProgress = this.isAiming ? 1 : 0;
-            this.currentAimProgress += (targetProgress - this.currentAimProgress) * this.aimTransitionSpeed * deltaTime;
-            
-            // Interpolate position
-            const position = new THREE.Vector3();
-            position.lerpVectors(this.defaultPosition, this.aimingPosition, this.currentAimProgress);
-            
-            // Interpolate rotation
-            const rotation = new THREE.Euler();
-            rotation.x = THREE.MathUtils.lerp(this.defaultRotation.x, this.aimingRotation.x, this.currentAimProgress);
-            rotation.y = THREE.MathUtils.lerp(this.defaultRotation.y, this.aimingRotation.y, this.currentAimProgress);
-            rotation.z = THREE.MathUtils.lerp(this.defaultRotation.z, this.aimingRotation.z, this.currentAimProgress);
-            
-            // Apply position and rotation
-            this.currentWeapon.position.copy(position);
-            this.currentWeapon.position.add(new THREE.Vector3(
-                this.weaponBob.x + this.recoil.x + this.sway.x,
-                this.weaponBob.y + this.recoil.y + this.sway.y,
-                0
-            ));
-            this.currentWeapon.rotation.copy(rotation);
-            
-            // Add slight tilt based on sway when aiming
-            this.currentWeapon.rotation.z = -this.sway.x * (1 - this.currentAimProgress);
-            
-            // Update FOV
-            const targetFOV = this.isAiming ? this.aimingFOV : this.defaultFOV;
-            this.camera.fov += (targetFOV - this.camera.fov) * this.aimTransitionSpeed * deltaTime;
-            this.camera.updateProjectionMatrix();
-        }
     }
     
     updateWeaponSway(deltaTime) {
@@ -436,12 +436,38 @@ export class WeaponSystem {
     toggleAim() {
         this.isAiming = !this.isAiming;
         
-        // Update UI scope overlay
+        // Update UI
         if (this.game && this.game.ui) {
             this.game.ui.toggleScope(this.isAiming);
         }
         
-        return this.isAiming;
+        // Adjust weapon position for aiming
+        if (this.currentWeapon) {
+            const targetPosition = this.isAiming
+                ? new THREE.Vector3(0, -0.2, -0.3) // Aimed position
+                : new THREE.Vector3(0.3, -0.3, -0.5); // Hip position
+            
+            const targetRotation = this.isAiming
+                ? new THREE.Euler(0, Math.PI, 0) // Aimed rotation
+                : new THREE.Euler(0, Math.PI, 0); // Hip rotation
+            
+            // Smoothly transition to new position
+            this.aimTransition = {
+                startPos: this.currentWeapon.position.clone(),
+                targetPos: targetPosition,
+                startRot: this.currentWeapon.rotation.clone(),
+                targetRot: targetRotation,
+                progress: 0,
+                duration: 0.2 // seconds
+            };
+        }
+        
+        // Log for debugging
+        console.log('Weapon aim toggled:', {
+            isAiming: this.isAiming,
+            weaponModel: !!this.currentWeapon,
+            ui: !!this.game?.ui
+        });
     }
     
     onWindowResize() {
