@@ -8,6 +8,7 @@ class GameUI {
         // Get UI elements
         this.crosshair = document.getElementById('crosshair');
         this.scopeOverlay = document.getElementById('scope-overlay');
+        this.ironSights = document.getElementById('iron-sights');
         this.ammoDisplay = document.getElementById('ammo');
         this.healthDisplay = document.getElementById('health');
         this.instructions = document.getElementById('instructions');
@@ -24,6 +25,13 @@ class GameUI {
         
         // Set up event listeners
         this.setupEventListeners();
+        
+        // Log initial state of elements
+        console.log('UI Elements initialized:', {
+            scopeOverlay: !!this.scopeOverlay,
+            ironSights: !!this.ironSights,
+            crosshair: !!this.crosshair
+        });
     }
     
     setupEventListeners() {
@@ -43,20 +51,29 @@ class GameUI {
         this.isAiming = isAiming;
         
         // Toggle scope overlay and crosshair
-        this.scopeOverlay.style.display = isAiming ? 'block' : 'none';
-        this.crosshair.style.display = isAiming ? 'none' : 'block';
+        if (this.scopeOverlay) {
+            this.scopeOverlay.style.display = isAiming ? 'block' : 'none';
+        }
+        
+        if (this.crosshair) {
+            this.crosshair.style.display = isAiming ? 'none' : 'block';
+        }
         
         // Toggle iron sights
-        const ironSights = this.scopeOverlay.querySelector('#iron-sights');
-        if (ironSights) {
-            ironSights.style.display = isAiming ? 'block' : 'none';
+        if (this.ironSights) {
+            this.ironSights.style.display = isAiming ? 'block' : 'none';
         }
         
         // Add/remove aiming class to body for additional styling
         document.body.classList.toggle('aiming', isAiming);
         
-        // Log for debugging
-        console.log('Toggling scope:', isAiming, 'Iron sights found:', !!ironSights);
+        // Log state for debugging
+        console.log('Toggling scope:', {
+            isAiming,
+            scopeOverlay: this.scopeOverlay?.style.display,
+            ironSights: this.ironSights?.style.display,
+            crosshair: this.crosshair?.style.display
+        });
     }
     
     updateAmmo(current, max) {
