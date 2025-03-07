@@ -961,17 +961,17 @@ class SimpleGame {
         // Limit logging to avoid console spam
         if (this.frameCounter % 60 === 0) {
             console.log('Animation frame, delta:', delta, 'isAimingDownSights:', this.isAimingDownSights);
+            console.log('DEBUG: isRunning:', this.isRunning, 'controls.isLocked:', this.controls ? this.controls.isLocked : 'controls not initialized');
+            console.log('DEBUG: Movement flags:', {
+                moveForward: this.moveForward,
+                moveBackward: this.moveBackward,
+                moveLeft: this.moveLeft,
+                moveRight: this.moveRight,
+                isSprinting: this.isSprinting
+            });
         }
         
-        // Skip if not running
-        if (!this.isRunning) {
-            if (this.frameCounter % 60 === 0) {
-                console.log('Game not running, skipping animation frame');
-                console.log('DEBUG: isRunning:', this.isRunning, 'controls.isLocked:', this.controls ? this.controls.isLocked : 'controls not initialized');
-            }
-            return;
-        }
-        
+        // Always run the game loop, even if not in pointer lock
         try {
             // Make sure scene is visible
             if (!this.scene.visible) {
@@ -998,7 +998,7 @@ class SimpleGame {
             // Update weapon position based on movement and aiming
             this.updateWeaponPosition();
             
-            // Update player position
+            // Update player position - always call this, even if not in pointer lock
             this.updatePlayerPosition(delta);
             
             // Update debug info
@@ -1121,24 +1121,65 @@ class SimpleGame {
         }
         
         console.log('Updating player position with delta:', delta);
+        console.log('DEBUG: Movement flags:', {
+            moveForward: this.moveForward,
+            moveBackward: this.moveBackward,
+            moveLeft: this.moveLeft,
+            moveRight: this.moveRight,
+            isSprinting: this.isSprinting
+        });
+        console.log('DEBUG: isRunning:', this.isRunning, 'controls.isLocked:', this.controls ? this.controls.isLocked : 'controls not initialized');
         
-        // Handle player movement
-        if (this.controls.isLocked) {
-            // Calculate movement speed based on sprint state
-            const speed = this.isSprinting ? this.playerSpeed * this.sprintMultiplier : this.playerSpeed;
+        // Handle player movement even if controls aren't locked
+        if (this.isRunning) {
+            console.log('DEBUG: Game is running, handling movement');
             
-            // Calculate movement direction
-            this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-            this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-            this.direction.normalize(); // Normalize for consistent speed in all directions
-            
-            // Apply movement to controls
-            if (this.moveForward || this.moveBackward) {
-                this.controls.moveForward(this.direction.z * speed * delta);
+            try {
+                // Calculate movement speed based on sprint state
+                const speed = this.isSprinting ? this.playerSpeed * this.sprintMultiplier : this.playerSpeed;
+                console.log('DEBUG: Movement speed:', speed);
+                
+                // Calculate movement direction
+                this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+                this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
+                this.direction.normalize(); // Normalize for consistent speed in all directions
+                console.log('DEBUG: Movement direction:', { x: this.direction.x, z: this.direction.z });
+                
+                // Apply movement to controls
+                if (this.moveForward || this.moveBackward) {
+                    console.log('DEBUG: Moving forward/backward');
+                    if (this.controls && this.controls.moveForward) {
+                        this.controls.moveForward(this.direction.z * speed * delta);
+                        console.log('DEBUG: Called controls.moveForward with:', this.direction.z * speed * delta);
+                    } else {
+                        console.error('ERROR: controls.moveForward is not a function');
+                        // Fallback: update camera position directly
+                        const cameraDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+                        this.camera.position.addScaledVector(cameraDirection, this.direction.z * speed * delta);
+                        console.log('DEBUG: Updated camera position directly for forward/backward movement');
+                    }
+                }
+                if (this.moveLeft || this.moveRight) {
+                    console.log('DEBUG: Moving left/right');
+                    if (this.controls && this.controls.moveRight) {
+                        this.controls.moveRight(this.direction.x * speed * delta);
+                        console.log('DEBUG: Called controls.moveRight with:', this.direction.x * speed * delta);
+                    } else {
+                        console.error('ERROR: controls.moveRight is not a function');
+                        // Fallback: update camera position directly
+                        const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+                        this.camera.position.addScaledVector(cameraRight, this.direction.x * speed * delta);
+                        console.log('DEBUG: Updated camera position directly for left/right movement');
+                    }
+                }
+                
+                // Log camera position after movement
+                console.log('DEBUG: Camera position after movement:', this.camera.position);
+            } catch (error) {
+                console.error('ERROR: Failed to update player position:', error);
             }
-            if (this.moveLeft || this.moveRight) {
-                this.controls.moveRight(this.direction.x * speed * delta);
-            }
+        } else {
+            console.log('DEBUG: Game is not running, skipping movement');
         }
         
         // Update all players
@@ -1281,17 +1322,37 @@ class SimpleGame {
         // Lock/unlock pointer - use document.body instead of controls.lock()
         document.addEventListener('click', (event) => {
             console.log("DEBUG: Click event detected, controls.isLocked:", this.controls ? this.controls.isLocked : 'controls not initialized');
+            console.log("DEBUG: Current pointerLockElement:", document.pointerLockElement);
+            console.log("DEBUG: document.body is:", document.body);
             
             if (!this.controls.isLocked) {
                 console.log("DEBUG: Attempting to lock controls");
                 
-                // Request pointer lock on document.body
-                document.body.requestPointerLock = document.body.requestPointerLock || 
-                                                  document.body.mozRequestPointerLock ||
-                                                  document.body.webkitRequestPointerLock;
-                
-                document.body.requestPointerLock();
-                console.log("DEBUG: Pointer lock requested directly on document.body");
+                try {
+                    // Request pointer lock on document.body
+                    document.body.requestPointerLock = document.body.requestPointerLock || 
+                                                      document.body.mozRequestPointerLock ||
+                                                      document.body.webkitRequestPointerLock;
+                    
+                    // Check if requestPointerLock is available
+                    if (document.body.requestPointerLock) {
+                        console.log("DEBUG: requestPointerLock is available, calling it");
+                        document.body.requestPointerLock();
+                    } else {
+                        console.error("ERROR: requestPointerLock is not available on document.body");
+                        // Fallback to controls.lock()
+                        console.log("DEBUG: Falling back to controls.lock()");
+                        this.controls.lock();
+                    }
+                    
+                    console.log("DEBUG: Pointer lock requested directly on document.body");
+                    
+                    // Force isRunning to true
+                    this.isRunning = true;
+                    console.log("DEBUG: Forced isRunning to true");
+                } catch (error) {
+                    console.error("ERROR: Failed to request pointer lock:", error);
+                }
             } else if (this.weaponModel && this.canShoot) {
                 console.log("DEBUG: Attempting to shoot");
                 this.shoot();
@@ -1303,6 +1364,7 @@ class SimpleGame {
             console.log("DEBUG: Pointer lock change detected");
             console.log("DEBUG: pointerLockElement:", document.pointerLockElement);
             console.log("DEBUG: document.body:", document.body);
+            console.log("DEBUG: Are they equal?", document.pointerLockElement === document.body);
             
             if (document.pointerLockElement === document.body) {
                 console.log("DEBUG: Pointer locked, setting isRunning to true");
@@ -1316,6 +1378,7 @@ class SimpleGame {
         // Direct handling for specific keys
         document.addEventListener('keydown', (event) => {
             console.log('DEBUG: Key pressed directly in setupEventListeners:', event.code);
+            console.log('DEBUG: isRunning:', this.isRunning, 'controls.isLocked:', this.controls ? this.controls.isLocked : 'controls not initialized');
             
             // Always handle F key, even if not running
             if (event.code === 'KeyF') {
@@ -1340,23 +1403,29 @@ class SimpleGame {
                 return;
             }
             
-            if (this.controls && this.controls.isLocked && this.isRunning) {
+            // Handle movement keys even if controls aren't locked
+            if (this.isRunning) {
                 console.log("DEBUG: Key press while game is running:", event.code);
                 
                 switch (event.code) {
                     case 'KeyW':
+                        console.log("DEBUG: W key pressed, setting moveForward to true");
                         this.moveForward = true;
                         break;
                     case 'KeyS':
+                        console.log("DEBUG: S key pressed, setting moveBackward to true");
                         this.moveBackward = true;
                         break;
                     case 'KeyA':
+                        console.log("DEBUG: A key pressed, setting moveLeft to true");
                         this.moveLeft = true;
                         break;
                     case 'KeyD':
+                        console.log("DEBUG: D key pressed, setting moveRight to true");
                         this.moveRight = true;
                         break;
                     case 'ShiftLeft':
+                        console.log("DEBUG: Shift key pressed, setting isSprinting to true");
                         this.isSprinting = true;
                         break;
                 }
@@ -1367,21 +1436,29 @@ class SimpleGame {
         
         // Handle key up events
         document.addEventListener('keyup', (event) => {
-            if (this.controls && this.controls.isLocked && this.isRunning) {
+            console.log('DEBUG: Key up event:', event.code);
+            
+            // Handle movement keys even if controls aren't locked
+            if (this.isRunning) {
                 switch (event.code) {
                     case 'KeyW':
+                        console.log("DEBUG: W key released, setting moveForward to false");
                         this.moveForward = false;
                         break;
                     case 'KeyS':
+                        console.log("DEBUG: S key released, setting moveBackward to false");
                         this.moveBackward = false;
                         break;
                     case 'KeyA':
+                        console.log("DEBUG: A key released, setting moveLeft to false");
                         this.moveLeft = false;
                         break;
                     case 'KeyD':
+                        console.log("DEBUG: D key released, setting moveRight to false");
                         this.moveRight = false;
                         break;
                     case 'ShiftLeft':
+                        console.log("DEBUG: Shift key released, setting isSprinting to false");
                         this.isSprinting = false;
                         break;
                 }
