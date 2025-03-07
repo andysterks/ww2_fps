@@ -1050,6 +1050,8 @@ class SimpleGame {
         if (this.frameCounter % 60 === 0) {
             console.log('DEBUG: Updating weapon position, isAimingDownSights:', this.isAimingDownSights);
             console.log('DEBUG: Weapon model:', this.weaponModel);
+            console.log('DEBUG: Current weapon position:', this.weaponModel.position);
+            console.log('DEBUG: Current weapon rotation:', this.weaponModel.rotation);
         }
         
         try {
@@ -1057,6 +1059,9 @@ class SimpleGame {
             if (this.isAimingDownSights) {
                 // Aiming down sights position for Kar98
                 // Position the weapon so that the iron sights align with the center of the screen
+                const oldPosition = this.weaponModel.position.clone();
+                const oldRotation = this.weaponModel.rotation.clone();
+                
                 this.weaponModel.position.set(
                     0,      // Centered horizontally
                     -0.035, // Adjusted to align front sight with rear aperture
@@ -1070,6 +1075,9 @@ class SimpleGame {
                     0       // No roll
                 );
                 
+                console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
+                console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
+                
                 // Find front and rear sights to ensure they're visible
                 let frontSightFound = false;
                 let rearSightFound = false;
@@ -1078,20 +1086,31 @@ class SimpleGame {
                     if (child.name === "frontSightPost") {
                         frontSightFound = true;
                         child.visible = true;
+                        console.log('DEBUG: Front sight position:', child.position);
                     }
                     if (child.name === "rearSightAperture") {
                         rearSightFound = true;
                         child.visible = true;
+                        console.log('DEBUG: Rear sight position:', child.position);
                     }
                 });
                 
                 console.log('DEBUG: Front sight found:', frontSightFound, 'Rear sight found:', rearSightFound);
+                
+                // Change camera FOV for zoom effect
+                const oldFOV = this.camera.fov;
+                this.camera.fov = this.aimingDownSightsFOV || 60;
+                this.camera.updateProjectionMatrix();
+                console.log('DEBUG: Camera FOV changed from', oldFOV, 'to', this.camera.fov);
                 
                 if (this.frameCounter % 60 === 0) {
                     console.log('DEBUG: Weapon positioned for aiming down sights');
                 }
             } else {
                 // Hip position
+                const oldPosition = this.weaponModel.position.clone();
+                const oldRotation = this.weaponModel.rotation.clone();
+                
                 this.weaponModel.position.set(
                     0.25,   // Offset to the right
                     -0.25,  // Lower position
@@ -1102,6 +1121,15 @@ class SimpleGame {
                     Math.PI / 8,    // Slight angle
                     0               // No roll
                 );
+                
+                console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
+                console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
+                
+                // Reset camera FOV
+                const oldFOV = this.camera.fov;
+                this.camera.fov = this.defaultFOV || 75;
+                this.camera.updateProjectionMatrix();
+                console.log('DEBUG: Camera FOV changed from', oldFOV, 'to', this.camera.fov);
                 
                 if (this.frameCounter % 60 === 0) {
                     console.log('DEBUG: Weapon positioned for hip fire');
