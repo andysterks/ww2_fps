@@ -110,35 +110,71 @@ document.addEventListener('DOMContentLoaded', () => {
             scopeOverlay.style.pointerEvents = 'none';
             
             // Create iron sight elements - these are visual aids to help with alignment
-            // Front sight post
+            // Front sight post - thin vertical line
             const frontSightPost = document.createElement('div');
             frontSightPost.className = 'front-sight-post';
             frontSightPost.style.position = 'absolute';
             frontSightPost.style.top = '50%';
             frontSightPost.style.left = '50%';
             frontSightPost.style.transform = 'translate(-50%, -50%)';
-            frontSightPost.style.width = '2px';
-            frontSightPost.style.height = '15px';
-            frontSightPost.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            frontSightPost.style.width = '1px';
+            frontSightPost.style.height = '12px';
+            frontSightPost.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
             frontSightPost.style.zIndex = '12';
             scopeOverlay.appendChild(frontSightPost);
             
-            // Rear sight aperture
+            // Front sight protective wings
+            const leftWing = document.createElement('div');
+            leftWing.className = 'front-sight-wing';
+            leftWing.style.position = 'absolute';
+            leftWing.style.top = '50%';
+            leftWing.style.left = 'calc(50% - 8px)';
+            leftWing.style.transform = 'translateY(-50%)';
+            leftWing.style.width = '2px';
+            leftWing.style.height = '12px';
+            leftWing.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            leftWing.style.zIndex = '11';
+            scopeOverlay.appendChild(leftWing);
+            
+            const rightWing = document.createElement('div');
+            rightWing.className = 'front-sight-wing';
+            rightWing.style.position = 'absolute';
+            rightWing.style.top = '50%';
+            rightWing.style.left = 'calc(50% + 6px)';
+            rightWing.style.transform = 'translateY(-50%)';
+            rightWing.style.width = '2px';
+            rightWing.style.height = '12px';
+            rightWing.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            rightWing.style.zIndex = '11';
+            scopeOverlay.appendChild(rightWing);
+            
+            // Rear sight V-notch
             const rearSight = document.createElement('div');
             rearSight.className = 'rear-sight';
             rearSight.style.position = 'absolute';
-            rearSight.style.top = '50%';
+            rearSight.style.bottom = 'calc(50% + 20px)'; // Position below center
             rearSight.style.left = '50%';
-            rearSight.style.transform = 'translate(-50%, -50%)';
-            rearSight.style.width = '20px';
-            rearSight.style.height = '20px';
-            rearSight.style.borderRadius = '50%';
-            rearSight.style.border = '3px solid rgba(0, 0, 0, 0.8)';
-            rearSight.style.backgroundColor = 'transparent';
-            rearSight.style.zIndex = '11';
+            rearSight.style.transform = 'translateX(-50%)';
+            rearSight.style.width = '16px';
+            rearSight.style.height = '8px';
+            rearSight.style.overflow = 'hidden';
+            rearSight.style.zIndex = '10';
+            
+            // Create V-notch using CSS
+            const vNotch = document.createElement('div');
+            vNotch.style.position = 'absolute';
+            vNotch.style.bottom = '0';
+            vNotch.style.left = '0';
+            vNotch.style.width = '0';
+            vNotch.style.height = '0';
+            vNotch.style.borderLeft = '8px solid transparent';
+            vNotch.style.borderRight = '8px solid transparent';
+            vNotch.style.borderBottom = '8px solid rgba(0, 0, 0, 0.9)';
+            rearSight.appendChild(vNotch);
+            
             scopeOverlay.appendChild(rearSight);
             
-            // Add vignette effect
+            // Add vignette effect - darkens the edges of the screen when aiming
             const vignette = document.createElement('div');
             vignette.className = 'vignette';
             vignette.style.position = 'absolute';
@@ -146,10 +182,23 @@ document.addEventListener('DOMContentLoaded', () => {
             vignette.style.left = '0';
             vignette.style.width = '100%';
             vignette.style.height = '100%';
-            vignette.style.background = 'radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.7) 100%)';
+            vignette.style.background = 'radial-gradient(circle, transparent 65%, rgba(0, 0, 0, 0.7) 100%)';
             vignette.style.pointerEvents = 'none';
-            vignette.style.zIndex = '10';
+            vignette.style.zIndex = '9';
             scopeOverlay.appendChild(vignette);
+            
+            // Add slight blur effect to simulate focus on the sights
+            const focusEffect = document.createElement('div');
+            focusEffect.className = 'focus-effect';
+            focusEffect.style.position = 'absolute';
+            focusEffect.style.top = '0';
+            focusEffect.style.left = '0';
+            focusEffect.style.width = '100%';
+            focusEffect.style.height = '100%';
+            focusEffect.style.backdropFilter = 'blur(1px)';
+            focusEffect.style.WebkitBackdropFilter = 'blur(1px)';
+            focusEffect.style.zIndex = '8';
+            scopeOverlay.appendChild(focusEffect);
             
             hudContainer.appendChild(scopeOverlay);
             
@@ -558,8 +607,9 @@ class SimpleGame {
             // Camera settings
             this.defaultFOV = 75;
             this.aimingFOV = 45;
-            this.aimingDownSightsFOV = 60; // Less extreme zoom for iron sights
+            this.aimingDownSightsFOV = 55; // Moderate zoom for iron sights
             this.isAimingDownSights = false;
+            this.hasShownAimingMessage = false; // Track if we've shown the aiming message
             
             // Create weapon model
             console.log("DEBUG: About to create Kar98 model");
@@ -1395,11 +1445,53 @@ class SimpleGame {
             
             // Always handle F key, even if not running
             if (event.code === 'KeyF') {
-                console.log('DEBUG: F key pressed - attempting to toggle aiming down sights regardless of game state');
+                console.log('F key pressed - toggling aiming down sights');
                 
                 // Toggle aiming down sights
                 this.isAimingDownSights = !this.isAimingDownSights;
-                console.log('DEBUG: isAimingDownSights toggled to:', this.isAimingDownSights);
+                
+                // Store current camera position and rotation for smooth transition
+                const currentPosition = this.camera.position.clone();
+                
+                if (this.isAimingDownSights) {
+                    // When aiming down sights, slightly adjust camera position
+                    // This creates a more realistic sight picture
+                    this.camera.position.y += 0.02; // Raise the camera slightly to align with sights
+                    
+                    // Add a slight forward movement to simulate bringing the weapon up to eye level
+                    const lookDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+                    this.camera.position.addScaledVector(lookDirection, 0.05);
+                    
+                    // Show message for first time users
+                    if (!this.hasShownAimingMessage) {
+                        const message = document.createElement('div');
+                        message.style.position = 'absolute';
+                        message.style.top = '20%';
+                        message.style.left = '50%';
+                        message.style.transform = 'translateX(-50%)';
+                        message.style.color = 'white';
+                        message.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                        message.style.padding = '10px';
+                        message.style.borderRadius = '5px';
+                        message.style.fontFamily = 'Arial, sans-serif';
+                        message.style.fontSize = '16px';
+                        message.style.textAlign = 'center';
+                        message.style.zIndex = '1000';
+                        message.style.transition = 'opacity 0.5s ease-in-out';
+                        message.textContent = 'Align the front sight post with the target through the rear sight notch';
+                        document.body.appendChild(message);
+                        
+                        // Fade out and remove after 3 seconds
+                        setTimeout(() => {
+                            message.style.opacity = '0';
+                            setTimeout(() => {
+                                document.body.removeChild(message);
+                            }, 500);
+                        }, 3000);
+                        
+                        this.hasShownAimingMessage = true;
+                    }
+                }
                 
                 // Update weapon position immediately for responsive feedback
                 this.updateWeaponPosition();
@@ -1408,7 +1500,18 @@ class SimpleGame {
                 const scopeOverlay = document.getElementById('scope-overlay');
                 if (scopeOverlay) {
                     scopeOverlay.classList.toggle('hidden');
-                    console.log('Toggled scope overlay visibility');
+                }
+                
+                // Change crosshair appearance
+                const crosshair = document.getElementById('crosshair');
+                if (crosshair) {
+                    crosshair.style.opacity = this.isAimingDownSights ? '0' : '1';
+                }
+                
+                // Toggle aiming class on HUD
+                const hudElement = document.getElementById('hud');
+                if (hudElement) {
+                    hudElement.classList.toggle('aiming');
                 }
                 
                 // Force a render to update the scene
