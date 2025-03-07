@@ -592,6 +592,11 @@ class SimpleGame {
             console.log("DEBUG: Kar98 model created:", this.weaponModel);
             console.log("DEBUG: Weapon parent after creation:", this.weaponModel.parent ? this.weaponModel.parent.name : 'none');
             
+            // IMPORTANT: Add weapon model to camera, not scene
+            console.log("DEBUG: Adding weapon model to camera");
+            this.camera.add(this.weaponModel);
+            console.log("DEBUG: Weapon model parent after adding to camera:", this.weaponModel.parent ? this.weaponModel.parent.name : 'none');
+            
             // Update debug message
             if (debugDiv) {
                 debugDiv.textContent = 'Setting up renderer...';
@@ -1780,21 +1785,15 @@ class SimpleGame {
             // Create detailed iron sights
             this.createDetailedKar98IronSights(weaponGroup);
             
-            console.log("DEBUG: Detailed Kar98 model created successfully:", weaponGroup);
-            console.log("DEBUG: Weapon position:", weaponGroup.position);
-            console.log("DEBUG: Weapon rotation:", weaponGroup.rotation);
-            
-            // Attach the weapon to the camera instead of the scene
-            console.log("DEBUG: Attaching weapon to camera");
-            
             // Position the weapon in front of the camera
             weaponGroup.position.set(0.25, -0.25, -0.5);
             weaponGroup.rotation.y = Math.PI / 8;
             
-            // Add to camera instead of scene
-            this.camera.add(weaponGroup);
+            console.log("DEBUG: Detailed Kar98 model created successfully:", weaponGroup);
+            console.log("DEBUG: Weapon position:", weaponGroup.position);
+            console.log("DEBUG: Weapon rotation:", weaponGroup.rotation);
             
-            console.log("DEBUG: Weapon attached to camera:", weaponGroup.parent === this.camera);
+            // IMPORTANT: Do not add to scene here, it will be added to the camera later
             
             return weaponGroup;
         } catch (error) {
@@ -1828,10 +1827,10 @@ class SimpleGame {
             fallbackGroup.position.set(0.25, -0.25, -0.5);
             fallbackGroup.rotation.y = Math.PI / 8;
             
-            // Add to camera instead of scene
-            this.camera.add(fallbackGroup);
+            console.log("DEBUG: Fallback model created:", fallbackGroup);
             
-            console.log("DEBUG: Fallback model created and attached to camera:", fallbackGroup);
+            // IMPORTANT: Do not add to scene here, it will be added to the camera later
+            
             return fallbackGroup;
         }
     }
