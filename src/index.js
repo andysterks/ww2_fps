@@ -1186,6 +1186,19 @@ class SimpleGame {
                     }
                 });
                 
+                // Log detailed position and rotation of iron sights
+                this.weaponModel.traverse(child => {
+                    if (child.name === "frontSightPost" || child.name === "rearSightAperture") {
+                        console.log(`DEBUG: ${child.name} position:`, child.position);
+                        console.log(`DEBUG: ${child.name} rotation:`, child.rotation);
+                    }
+                });
+
+                // Log camera settings during aiming
+                console.log('DEBUG: Camera FOV during aiming:', this.camera.fov);
+                console.log('DEBUG: Camera position during aiming:', this.camera.position);
+                console.log('DEBUG: Camera rotation during aiming:', this.camera.rotation);
+                
             } else {
                 // Hip position
                 const oldPosition = this.weaponModel.position.clone();
