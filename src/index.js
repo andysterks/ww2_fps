@@ -10,6 +10,11 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
         console.log("DOM loaded, initializing game...");
         
+        // Add a click handler to the document body to check if the pointer lock is working
+        document.body.addEventListener('click', () => {
+            console.log("DEBUG: Document body clicked, pointerLockElement:", document.pointerLockElement);
+        });
+        
         // Create a simple test scene to see if Three.js is working
         const testScene = () => {
             console.log("Creating test scene");
@@ -175,7 +180,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(debugDiv);
         
         // Create a simple Three.js scene directly
+        console.log("DEBUG: About to create SimpleGame instance");
         const simpleGame = new SimpleGame();
+        console.log("DEBUG: SimpleGame instance created:", simpleGame);
     } catch (error) {
         console.error("Error initializing game:", error);
         // Display error on screen for debugging
