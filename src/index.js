@@ -908,14 +908,14 @@ class SimpleGame {
         const delta = (now - (this.lastFrameTime || now)) / 1000;
         this.lastFrameTime = now;
         
+        // Initialize frame counter if not exists
+        if (!this.frameCounter) this.frameCounter = 0;
+        this.frameCounter++;
+        
         // Limit logging to avoid console spam
         if (this.frameCounter % 60 === 0) {
             console.log('Animation frame, delta:', delta, 'isAimingDownSights:', this.isAimingDownSights);
         }
-        
-        // Initialize frame counter if not exists
-        if (!this.frameCounter) this.frameCounter = 0;
-        this.frameCounter++;
         
         // Skip if not running
         if (!this.isRunning) {
@@ -927,7 +927,26 @@ class SimpleGame {
         
         try {
             // Make sure scene is visible
-            this.scene.visible = true;
+            if (!this.scene.visible) {
+                console.warn('Scene was not visible, making it visible');
+                this.scene.visible = true;
+            }
+            
+            // Check if scene has any children
+            if (this.scene.children.length === 0) {
+                console.warn('Scene has no children, recreating environment');
+                this.createSimpleTestEnvironment();
+            }
+            
+            // Make sure all objects in the scene are visible
+            if (this.frameCounter % 10 === 0) { // Check less frequently to avoid performance issues
+                this.scene.traverse(object => {
+                    if (object.visible !== undefined && !object.visible) {
+                        console.warn('Found invisible object, making it visible:', object.type);
+                        object.visible = true;
+                    }
+                });
+            }
             
             // Update weapon position based on movement and aiming
             this.updateWeaponPosition();
