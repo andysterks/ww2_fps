@@ -908,15 +908,27 @@ class SimpleGame {
         const delta = (now - (this.lastFrameTime || now)) / 1000;
         this.lastFrameTime = now;
         
-        console.log('Animation frame, delta:', delta, 'isAimingDownSights:', this.isAimingDownSights);
+        // Limit logging to avoid console spam
+        if (this.frameCounter % 60 === 0) {
+            console.log('Animation frame, delta:', delta, 'isAimingDownSights:', this.isAimingDownSights);
+        }
+        
+        // Initialize frame counter if not exists
+        if (!this.frameCounter) this.frameCounter = 0;
+        this.frameCounter++;
         
         // Skip if not running
         if (!this.isRunning) {
-            console.log('Game not running, skipping animation frame');
+            if (this.frameCounter % 60 === 0) {
+                console.log('Game not running, skipping animation frame');
+            }
             return;
         }
         
         try {
+            // Make sure scene is visible
+            this.scene.visible = true;
+            
             // Update weapon position based on movement and aiming
             this.updateWeaponPosition();
             
@@ -928,13 +940,22 @@ class SimpleGame {
                 this.updateDebugInfo();
             }
             
-            // Log scene children count
-            console.log('Scene children count:', this.scene.children.length);
+            // Log scene children count occasionally
+            if (this.frameCounter % 60 === 0) {
+                console.log('Scene children count:', this.scene.children.length);
+                console.log('Camera position:', this.camera.position);
+                console.log('Camera rotation:', this.camera.rotation);
+            }
+            
+            // Clear the renderer
+            this.renderer.clear();
             
             // Render scene
             this.renderer.render(this.scene, this.camera);
             
-            console.log('Frame rendered successfully');
+            if (this.frameCounter % 60 === 0) {
+                console.log('Frame rendered successfully');
+            }
         } catch (error) {
             console.error('Error in animation loop:', error);
         }
@@ -1205,6 +1226,15 @@ class SimpleGame {
                     }
                     this.camera.updateProjectionMatrix();
                     console.log('Camera FOV set to:', this.camera.fov);
+                    
+                    // Make sure scene is visible
+                    this.scene.visible = true;
+                    
+                    // Log scene children
+                    console.log('Scene children when toggling aim:');
+                    this.scene.children.forEach((child, index) => {
+                        console.log(`Child ${index}:`, child.type, child.visible);
+                    });
                     
                     // Toggle aiming class on HUD
                     const hudElement = document.getElementById('hud');
