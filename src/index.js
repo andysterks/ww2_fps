@@ -1274,14 +1274,20 @@ class SimpleGame {
     setupEventListeners() {
         console.log("DEBUG: Setting up event listeners");
         
-        // Lock/unlock pointer
+        // Lock/unlock pointer - use document.body instead of controls.lock()
         document.addEventListener('click', (event) => {
             console.log("DEBUG: Click event detected, controls.isLocked:", this.controls ? this.controls.isLocked : 'controls not initialized');
+            
             if (!this.controls.isLocked) {
                 console.log("DEBUG: Attempting to lock controls");
-                this.controls.lock();
-                this.isRunning = true;
-                console.log("DEBUG: Controls lock requested, isRunning set to true");
+                
+                // Request pointer lock on document.body
+                document.body.requestPointerLock = document.body.requestPointerLock || 
+                                                  document.body.mozRequestPointerLock ||
+                                                  document.body.webkitRequestPointerLock;
+                
+                document.body.requestPointerLock();
+                console.log("DEBUG: Pointer lock requested directly on document.body");
             } else if (this.weaponModel && this.canShoot) {
                 console.log("DEBUG: Attempting to shoot");
                 this.shoot();
@@ -1291,6 +1297,9 @@ class SimpleGame {
         // Handle pointer lock change
         document.addEventListener('pointerlockchange', () => {
             console.log("DEBUG: Pointer lock change detected");
+            console.log("DEBUG: pointerLockElement:", document.pointerLockElement);
+            console.log("DEBUG: document.body:", document.body);
+            
             if (document.pointerLockElement === document.body) {
                 console.log("DEBUG: Pointer locked, setting isRunning to true");
                 this.isRunning = true;
@@ -1303,6 +1312,29 @@ class SimpleGame {
         // Direct handling for specific keys
         document.addEventListener('keydown', (event) => {
             console.log('DEBUG: Key pressed directly in setupEventListeners:', event.code);
+            
+            // Always handle F key, even if not running
+            if (event.code === 'KeyF') {
+                console.log('DEBUG: F key pressed - attempting to toggle aiming down sights regardless of game state');
+                
+                // Toggle aiming down sights
+                this.isAimingDownSights = !this.isAimingDownSights;
+                console.log('DEBUG: isAimingDownSights toggled to:', this.isAimingDownSights);
+                
+                // Update weapon position immediately for responsive feedback
+                this.updateWeaponPosition();
+                
+                // Toggle scope overlay
+                const scopeOverlay = document.getElementById('scope-overlay');
+                if (scopeOverlay) {
+                    scopeOverlay.classList.toggle('hidden');
+                    console.log('Toggled scope overlay visibility');
+                }
+                
+                // Force a render to update the scene
+                this.renderer.render(this.scene, this.camera);
+                return;
+            }
             
             if (this.controls && this.controls.isLocked && this.isRunning) {
                 console.log("DEBUG: Key press while game is running:", event.code);
@@ -1319,82 +1351,6 @@ class SimpleGame {
                         break;
                     case 'KeyD':
                         this.moveRight = true;
-                        break;
-                    case 'KeyF':
-                        console.log('DEBUG: F key pressed in SimpleGame - this should toggle aiming down sights');
-                        
-                        // Store current camera position and rotation
-                        const currentPosition = this.camera.position.clone();
-                        const currentRotation = this.camera.rotation.clone();
-                        
-                        // Toggle aiming down sights
-                        this.isAimingDownSights = !this.isAimingDownSights;
-                        console.log('DEBUG: isAimingDownSights toggled to:', this.isAimingDownSights);
-                        
-                        // Change camera FOV for zoom effect
-                        if (this.isAimingDownSights) {
-                            this.camera.fov = this.aimingDownSightsFOV;
-                            console.log('DEBUG: Camera FOV set to aimingDownSightsFOV:', this.aimingDownSightsFOV);
-                            
-                            // Adjust camera position when aiming to align with iron sights
-                            // This creates a more realistic sight picture
-                            this.camera.position.y += 0.03; // Raise the camera to align with sights
-                            console.log('DEBUG: Camera position adjusted for aiming:', this.camera.position);
-                        } else {
-                            this.camera.fov = this.defaultFOV;
-                            console.log('DEBUG: Camera FOV reset to defaultFOV:', this.defaultFOV);
-                            
-                            // Reset camera position
-                            this.camera.position.copy(currentPosition);
-                            console.log('DEBUG: Camera position reset:', this.camera.position);
-                        }
-                        this.camera.updateProjectionMatrix();
-                        
-                        // Ensure camera rotation is preserved
-                        this.camera.rotation.copy(currentRotation);
-                        
-                        // Make sure scene is visible
-                        this.scene.visible = true;
-                        
-                        // Make sure all objects in the scene are visible
-                        this.scene.traverse(object => {
-                            if (object.visible !== undefined) {
-                                object.visible = true;
-                            }
-                        });
-                        
-                        // Update weapon position immediately for responsive feedback
-                        this.updateWeaponPosition();
-                        
-                        // Log scene children
-                        console.log('Scene children when toggling aim:');
-                        this.scene.children.forEach((child, index) => {
-                            console.log(`Child ${index}:`, child.type, child.visible);
-                        });
-                        
-                        // Toggle aiming class on HUD
-                        const hudElement = document.getElementById('hud');
-                        if (hudElement) {
-                            hudElement.classList.toggle('aiming');
-                            console.log('Toggled aiming class on HUD');
-                        }
-                        
-                        // Change crosshair appearance
-                        const crosshair = document.getElementById('crosshair');
-                        if (crosshair) {
-                            crosshair.style.opacity = this.isAimingDownSights ? '0' : '1';
-                            console.log('Updated crosshair visibility:', crosshair.style.opacity);
-                        }
-                        
-                        // Toggle scope overlay
-                        const scopeOverlay = document.getElementById('scope-overlay');
-                        if (scopeOverlay) {
-                            scopeOverlay.classList.toggle('hidden');
-                            console.log('Toggled scope overlay visibility');
-                        }
-                        
-                        // Force a render to update the scene
-                        this.renderer.render(this.scene, this.camera);
                         break;
                     case 'ShiftLeft':
                         this.isSprinting = true;
@@ -1479,187 +1435,66 @@ class SimpleGame {
 
     // Create a simple weapon model
     createSimpleWeaponModel() {
-        console.log("DEBUG: Creating Kar98 rifle model - method start");
+        console.log("DEBUG: Creating simplified Kar98 rifle model");
         const weaponGroup = new THREE.Group();
         
         try {
-            // Create the main components of the Kar98
-            console.log("DEBUG: Creating Kar98 components");
-            this.createKar98Components(weaponGroup);
+            // Main wooden stock (simplified)
+            const stockGeometry = new THREE.BoxGeometry(0.08, 0.12, 0.7);
+            const stockMaterial = new THREE.MeshBasicMaterial({ color: 0x5c3a21 }); // Brown wood color
+            const stock = new THREE.Mesh(stockGeometry, stockMaterial);
+            stock.position.set(0, -0.02, 0);
+            weaponGroup.add(stock);
+            
+            // Barrel (simplified)
+            const barrelGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.8, 8);
+            const barrelMaterial = new THREE.MeshBasicMaterial({ color: 0x444444 }); // Dark metal color
+            const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
+            barrel.rotation.x = Math.PI / 2;
+            barrel.position.set(0, 0.03, -0.35);
+            weaponGroup.add(barrel);
+            
+            // Front sight (simplified)
+            const frontSightGeometry = new THREE.BoxGeometry(0.01, 0.03, 0.01);
+            const sightMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 }); // Dark metal color
+            const frontSight = new THREE.Mesh(frontSightGeometry, sightMaterial);
+            frontSight.position.set(0, 0.07, -0.7);
+            frontSight.name = "frontSightPost"; // Name it for easy reference
+            weaponGroup.add(frontSight);
+            
+            // Rear sight (simplified)
+            const rearSightGeometry = new THREE.BoxGeometry(0.05, 0.03, 0.01);
+            const rearSight = new THREE.Mesh(rearSightGeometry, sightMaterial);
+            rearSight.position.set(0, 0.07, -0.1);
+            rearSight.name = "rearSightAperture"; // Name it for easy reference
+            weaponGroup.add(rearSight);
             
             // Position the weapon in front of the camera
             weaponGroup.position.set(0.25, -0.25, -0.5);
             weaponGroup.rotation.y = Math.PI / 8;
             
-            console.log("DEBUG: Kar98 model created successfully");
+            console.log("DEBUG: Simplified Kar98 model created successfully");
             return weaponGroup;
         } catch (error) {
-            console.error("ERROR: Failed to create Kar98 model:", error);
+            console.error("ERROR: Failed to create simplified Kar98 model:", error);
             
-            // Fallback to a simple model if the detailed one fails
-            console.log("DEBUG: Creating fallback simple weapon model");
+            // Fallback to an even simpler model
+            console.log("DEBUG: Creating ultra-simple fallback weapon model");
             const fallbackGroup = new THREE.Group();
             
-            // Main rifle body
+            // Main rifle body (ultra-simple)
             const rifleBody = new THREE.Mesh(
                 new THREE.BoxGeometry(0.1, 0.05, 0.6),
                 new THREE.MeshBasicMaterial({ color: 0x5c3a21 }) // Brown wood color
             );
             fallbackGroup.add(rifleBody);
             
-            // Barrel
-            const barrel = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.015, 0.015, 0.7, 8),
-                new THREE.MeshBasicMaterial({ color: 0x444444 }) // Dark metal color
-            );
-            barrel.rotation.x = Math.PI / 2;
-            barrel.position.z = -0.35;
-            barrel.position.y = 0.01;
-            fallbackGroup.add(barrel);
-            
             // Position the weapon in front of the camera
             fallbackGroup.position.set(0.25, -0.25, -0.5);
             fallbackGroup.rotation.y = Math.PI / 8;
             
-            console.log("DEBUG: Fallback model created");
+            console.log("DEBUG: Ultra-simple fallback model created");
             return fallbackGroup;
-        }
-    }
-    
-    // Create detailed components for the Kar98 rifle
-    createKar98Components(weaponGroup) {
-        console.log("DEBUG: createKar98Components called");
-        
-        try {
-            // Main wooden stock
-            const stockGeometry = new THREE.BoxGeometry(0.08, 0.12, 0.7);
-            const stockMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x5c3a21, // Brown wood color
-                roughness: 0.8,
-                metalness: 0.2
-            });
-            const stock = new THREE.Mesh(stockGeometry, stockMaterial);
-            stock.position.set(0, -0.02, 0);
-            weaponGroup.add(stock);
-            
-            // Barrel
-            const barrelGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.8, 16);
-            const barrelMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x444444, // Dark metal color
-                roughness: 0.5,
-                metalness: 0.8
-            });
-            const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
-            barrel.rotation.x = Math.PI / 2;
-            barrel.position.set(0, 0.03, -0.35);
-            weaponGroup.add(barrel);
-            
-            // Bolt mechanism
-            const boltGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.12, 8);
-            const boltMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x777777, // Metal color
-                roughness: 0.3,
-                metalness: 0.9
-            });
-            const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
-            bolt.rotation.z = Math.PI / 2;
-            bolt.position.set(0.06, 0.06, -0.1);
-            weaponGroup.add(bolt);
-            
-            // Bolt handle
-            const boltHandleGeometry = new THREE.SphereGeometry(0.02, 8, 8);
-            const boltHandle = new THREE.Mesh(boltHandleGeometry, boltMaterial);
-            boltHandle.position.set(0.12, 0.06, -0.1);
-            weaponGroup.add(boltHandle);
-            
-            // Trigger guard
-            const guardGeometry = new THREE.TorusGeometry(0.025, 0.005, 8, 16, Math.PI);
-            const guardMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x444444, // Dark metal color
-                roughness: 0.5,
-                metalness: 0.8
-            });
-            const guard = new THREE.Mesh(guardGeometry, guardMaterial);
-            guard.rotation.x = Math.PI / 2;
-            guard.position.set(0, -0.08, 0.1);
-            weaponGroup.add(guard);
-            
-            // Trigger
-            const triggerGeometry = new THREE.BoxGeometry(0.005, 0.03, 0.01);
-            const trigger = new THREE.Mesh(triggerGeometry, guardMaterial);
-            trigger.position.set(0, -0.09, 0.1);
-            weaponGroup.add(trigger);
-            
-            // Create iron sights
-            console.log("DEBUG: About to call createKar98IronSights");
-            this.createKar98IronSights(weaponGroup);
-            
-            console.log("DEBUG: createKar98Components completed successfully");
-            return weaponGroup;
-        } catch (error) {
-            console.error("ERROR: Failed to create Kar98 components:", error);
-            throw error; // Re-throw to be caught by the caller
-        }
-    }
-    
-    // Create detailed iron sights for the Kar98
-    createKar98IronSights(weaponGroup) {
-        console.log("DEBUG: createKar98IronSights called");
-        
-        try {
-            // Front sight base
-            const frontSightBaseGeometry = new THREE.BoxGeometry(0.03, 0.02, 0.02);
-            const sightMaterial = new THREE.MeshStandardMaterial({ 
-                color: 0x222222, // Dark metal color
-                roughness: 0.5,
-                metalness: 0.8
-            });
-            const frontSightBase = new THREE.Mesh(frontSightBaseGeometry, sightMaterial);
-            frontSightBase.position.set(0, 0.05, -0.7);
-            weaponGroup.add(frontSightBase);
-            
-            // Front sight post (the part you align with the target)
-            const frontSightPostGeometry = new THREE.BoxGeometry(0.004, 0.02, 0.004);
-            const frontSightPost = new THREE.Mesh(frontSightPostGeometry, sightMaterial);
-            frontSightPost.position.set(0, 0.07, -0.7);
-            frontSightPost.name = "frontSightPost"; // Name it for easy reference
-            weaponGroup.add(frontSightPost);
-            console.log("DEBUG: Front sight post created with name:", frontSightPost.name);
-            
-            // Rear sight base
-            const rearSightBaseGeometry = new THREE.BoxGeometry(0.05, 0.01, 0.03);
-            const rearSightBase = new THREE.Mesh(rearSightBaseGeometry, sightMaterial);
-            rearSightBase.position.set(0, 0.07, -0.1);
-            weaponGroup.add(rearSightBase);
-            
-            // Rear sight aperture (the part you look through)
-            // Create a ring shape for the aperture
-            const innerRadius = 0.006;
-            const outerRadius = 0.012;
-            const thetaSegments = 16;
-            
-            const apertureShape = new THREE.Shape();
-            apertureShape.moveTo(outerRadius, 0);
-            apertureShape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
-            
-            const holeShape = new THREE.Path();
-            holeShape.moveTo(innerRadius, 0);
-            holeShape.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
-            apertureShape.holes.push(holeShape);
-            
-            const apertureGeometry = new THREE.ShapeGeometry(apertureShape, thetaSegments);
-            const rearSightAperture = new THREE.Mesh(apertureGeometry, sightMaterial);
-            rearSightAperture.rotation.x = Math.PI / 2;
-            rearSightAperture.position.set(0, 0.09, -0.1);
-            rearSightAperture.name = "rearSightAperture"; // Name it for easy reference
-            weaponGroup.add(rearSightAperture);
-            console.log("DEBUG: Rear sight aperture created with name:", rearSightAperture.name);
-            
-            console.log("DEBUG: createKar98IronSights completed successfully");
-            return weaponGroup;
-        } catch (error) {
-            console.error("ERROR: Failed to create Kar98 iron sights:", error);
-            throw error; // Re-throw to be caught by the caller
         }
     }
 }
