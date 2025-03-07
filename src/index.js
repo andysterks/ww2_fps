@@ -1087,6 +1087,17 @@ class SimpleGame {
         console.log('DEBUG: Current weapon model:', this.weaponModel);
         console.log('DEBUG: Current weapon position:', this.weaponModel.position);
         console.log('DEBUG: Current weapon rotation:', this.weaponModel.rotation);
+        console.log('DEBUG: Current weapon parent:', this.weaponModel.parent ? this.weaponModel.parent.name : 'none');
+        console.log('DEBUG: Current camera position:', this.camera.position);
+        
+        // Check if weapon is in the scene
+        let isInScene = false;
+        this.scene.traverse(object => {
+            if (object === this.weaponModel) {
+                isInScene = true;
+            }
+        });
+        console.log('DEBUG: Weapon model is in scene:', isInScene);
         
         try {
             // Always update weapon position, even if game is not running
@@ -1095,6 +1106,19 @@ class SimpleGame {
                 // Position the weapon so that the iron sights align with the center of the screen
                 const oldPosition = this.weaponModel.position.clone();
                 const oldRotation = this.weaponModel.rotation.clone();
+                
+                // First, ensure the weapon is a child of the camera
+                if (this.weaponModel.parent !== this.camera) {
+                    console.log('DEBUG: Weapon model is not a child of camera, attaching it');
+                    
+                    // Remove from current parent
+                    if (this.weaponModel.parent) {
+                        this.weaponModel.parent.remove(this.weaponModel);
+                    }
+                    
+                    // Add to camera
+                    this.camera.add(this.weaponModel);
+                }
                 
                 // Position for proper iron sight alignment
                 // Move the weapon up and closer to the camera
@@ -1113,6 +1137,7 @@ class SimpleGame {
                 
                 console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
                 console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
+                console.log('DEBUG: Weapon world position:', this.getWorldPosition(this.weaponModel));
                 
                 // Find front and rear sights to ensure they're visible
                 let frontSightFound = false;
@@ -1123,11 +1148,13 @@ class SimpleGame {
                         frontSightFound = true;
                         child.visible = true;
                         console.log('DEBUG: Front sight found:', child);
+                        console.log('DEBUG: Front sight world position:', this.getWorldPosition(child));
                     }
                     if (child.name === "rearSightAperture") {
                         rearSightFound = true;
                         child.visible = true;
                         console.log('DEBUG: Rear sight found:', child);
+                        console.log('DEBUG: Rear sight world position:', this.getWorldPosition(child));
                     }
                 });
                 
@@ -1152,6 +1179,19 @@ class SimpleGame {
                 const oldPosition = this.weaponModel.position.clone();
                 const oldRotation = this.weaponModel.rotation.clone();
                 
+                // First, ensure the weapon is a child of the camera
+                if (this.weaponModel.parent !== this.camera) {
+                    console.log('DEBUG: Weapon model is not a child of camera, attaching it');
+                    
+                    // Remove from current parent
+                    if (this.weaponModel.parent) {
+                        this.weaponModel.parent.remove(this.weaponModel);
+                    }
+                    
+                    // Add to camera
+                    this.camera.add(this.weaponModel);
+                }
+                
                 this.weaponModel.position.set(
                     0.25,   // Offset to the right
                     -0.25,  // Lower position
@@ -1165,6 +1205,7 @@ class SimpleGame {
                 
                 console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
                 console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
+                console.log('DEBUG: Weapon world position:', this.getWorldPosition(this.weaponModel));
                 
                 // Reset camera FOV
                 const oldFOV = this.camera.fov;
@@ -1193,6 +1234,13 @@ class SimpleGame {
         } catch (error) {
             console.error('DEBUG: Error updating weapon position:', error);
         }
+    }
+
+    // Helper method to get world position of an object
+    getWorldPosition(object) {
+        const worldPosition = new THREE.Vector3();
+        object.getWorldPosition(worldPosition);
+        return worldPosition;
     }
 
     // Update player position
