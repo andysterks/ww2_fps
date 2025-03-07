@@ -968,26 +968,48 @@ class SimpleGame {
             return;
         }
         
-        console.log('Updating weapon position, isAimingDownSights:', this.isAimingDownSights);
+        if (this.frameCounter % 60 === 0) {
+            console.log('Updating weapon position, isAimingDownSights:', this.isAimingDownSights);
+        }
         
-        if (this.isAimingDownSights) {
-            // Aiming down sights position (centered and closer to camera)
-            this.weaponModel.position.set(
-                0,
-                -0.05,
-                -0.2
-            );
-            this.weaponModel.rotation.y = 0;
-            console.log('Weapon positioned for aiming down sights');
-        } else {
-            // Hip position
-            this.weaponModel.position.set(
-                0.25,
-                -0.25,
-                -0.5
-            );
-            this.weaponModel.rotation.y = Math.PI / 8;
-            console.log('Weapon positioned for hip fire');
+        try {
+            if (this.isAimingDownSights) {
+                // Aiming down sights position (centered and closer to camera)
+                this.weaponModel.position.set(
+                    0,
+                    -0.05,
+                    -0.2
+                );
+                this.weaponModel.rotation.y = 0;
+                
+                if (this.frameCounter % 60 === 0) {
+                    console.log('Weapon positioned for aiming down sights');
+                }
+            } else {
+                // Hip position
+                this.weaponModel.position.set(
+                    0.25,
+                    -0.25,
+                    -0.5
+                );
+                this.weaponModel.rotation.y = Math.PI / 8;
+                
+                if (this.frameCounter % 60 === 0) {
+                    console.log('Weapon positioned for hip fire');
+                }
+            }
+            
+            // Make sure weapon is visible
+            this.weaponModel.visible = true;
+            
+            // Make sure weapon doesn't interfere with scene visibility
+            this.weaponModel.renderOrder = 1000; // Render after everything else
+            
+            if (this.frameCounter % 60 === 0) {
+                console.log('Weapon model updated successfully');
+            }
+        } catch (error) {
+            console.error('Error updating weapon position:', error);
         }
     }
 
@@ -1215,6 +1237,11 @@ class SimpleGame {
                     break;
                 case 'KeyF':
                     console.log('F key pressed in SimpleGame - this should toggle aiming down sights');
+                    
+                    // Store current camera position and rotation
+                    const currentPosition = this.camera.position.clone();
+                    const currentRotation = this.camera.rotation.clone();
+                    
                     // Toggle aiming down sights
                     this.isAimingDownSights = !this.isAimingDownSights;
                     
@@ -1227,8 +1254,19 @@ class SimpleGame {
                     this.camera.updateProjectionMatrix();
                     console.log('Camera FOV set to:', this.camera.fov);
                     
+                    // Ensure camera position and rotation are preserved
+                    this.camera.position.copy(currentPosition);
+                    this.camera.rotation.copy(currentRotation);
+                    
                     // Make sure scene is visible
                     this.scene.visible = true;
+                    
+                    // Make sure all objects in the scene are visible
+                    this.scene.traverse(object => {
+                        if (object.visible !== undefined) {
+                            object.visible = true;
+                        }
+                    });
                     
                     // Log scene children
                     console.log('Scene children when toggling aim:');
@@ -1256,6 +1294,9 @@ class SimpleGame {
                         scopeOverlay.classList.toggle('hidden');
                         console.log('Toggled scope overlay visibility');
                     }
+                    
+                    // Force a render to update the scene
+                    this.renderer.render(this.scene, this.camera);
                     break;
                 case 'ShiftLeft':
                     this.isSprinting = true;
