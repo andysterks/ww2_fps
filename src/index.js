@@ -1139,6 +1139,14 @@ class SimpleGame {
                 this.camera.updateProjectionMatrix();
                 console.log('DEBUG: Camera FOV changed from', oldFOV, 'to', this.camera.fov);
                 
+                // Hide remote players when aiming down sights to avoid confusion
+                this.players.forEach((player, id) => {
+                    if (!player.isLocal && player.model) {
+                        player.model.visible = false;
+                        console.log(`DEBUG: Hiding remote player ${id} while aiming down sights`);
+                    }
+                });
+                
             } else {
                 // Hip position
                 const oldPosition = this.weaponModel.position.clone();
@@ -1163,6 +1171,14 @@ class SimpleGame {
                 this.camera.fov = this.defaultFOV || 75;
                 this.camera.updateProjectionMatrix();
                 console.log('DEBUG: Camera FOV changed from', oldFOV, 'to', this.camera.fov);
+                
+                // Show remote players when not aiming down sights
+                this.players.forEach((player, id) => {
+                    if (!player.isLocal && player.model) {
+                        player.model.visible = true;
+                        console.log(`DEBUG: Showing remote player ${id} when not aiming down sights`);
+                    }
+                });
             }
             
             // Make sure weapon is visible
@@ -1459,6 +1475,7 @@ class SimpleGame {
                 
                 // Store current camera position and rotation for smooth transition
                 const currentPosition = this.camera.position.clone();
+                const currentRotation = this.camera.rotation.clone();
                 
                 if (this.isAimingDownSights) {
                     // When aiming down sights, slightly adjust camera position
@@ -1468,6 +1485,8 @@ class SimpleGame {
                     // Add a slight forward movement to simulate bringing the weapon up to eye level
                     const lookDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
                     this.camera.position.addScaledVector(lookDirection, 0.05);
+                    
+                    console.log('DEBUG: Camera position adjusted for aiming:', this.camera.position);
                     
                     // Show message for first time users
                     if (!this.hasShownAimingMessage) {
@@ -1498,6 +1517,11 @@ class SimpleGame {
                         
                         this.hasShownAimingMessage = true;
                     }
+                } else {
+                    // Reset camera position and rotation when not aiming
+                    this.camera.position.copy(currentPosition);
+                    this.camera.rotation.copy(currentRotation);
+                    console.log('DEBUG: Camera position and rotation reset');
                 }
                 
                 // Update weapon position immediately for responsive feedback
