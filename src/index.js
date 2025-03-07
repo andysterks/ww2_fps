@@ -1512,11 +1512,17 @@ class SimpleGame {
             
             // Always handle F key, even if not running
             if (event.code === 'KeyF') {
-                console.log('F key pressed - toggling aiming down sights');
+                console.log('DEBUG: F key pressed - toggling aiming down sights');
                 
                 // Log scene hierarchy before toggling
                 console.log('DEBUG: Scene hierarchy before toggling:');
                 this.logSceneHierarchy(this.scene);
+                
+                // Log camera children
+                console.log('DEBUG: Camera children before toggling:');
+                this.camera.children.forEach((child, index) => {
+                    console.log(`Child ${index}:`, child.name, child.type, child.visible);
+                });
                 
                 // Toggle aiming down sights
                 this.isAimingDownSights = !this.isAimingDownSights;
@@ -1599,6 +1605,12 @@ class SimpleGame {
                 // Log scene hierarchy after toggling
                 console.log('DEBUG: Scene hierarchy after toggling:');
                 this.logSceneHierarchy(this.scene);
+                
+                // Log camera children
+                console.log('DEBUG: Camera children after toggling:');
+                this.camera.children.forEach((child, index) => {
+                    console.log(`Child ${index}:`, child.name, child.type, child.visible);
+                });
                 
                 return;
             }
