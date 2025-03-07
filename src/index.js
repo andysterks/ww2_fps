@@ -903,27 +903,51 @@ class SimpleGame {
         // Request next frame
         requestAnimationFrame(() => this.animate.call(this));
         
+        // Calculate delta time
+        const now = performance.now();
+        const delta = (now - (this.lastFrameTime || now)) / 1000;
+        this.lastFrameTime = now;
+        
+        console.log('Animation frame, delta:', delta, 'isAimingDownSights:', this.isAimingDownSights);
+        
         // Skip if not running
-        if (!this.isRunning) return;
-        
-        // Update weapon position based on movement and aiming
-        this.updateWeaponPosition();
-        
-        // Update player position
-        this.updatePlayerPosition();
-        
-        // Update debug info
-        if (this.debugMode) {
-            this.updateDebugInfo();
+        if (!this.isRunning) {
+            console.log('Game not running, skipping animation frame');
+            return;
         }
         
-        // Render scene
-        this.renderer.render(this.scene, this.camera);
+        try {
+            // Update weapon position based on movement and aiming
+            this.updateWeaponPosition();
+            
+            // Update player position
+            this.updatePlayerPosition(delta);
+            
+            // Update debug info
+            if (this.debugMode) {
+                this.updateDebugInfo();
+            }
+            
+            // Log scene children count
+            console.log('Scene children count:', this.scene.children.length);
+            
+            // Render scene
+            this.renderer.render(this.scene, this.camera);
+            
+            console.log('Frame rendered successfully');
+        } catch (error) {
+            console.error('Error in animation loop:', error);
+        }
     }
 
     // Update weapon position based on movement and aiming
     updateWeaponPosition() {
-        if (!this.weaponModel) return;
+        if (!this.weaponModel) {
+            console.log('No weapon model to update');
+            return;
+        }
+        
+        console.log('Updating weapon position, isAimingDownSights:', this.isAimingDownSights);
         
         if (this.isAimingDownSights) {
             // Aiming down sights position (centered and closer to camera)
@@ -933,6 +957,7 @@ class SimpleGame {
                 -0.2
             );
             this.weaponModel.rotation.y = 0;
+            console.log('Weapon positioned for aiming down sights');
         } else {
             // Hip position
             this.weaponModel.position.set(
@@ -941,11 +966,19 @@ class SimpleGame {
                 -0.5
             );
             this.weaponModel.rotation.y = Math.PI / 8;
+            console.log('Weapon positioned for hip fire');
         }
     }
 
     // Update player position
-    updatePlayerPosition() {
+    updatePlayerPosition(delta) {
+        if (!delta) {
+            console.warn('Delta time is missing or zero, using default value');
+            delta = 0.016; // Default to 60fps
+        }
+        
+        console.log('Updating player position with delta:', delta);
+        
         // Handle player movement
         if (this.controls.isLocked) {
             // Calculate movement speed based on sprint state
@@ -972,7 +1005,8 @@ class SimpleGame {
         
         // Send network updates at fixed intervals
         if (this.socket && this.socket.connected && this.localPlayer) {
-            const timeSinceLastUpdate = now - this.lastNetworkUpdate;
+            const now = performance.now();
+            const timeSinceLastUpdate = now - (this.lastNetworkUpdate || now);
             if (timeSinceLastUpdate > this.networkUpdateInterval) {
                 this.sendNetworkUpdate();
                 this.lastNetworkUpdate = now;
