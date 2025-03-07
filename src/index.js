@@ -1093,9 +1093,14 @@ class SimpleGame {
     // Update weapon position based on movement and aiming
     updateWeaponPosition() {
         if (!this.weaponModel) {
-            console.log('No weapon model to update in updateWeaponPosition');
+            console.log('DEBUG: No weapon model to update in updateWeaponPosition');
             return;
         }
+        
+        console.log('DEBUG: Updating weapon position, isAimingDownSights:', this.isAimingDownSights);
+        console.log('DEBUG: Current weapon model:', this.weaponModel);
+        console.log('DEBUG: Current weapon position:', this.weaponModel.position);
+        console.log('DEBUG: Current weapon rotation:', this.weaponModel.rotation);
         
         try {
             // Always update weapon position, even if game is not running
@@ -1120,6 +1125,9 @@ class SimpleGame {
                     0         // No roll
                 );
                 
+                console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
+                console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
+                
                 // Find front and rear sights to ensure they're visible
                 let frontSightFound = false;
                 let rearSightFound = false;
@@ -1128,17 +1136,22 @@ class SimpleGame {
                     if (child.name === "frontSightPost") {
                         frontSightFound = true;
                         child.visible = true;
+                        console.log('DEBUG: Front sight found:', child);
                     }
                     if (child.name === "rearSightAperture") {
                         rearSightFound = true;
                         child.visible = true;
+                        console.log('DEBUG: Rear sight found:', child);
                     }
                 });
+                
+                console.log('DEBUG: Front sight found:', frontSightFound, 'Rear sight found:', rearSightFound);
                 
                 // Change camera FOV for zoom effect - use a moderate zoom for iron sights
                 const oldFOV = this.camera.fov;
                 this.camera.fov = this.aimingDownSightsFOV || 55; // Less extreme zoom for iron sights
                 this.camera.updateProjectionMatrix();
+                console.log('DEBUG: Camera FOV changed from', oldFOV, 'to', this.camera.fov);
                 
             } else {
                 // Hip position
@@ -1156,10 +1169,14 @@ class SimpleGame {
                     0               // No roll
                 );
                 
+                console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
+                console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
+                
                 // Reset camera FOV
                 const oldFOV = this.camera.fov;
                 this.camera.fov = this.defaultFOV || 75;
                 this.camera.updateProjectionMatrix();
+                console.log('DEBUG: Camera FOV changed from', oldFOV, 'to', this.camera.fov);
             }
             
             // Make sure weapon is visible
@@ -1172,7 +1189,7 @@ class SimpleGame {
             this.renderer.render(this.scene, this.camera);
             
         } catch (error) {
-            console.error('Error updating weapon position:', error);
+            console.error('DEBUG: Error updating weapon position:', error);
         }
     }
 
@@ -1447,6 +1464,10 @@ class SimpleGame {
             if (event.code === 'KeyF') {
                 console.log('F key pressed - toggling aiming down sights');
                 
+                // Log scene hierarchy before toggling
+                console.log('DEBUG: Scene hierarchy before toggling:');
+                this.logSceneHierarchy(this.scene);
+                
                 // Toggle aiming down sights
                 this.isAimingDownSights = !this.isAimingDownSights;
                 
@@ -1516,6 +1537,11 @@ class SimpleGame {
                 
                 // Force a render to update the scene
                 this.renderer.render(this.scene, this.camera);
+                
+                // Log scene hierarchy after toggling
+                console.log('DEBUG: Scene hierarchy after toggling:');
+                this.logSceneHierarchy(this.scene);
+                
                 return;
             }
             
@@ -1632,8 +1658,9 @@ class SimpleGame {
 
     // Create a simple weapon model
     createSimpleWeaponModel() {
-        console.log("Creating detailed Kar98 rifle model");
+        console.log("DEBUG: Creating detailed Kar98 rifle model");
         const weaponGroup = new THREE.Group();
+        weaponGroup.name = "playerWeapon"; // Give it a unique name
         
         try {
             // Main wooden stock
@@ -1641,6 +1668,7 @@ class SimpleGame {
             const stockMaterial = new THREE.MeshBasicMaterial({ color: 0x5c3a21 }); // Brown wood color
             const stock = new THREE.Mesh(stockGeometry, stockMaterial);
             stock.position.set(0, -0.02, 0);
+            stock.name = "weaponStock";
             weaponGroup.add(stock);
             
             // Barrel
@@ -1649,6 +1677,7 @@ class SimpleGame {
             const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
             barrel.rotation.x = Math.PI / 2;
             barrel.position.set(0, 0.03, -0.35);
+            barrel.name = "weaponBarrel";
             weaponGroup.add(barrel);
             
             // Bolt mechanism
@@ -1657,12 +1686,14 @@ class SimpleGame {
             const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
             bolt.rotation.z = Math.PI / 2;
             bolt.position.set(0.06, 0.06, -0.1);
+            bolt.name = "weaponBolt";
             weaponGroup.add(bolt);
             
             // Bolt handle
             const boltHandleGeometry = new THREE.SphereGeometry(0.02, 8, 8);
             const boltHandle = new THREE.Mesh(boltHandleGeometry, boltMaterial);
             boltHandle.position.set(0.12, 0.06, -0.1);
+            boltHandle.name = "weaponBoltHandle";
             weaponGroup.add(boltHandle);
             
             // Create detailed iron sights
@@ -1672,20 +1703,25 @@ class SimpleGame {
             weaponGroup.position.set(0.25, -0.25, -0.5);
             weaponGroup.rotation.y = Math.PI / 8;
             
-            console.log("Detailed Kar98 model created successfully");
+            console.log("DEBUG: Detailed Kar98 model created successfully:", weaponGroup);
+            console.log("DEBUG: Weapon position:", weaponGroup.position);
+            console.log("DEBUG: Weapon rotation:", weaponGroup.rotation);
+            
             return weaponGroup;
         } catch (error) {
-            console.error("Failed to create detailed Kar98 model:", error);
+            console.error("DEBUG: Failed to create detailed Kar98 model:", error);
             
             // Fallback to a simple model if the detailed one fails
-            console.log("Creating fallback simple weapon model");
+            console.log("DEBUG: Creating fallback simple weapon model");
             const fallbackGroup = new THREE.Group();
+            fallbackGroup.name = "fallbackWeapon";
             
             // Main rifle body
             const rifleBody = new THREE.Mesh(
                 new THREE.BoxGeometry(0.1, 0.05, 0.6),
                 new THREE.MeshBasicMaterial({ color: 0x5c3a21 }) // Brown wood color
             );
+            rifleBody.name = "fallbackBody";
             fallbackGroup.add(rifleBody);
             
             // Barrel
@@ -1696,13 +1732,14 @@ class SimpleGame {
             barrel.rotation.x = Math.PI / 2;
             barrel.position.z = -0.35;
             barrel.position.y = 0.01;
+            barrel.name = "fallbackBarrel";
             fallbackGroup.add(barrel);
             
             // Position the weapon in front of the camera
             fallbackGroup.position.set(0.25, -0.25, -0.5);
             fallbackGroup.rotation.y = Math.PI / 8;
             
-            console.log("Fallback model created");
+            console.log("DEBUG: Fallback model created:", fallbackGroup);
             return fallbackGroup;
         }
     }
@@ -1753,5 +1790,32 @@ class SimpleGame {
         weaponGroup.add(rearSightNotch);
         
         return weaponGroup;
+    }
+
+    // Log scene hierarchy
+    logSceneHierarchy(scene) {
+        const hierarchy = [];
+        this.traverseScene(scene, hierarchy);
+        console.log('Scene hierarchy:', hierarchy.join('\n'));
+    }
+
+    traverseScene(object, hierarchy) {
+        if (object instanceof THREE.Group) {
+            const children = object.children;
+            hierarchy.push(`${object.name || 'Group'} (${object.position.x.toFixed(2)}, ${object.position.y.toFixed(2)}, ${object.position.z.toFixed(2)})`);
+            children.forEach(child => this.traverseScene(child, hierarchy));
+        } else if (object instanceof THREE.Mesh) {
+            hierarchy.push(`${object.name || 'Mesh'} (${object.position.x.toFixed(2)}, ${object.position.y.toFixed(2)}, ${object.position.z.toFixed(2)})`);
+        }
+    }
+
+    // Handle window resize
+    onWindowResize() {
+        this.camera.left = window.innerWidth * -0.5;
+        this.camera.right = window.innerWidth * 0.5;
+        this.camera.top = window.innerHeight * 0.5;
+        this.camera.bottom = window.innerHeight * -0.5;
+        this.camera.updateProjectionMatrix();
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 }
