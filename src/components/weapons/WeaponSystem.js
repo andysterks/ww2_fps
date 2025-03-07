@@ -167,8 +167,14 @@ class WeaponSystem {
         }
         
         if (this.weapon) {
+            console.log('Updating weapon position, aiming states:', {
+                isAiming: this.isAiming,
+                isAimingDownSights: this._isAimingDownSights
+            });
+            
             // Apply weapon position based on aim state
             if (this._isAimingDownSights) {
+                console.log('Positioning weapon for aiming down sights');
                 // Aiming down sights position (centered and closer to camera)
                 this.weapon.position.set(
                     0 + this.weaponBob.x * 0.1,
@@ -181,6 +187,7 @@ class WeaponSystem {
                 this.weaponCamera.fov = this.adsZoomFOV;
                 this.weaponCamera.updateProjectionMatrix();
             } else if (this.isAiming) {
+                console.log('Positioning weapon for regular aiming');
                 // Regular aiming position (centered)
                 this.weapon.position.set(
                     0 + this.weaponBob.x * 0.3,
@@ -193,6 +200,7 @@ class WeaponSystem {
                 this.weaponCamera.fov = this.aimingFOV;
                 this.weaponCamera.updateProjectionMatrix();
             } else {
+                console.log('Positioning weapon for hip fire');
                 // Hip position
                 this.weapon.position.set(
                     0.25 + this.weaponBob.x,
@@ -219,6 +227,11 @@ class WeaponSystem {
     }
     
     toggleAimDownSights() {
+        console.log('toggleAimDownSights called, current state:', {
+            isAiming: this.isAiming,
+            isAimingDownSights: this._isAimingDownSights
+        });
+        
         // Toggle aiming down sights state
         this._isAimingDownSights = !this._isAimingDownSights;
         
@@ -232,6 +245,12 @@ class WeaponSystem {
         if (isFirstTime) {
             this.hasAimedDownSights = true;
         }
+        
+        console.log('After toggle, new state:', {
+            isAiming: this.isAiming,
+            isAimingDownSights: this._isAimingDownSights,
+            isFirstTime: isFirstTime
+        });
         
         return {
             isAimingDownSights: this._isAimingDownSights,
@@ -513,6 +532,7 @@ class WeaponSystem {
     }
     
     isAimingDownSights() {
+        console.log('isAimingDownSights called, returning:', this._isAimingDownSights);
         return this._isAimingDownSights;
     }
     

@@ -28,6 +28,10 @@ class Game {
         this.isRunning = false;
         this.prevTime = performance.now();
         
+        // Aiming state tracking for logging
+        this._lastIsAiming = false;
+        this._lastIsAimingDownSights = false;
+        
         // Initialize game
         this.init();
     }
@@ -118,15 +122,23 @@ class Game {
     }
     
     handleKeyDown(event) {
+        console.log('Key pressed:', event.code);
+        
         switch (event.code) {
             case 'KeyF':
-                // Toggle aim down sights
-                const adsResult = this.weaponSystem.toggleAimDownSights();
-                this.ui.updateCrosshair(this.weaponSystem.isAiming(), adsResult.isAimingDownSights);
-                
-                // Show message on first use
-                if (adsResult.isFirstTime) {
-                    this.ui.showMessage("Looking down sights for better accuracy", 3000);
+                console.log('F key pressed - attempting to aim down sights');
+                try {
+                    // Toggle aim down sights
+                    const adsResult = this.weaponSystem.toggleAimDownSights();
+                    console.log('ADS result:', adsResult);
+                    this.ui.updateCrosshair(this.weaponSystem.isAiming(), adsResult.isAimingDownSights);
+                    
+                    // Show message on first use
+                    if (adsResult.isFirstTime) {
+                        this.ui.showMessage("Looking down sights for better accuracy", 3000);
+                    }
+                } catch (error) {
+                    console.error('Error when aiming down sights:', error);
                 }
                 break;
                 
@@ -159,8 +171,22 @@ class Game {
         // Skip update if game is paused
         if (!this.isRunning) return;
         
+        // Log aiming states
+        const isAiming = this.weaponSystem.isAiming();
+        const isAimingDownSights = this.weaponSystem.isAimingDownSights();
+        
+        // Only log when aiming states change to avoid console spam
+        if (this._lastIsAiming !== isAiming || this._lastIsAimingDownSights !== isAimingDownSights) {
+            console.log('Animate: aiming states changed:', {
+                isAiming: isAiming,
+                isAimingDownSights: isAimingDownSights
+            });
+            this._lastIsAiming = isAiming;
+            this._lastIsAimingDownSights = isAimingDownSights;
+        }
+        
         // Update player
-        this.player.update(this.weaponSystem.isAimingDownSights() || this.weaponSystem.isAiming());
+        this.player.update(isAimingDownSights || isAiming);
         
         // Update weapon system
         this.weaponSystem.update({
@@ -173,7 +199,7 @@ class Game {
         
         // Update UI
         this.ui.updateAmmoCounter(this.weaponSystem.getBulletCount());
-        this.ui.updateCrosshair(this.weaponSystem.isAiming(), this.weaponSystem.isAimingDownSights());
+        this.ui.updateCrosshair(isAiming, isAimingDownSights);
         
         // Render scenes
         this.render();

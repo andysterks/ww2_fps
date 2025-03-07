@@ -136,19 +136,26 @@ class GameUI {
     }
     
     updateCrosshair(isAiming, isAimingDownSights) {
+        console.log('updateCrosshair called with:', { isAiming, isAimingDownSights });
+        
         if (this.crosshair) {
             if (isAimingDownSights) {
+                console.log('Setting crosshair for aiming down sights (hidden)');
                 // Hide crosshair when aiming down sights
                 this.crosshair.style.opacity = '0';
             } else if (isAiming) {
+                console.log('Setting crosshair for regular aiming (small)');
                 // Smaller crosshair when aiming
                 this.crosshair.style.fontSize = '16px';
                 this.crosshair.style.opacity = '0.8';
             } else {
+                console.log('Setting crosshair for hip fire (normal)');
                 // Normal crosshair
                 this.crosshair.style.fontSize = '24px';
                 this.crosshair.style.opacity = '1';
             }
+        } else {
+            console.error('Crosshair element is null or undefined');
         }
     }
     
