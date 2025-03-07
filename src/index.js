@@ -93,6 +93,24 @@ document.addEventListener('DOMContentLoaded', () => {
             crosshair.style.fontSize = '24px';
             hudContainer.appendChild(crosshair);
             
+            // Create scope overlay for aiming down sights
+            const scopeOverlay = document.createElement('div');
+            scopeOverlay.id = 'scope-overlay';
+            scopeOverlay.className = 'hidden';
+            scopeOverlay.style.position = 'absolute';
+            scopeOverlay.style.top = '0';
+            scopeOverlay.style.left = '0';
+            scopeOverlay.style.width = '100%';
+            scopeOverlay.style.height = '100%';
+            scopeOverlay.style.pointerEvents = 'none';
+            
+            // Create iron sight elements
+            const rearSight = document.createElement('div');
+            rearSight.className = 'rear-sight';
+            scopeOverlay.appendChild(rearSight);
+            
+            hudContainer.appendChild(scopeOverlay);
+            
             // Create debug info container
             const debugInfo = document.createElement('div');
             debugInfo.id = 'debug-info';
@@ -1103,6 +1121,8 @@ class SimpleGame {
         
         // Handle keyboard input
         document.addEventListener('keydown', (event) => {
+            console.log('Key pressed in SimpleGame:', event.code);
+            
             switch (event.code) {
                 case 'KeyW':
                     this.moveForward = true;
@@ -1115,6 +1135,29 @@ class SimpleGame {
                     break;
                 case 'KeyD':
                     this.moveRight = true;
+                    break;
+                case 'KeyF':
+                    console.log('F key pressed in SimpleGame - this should toggle aiming down sights');
+                    // Toggle aiming down sights if we had a weapon system
+                    const hudElement = document.getElementById('hud');
+                    if (hudElement) {
+                        hudElement.classList.toggle('aiming');
+                        console.log('Toggled aiming class on HUD');
+                    }
+                    
+                    // Change crosshair appearance
+                    const crosshair = document.getElementById('crosshair');
+                    if (crosshair) {
+                        crosshair.style.opacity = crosshair.style.opacity === '0' ? '1' : '0';
+                        console.log('Toggled crosshair visibility:', crosshair.style.opacity);
+                    }
+                    
+                    // Toggle scope overlay
+                    const scopeOverlay = document.getElementById('scope-overlay');
+                    if (scopeOverlay) {
+                        scopeOverlay.classList.toggle('hidden');
+                        console.log('Toggled scope overlay visibility');
+                    }
                     break;
                 case 'ShiftLeft':
                     this.isSprinting = true;
