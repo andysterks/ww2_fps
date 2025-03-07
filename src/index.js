@@ -624,7 +624,19 @@ class SimpleGame {
             console.log("Setting up camera position");
             this.camera.position.y = 1.6; // Eye level
             console.log("Creating pointer lock controls");
-            this.controls = new PointerLockControls(this.camera, this.renderer.domElement);
+            
+            // Use document.body for pointer lock controls instead of renderer.domElement
+            console.log("DEBUG: Creating PointerLockControls with document.body");
+            this.controls = new PointerLockControls(this.camera, document.body);
+            
+            // Log controls properties
+            console.log("DEBUG: Controls created:", {
+                isLocked: this.controls.isLocked,
+                hasControls: !!this.controls,
+                hasMoveForward: typeof this.controls.moveForward === 'function',
+                hasMoveRight: typeof this.controls.moveRight === 'function',
+                domElement: this.controls.domElement
+            });
             
             // Update debug message
             if (debugDiv) {
@@ -632,7 +644,7 @@ class SimpleGame {
             }
             
             // Add controls to scene to ensure they're properly initialized
-            console.log("Adding controls to scene");
+            console.log("DEBUG: Adding controls to scene");
             this.scene.add(this.controls.getObject());
             
             // Movement variables
