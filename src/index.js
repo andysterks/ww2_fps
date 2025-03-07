@@ -1087,17 +1087,12 @@ class SimpleGame {
         console.log('DEBUG: Current weapon model:', this.weaponModel);
         console.log('DEBUG: Current weapon position:', this.weaponModel.position);
         console.log('DEBUG: Current weapon rotation:', this.weaponModel.rotation);
-        console.log('DEBUG: Current weapon parent:', this.weaponModel.parent ? this.weaponModel.parent.name : 'none');
-        console.log('DEBUG: Current camera position:', this.camera.position);
+        console.log('DEBUG: Weapon model parent:', this.weaponModel.parent ? this.weaponModel.parent.name : 'none');
         
-        // Check if weapon is in the scene
-        let isInScene = false;
-        this.scene.traverse(object => {
-            if (object === this.weaponModel) {
-                isInScene = true;
-            }
-        });
-        console.log('DEBUG: Weapon model is in scene:', isInScene);
+        // Get world position of weapon
+        const worldPosition = new THREE.Vector3();
+        this.weaponModel.getWorldPosition(worldPosition);
+        console.log('DEBUG: Weapon world position:', worldPosition);
         
         try {
             // Always update weapon position, even if game is not running
@@ -1107,9 +1102,9 @@ class SimpleGame {
                 const oldPosition = this.weaponModel.position.clone();
                 const oldRotation = this.weaponModel.rotation.clone();
                 
-                // First, ensure the weapon is a child of the camera
+                // IMPORTANT: Make sure the weapon is a child of the camera
                 if (this.weaponModel.parent !== this.camera) {
-                    console.log('DEBUG: Weapon model is not a child of camera, attaching it');
+                    console.log('DEBUG: Weapon model is not a child of camera, reparenting');
                     
                     // Remove from current parent
                     if (this.weaponModel.parent) {
@@ -1137,7 +1132,11 @@ class SimpleGame {
                 
                 console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
                 console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
-                console.log('DEBUG: Weapon world position:', this.getWorldPosition(this.weaponModel));
+                
+                // Get updated world position of weapon
+                const newWorldPosition = new THREE.Vector3();
+                this.weaponModel.getWorldPosition(newWorldPosition);
+                console.log('DEBUG: Weapon new world position:', newWorldPosition);
                 
                 // Find front and rear sights to ensure they're visible
                 let frontSightFound = false;
@@ -1148,13 +1147,21 @@ class SimpleGame {
                         frontSightFound = true;
                         child.visible = true;
                         console.log('DEBUG: Front sight found:', child);
-                        console.log('DEBUG: Front sight world position:', this.getWorldPosition(child));
+                        
+                        // Get world position of front sight
+                        const frontSightWorldPos = new THREE.Vector3();
+                        child.getWorldPosition(frontSightWorldPos);
+                        console.log('DEBUG: Front sight world position:', frontSightWorldPos);
                     }
                     if (child.name === "rearSightAperture") {
                         rearSightFound = true;
                         child.visible = true;
                         console.log('DEBUG: Rear sight found:', child);
-                        console.log('DEBUG: Rear sight world position:', this.getWorldPosition(child));
+                        
+                        // Get world position of rear sight
+                        const rearSightWorldPos = new THREE.Vector3();
+                        child.getWorldPosition(rearSightWorldPos);
+                        console.log('DEBUG: Rear sight world position:', rearSightWorldPos);
                     }
                 });
                 
@@ -1179,9 +1186,9 @@ class SimpleGame {
                 const oldPosition = this.weaponModel.position.clone();
                 const oldRotation = this.weaponModel.rotation.clone();
                 
-                // First, ensure the weapon is a child of the camera
+                // IMPORTANT: Make sure the weapon is a child of the camera
                 if (this.weaponModel.parent !== this.camera) {
-                    console.log('DEBUG: Weapon model is not a child of camera, attaching it');
+                    console.log('DEBUG: Weapon model is not a child of camera, reparenting');
                     
                     // Remove from current parent
                     if (this.weaponModel.parent) {
@@ -1205,7 +1212,11 @@ class SimpleGame {
                 
                 console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
                 console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
-                console.log('DEBUG: Weapon world position:', this.getWorldPosition(this.weaponModel));
+                
+                // Get updated world position of weapon
+                const newWorldPosition = new THREE.Vector3();
+                this.weaponModel.getWorldPosition(newWorldPosition);
+                console.log('DEBUG: Weapon new world position:', newWorldPosition);
                 
                 // Reset camera FOV
                 const oldFOV = this.camera.fov;
