@@ -993,13 +993,20 @@ class SimpleGame {
         
         try {
             if (this.isAimingDownSights) {
-                // Aiming down sights position (centered and closer to camera)
+                // Aiming down sights position for Kar98
+                // Position the weapon so that the iron sights align with the center of the screen
                 this.weaponModel.position.set(
-                    0,
-                    -0.05,
-                    -0.2
+                    0,      // Centered horizontally
+                    -0.02,  // Slightly below center to show the iron sights
+                    -0.3    // Closer to camera when aiming
                 );
-                this.weaponModel.rotation.y = 0;
+                
+                // Rotate the weapon to be straight ahead
+                this.weaponModel.rotation.set(
+                    0,      // No pitch
+                    0,      // No yaw
+                    0       // No roll
+                );
                 
                 if (this.frameCounter % 60 === 0) {
                     console.log('Weapon positioned for aiming down sights');
@@ -1007,11 +1014,15 @@ class SimpleGame {
             } else {
                 // Hip position
                 this.weaponModel.position.set(
-                    0.25,
-                    -0.25,
-                    -0.5
+                    0.25,   // Offset to the right
+                    -0.25,  // Lower position
+                    -0.5    // Further from camera
                 );
-                this.weaponModel.rotation.y = Math.PI / 8;
+                this.weaponModel.rotation.set(
+                    0,              // No pitch
+                    Math.PI / 8,    // Slight angle
+                    0               // No roll
+                );
                 
                 if (this.frameCounter % 60 === 0) {
                     console.log('Weapon positioned for hip fire');
@@ -1391,29 +1402,133 @@ class SimpleGame {
 
     // Create a simple weapon model
     createSimpleWeaponModel() {
-        console.log("Creating simple weapon model");
+        console.log("Creating Kar98 rifle model");
         const weaponGroup = new THREE.Group();
         
-        // Main rifle body
-        const rifleBody = new THREE.Mesh(
-            new THREE.BoxGeometry(0.1, 0.05, 0.6),
-            new THREE.MeshBasicMaterial({ color: 0x5c3a21 }) // Brown wood color
-        );
-        weaponGroup.add(rifleBody);
-        
-        // Barrel
-        const barrel = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.015, 0.015, 0.7, 8),
-            new THREE.MeshBasicMaterial({ color: 0x444444 }) // Dark metal color
-        );
-        barrel.rotation.x = Math.PI / 2;
-        barrel.position.z = -0.35;
-        barrel.position.y = 0.01;
-        weaponGroup.add(barrel);
+        // Create the main components of the Kar98
+        this.createKar98Components(weaponGroup);
         
         // Position the weapon in front of the camera
         weaponGroup.position.set(0.25, -0.25, -0.5);
         weaponGroup.rotation.y = Math.PI / 8;
+        
+        return weaponGroup;
+    }
+    
+    // Create detailed components for the Kar98 rifle
+    createKar98Components(weaponGroup) {
+        // Main wooden stock
+        const stockGeometry = new THREE.BoxGeometry(0.08, 0.12, 0.7);
+        const stockMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x5c3a21, // Brown wood color
+            roughness: 0.8,
+            metalness: 0.2
+        });
+        const stock = new THREE.Mesh(stockGeometry, stockMaterial);
+        stock.position.set(0, -0.02, 0);
+        weaponGroup.add(stock);
+        
+        // Barrel
+        const barrelGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.8, 16);
+        const barrelMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x444444, // Dark metal color
+            roughness: 0.5,
+            metalness: 0.8
+        });
+        const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.set(0, 0.03, -0.35);
+        weaponGroup.add(barrel);
+        
+        // Bolt mechanism
+        const boltGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.12, 8);
+        const boltMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x777777, // Metal color
+            roughness: 0.3,
+            metalness: 0.9
+        });
+        const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
+        bolt.rotation.z = Math.PI / 2;
+        bolt.position.set(0.06, 0.06, -0.1);
+        weaponGroup.add(bolt);
+        
+        // Bolt handle
+        const boltHandleGeometry = new THREE.SphereGeometry(0.02, 8, 8);
+        const boltHandle = new THREE.Mesh(boltHandleGeometry, boltMaterial);
+        boltHandle.position.set(0.12, 0.06, -0.1);
+        weaponGroup.add(boltHandle);
+        
+        // Trigger guard
+        const guardGeometry = new THREE.TorusGeometry(0.025, 0.005, 8, 16, Math.PI);
+        const guardMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x444444, // Dark metal color
+            roughness: 0.5,
+            metalness: 0.8
+        });
+        const guard = new THREE.Mesh(guardGeometry, guardMaterial);
+        guard.rotation.x = Math.PI / 2;
+        guard.position.set(0, -0.08, 0.1);
+        weaponGroup.add(guard);
+        
+        // Trigger
+        const triggerGeometry = new THREE.BoxGeometry(0.005, 0.03, 0.01);
+        const trigger = new THREE.Mesh(triggerGeometry, guardMaterial);
+        trigger.position.set(0, -0.09, 0.1);
+        weaponGroup.add(trigger);
+        
+        // Create iron sights
+        this.createKar98IronSights(weaponGroup);
+        
+        return weaponGroup;
+    }
+    
+    // Create detailed iron sights for the Kar98
+    createKar98IronSights(weaponGroup) {
+        // Front sight base
+        const frontSightBaseGeometry = new THREE.BoxGeometry(0.03, 0.02, 0.02);
+        const sightMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x222222, // Dark metal color
+            roughness: 0.5,
+            metalness: 0.8
+        });
+        const frontSightBase = new THREE.Mesh(frontSightBaseGeometry, sightMaterial);
+        frontSightBase.position.set(0, 0.05, -0.7);
+        weaponGroup.add(frontSightBase);
+        
+        // Front sight post (the part you align with the target)
+        const frontSightPostGeometry = new THREE.BoxGeometry(0.004, 0.02, 0.004);
+        const frontSightPost = new THREE.Mesh(frontSightPostGeometry, sightMaterial);
+        frontSightPost.position.set(0, 0.07, -0.7);
+        frontSightPost.name = "frontSightPost"; // Name it for easy reference
+        weaponGroup.add(frontSightPost);
+        
+        // Rear sight base
+        const rearSightBaseGeometry = new THREE.BoxGeometry(0.05, 0.01, 0.03);
+        const rearSightBase = new THREE.Mesh(rearSightBaseGeometry, sightMaterial);
+        rearSightBase.position.set(0, 0.07, -0.1);
+        weaponGroup.add(rearSightBase);
+        
+        // Rear sight aperture (the part you look through)
+        // Create a ring shape for the aperture
+        const innerRadius = 0.006;
+        const outerRadius = 0.012;
+        const thetaSegments = 16;
+        
+        const apertureShape = new THREE.Shape();
+        apertureShape.moveTo(outerRadius, 0);
+        apertureShape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
+        
+        const holeShape = new THREE.Path();
+        holeShape.moveTo(innerRadius, 0);
+        holeShape.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
+        apertureShape.holes.push(holeShape);
+        
+        const apertureGeometry = new THREE.ShapeGeometry(apertureShape, thetaSegments);
+        const rearSightAperture = new THREE.Mesh(apertureGeometry, sightMaterial);
+        rearSightAperture.rotation.x = Math.PI / 2;
+        rearSightAperture.position.set(0, 0.09, -0.1);
+        rearSightAperture.name = "rearSightAperture"; // Name it for easy reference
+        weaponGroup.add(rearSightAperture);
         
         return weaponGroup;
     }
