@@ -43,6 +43,8 @@ class WeaponSystem {
     }
     
     init() {
+        console.log('WeaponSystem init called');
+        
         // Set up weapon camera
         this.weaponCamera.position.set(0, 0, 0);
         
@@ -57,6 +59,8 @@ class WeaponSystem {
         
         // Load weapon model
         this.loadWeaponModel();
+        
+        console.log('WeaponSystem init completed, weapon:', this.weapon ? 'created' : 'not created');
     }
     
     loadWeaponModel() {

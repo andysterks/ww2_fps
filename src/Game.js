@@ -31,6 +31,8 @@ class Game {
         // Aiming state tracking for logging
         this._lastIsAiming = false;
         this._lastIsAimingDownSights = false;
+        this._lastRenderIsAiming = false;
+        this._lastRenderIsAimingDownSights = false;
         
         // Initialize game
         this.init();
@@ -105,8 +107,31 @@ class Game {
             }
         });
         
-        // Handle key presses
-        document.addEventListener('keydown', (event) => this.handleKeyDown(event));
+        // Direct handling for specific keys
+        document.addEventListener('keydown', (event) => {
+            console.log('Key pressed directly in setupEventListeners:', event.code);
+            
+            if (this.player.getControls().isLocked && this.isRunning) {
+                if (event.code === 'KeyF') {
+                    console.log('F key detected directly in setupEventListeners - toggling aim down sights');
+                    try {
+                        const adsResult = this.weaponSystem.toggleAimDownSights();
+                        console.log('ADS result from direct handler:', adsResult);
+                        this.ui.updateCrosshair(this.weaponSystem.isAiming(), adsResult.isAimingDownSights);
+                        
+                        if (adsResult.isFirstTime) {
+                            this.ui.showMessage("Looking down sights for better accuracy", 3000);
+                        }
+                    } catch (error) {
+                        console.error('Error when aiming down sights from direct handler:', error);
+                    }
+                } else if (event.code === 'KeyR') {
+                    this.weaponSystem.reload();
+                } else if (event.code === 'KeyC') {
+                    this.ui.showControls();
+                }
+            }
+        });
         
         // Handle window resize
         window.addEventListener('resize', () => this.onWindowResize());
@@ -119,39 +144,6 @@ class Game {
                 this.isRunning = false;
             }
         });
-    }
-    
-    handleKeyDown(event) {
-        console.log('Key pressed:', event.code);
-        
-        switch (event.code) {
-            case 'KeyF':
-                console.log('F key pressed - attempting to aim down sights');
-                try {
-                    // Toggle aim down sights
-                    const adsResult = this.weaponSystem.toggleAimDownSights();
-                    console.log('ADS result:', adsResult);
-                    this.ui.updateCrosshair(this.weaponSystem.isAiming(), adsResult.isAimingDownSights);
-                    
-                    // Show message on first use
-                    if (adsResult.isFirstTime) {
-                        this.ui.showMessage("Looking down sights for better accuracy", 3000);
-                    }
-                } catch (error) {
-                    console.error('Error when aiming down sights:', error);
-                }
-                break;
-                
-            case 'KeyR':
-                // Reload weapon
-                this.weaponSystem.reload();
-                break;
-                
-            case 'KeyC':
-                // Show controls
-                this.ui.showControls();
-                break;
-        }
     }
     
     shoot() {
@@ -214,6 +206,20 @@ class Game {
         
         // Render weapon on top
         if (this.isRunning) {
+            const isAiming = this.weaponSystem.isAiming();
+            const isAimingDownSights = this.weaponSystem.isAimingDownSights();
+            
+            // Only log when aiming states change to avoid console spam
+            if (this._lastRenderIsAiming !== isAiming || this._lastRenderIsAimingDownSights !== isAimingDownSights) {
+                console.log('Rendering weapon scene, weapon system state changed:', {
+                    isAiming: isAiming,
+                    isAimingDownSights: isAimingDownSights,
+                    weaponExists: this.weaponSystem.getWeaponScene() !== null
+                });
+                this._lastRenderIsAiming = isAiming;
+                this._lastRenderIsAimingDownSights = isAimingDownSights;
+            }
+            
             this.renderer.clearDepth();
             this.renderer.render(
                 this.weaponSystem.getWeaponScene(),
