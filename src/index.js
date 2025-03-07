@@ -532,7 +532,7 @@ class Player {
 class SimpleGame {
     constructor() {
         try {
-            console.log("Initializing game");
+            console.log("DEBUG: SimpleGame constructor called");
             
             // Update debug message
             const debugDiv = document.querySelector('div[style*="Game initializing"]');
@@ -541,11 +541,11 @@ class SimpleGame {
             }
             
             // Initialize properties
-            console.log("Creating scene");
+            console.log("DEBUG: Creating scene");
             this.scene = new THREE.Scene();
-            console.log("Creating camera");
+            console.log("DEBUG: Creating camera");
             this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            console.log("Creating renderer");
+            console.log("DEBUG: Creating renderer");
             this.renderer = new THREE.WebGLRenderer({ antialias: true });
             
             // Camera settings
@@ -555,7 +555,9 @@ class SimpleGame {
             this.isAimingDownSights = false;
             
             // Create weapon model
+            console.log("DEBUG: About to create Kar98 model");
             this.weaponModel = this.createSimpleWeaponModel();
+            console.log("DEBUG: Kar98 model created:", this.weaponModel);
             this.scene.add(this.weaponModel);
             
             // Update debug message
@@ -1020,12 +1022,13 @@ class SimpleGame {
     // Update weapon position based on movement and aiming
     updateWeaponPosition() {
         if (!this.weaponModel) {
-            console.log('No weapon model to update');
+            console.log('DEBUG: No weapon model to update in updateWeaponPosition');
             return;
         }
         
         if (this.frameCounter % 60 === 0) {
-            console.log('Updating weapon position, isAimingDownSights:', this.isAimingDownSights);
+            console.log('DEBUG: Updating weapon position, isAimingDownSights:', this.isAimingDownSights);
+            console.log('DEBUG: Weapon model:', this.weaponModel);
         }
         
         try {
@@ -1046,14 +1049,24 @@ class SimpleGame {
                 );
                 
                 // Find front and rear sights to ensure they're visible
+                let frontSightFound = false;
+                let rearSightFound = false;
+                
                 this.weaponModel.traverse(child => {
-                    if (child.name === "frontSightPost" || child.name === "rearSightAperture") {
+                    if (child.name === "frontSightPost") {
+                        frontSightFound = true;
+                        child.visible = true;
+                    }
+                    if (child.name === "rearSightAperture") {
+                        rearSightFound = true;
                         child.visible = true;
                     }
                 });
                 
+                console.log('DEBUG: Front sight found:', frontSightFound, 'Rear sight found:', rearSightFound);
+                
                 if (this.frameCounter % 60 === 0) {
-                    console.log('Weapon positioned for aiming down sights');
+                    console.log('DEBUG: Weapon positioned for aiming down sights');
                 }
             } else {
                 // Hip position
@@ -1069,7 +1082,7 @@ class SimpleGame {
                 );
                 
                 if (this.frameCounter % 60 === 0) {
-                    console.log('Weapon positioned for hip fire');
+                    console.log('DEBUG: Weapon positioned for hip fire');
                 }
             }
             
@@ -1080,10 +1093,10 @@ class SimpleGame {
             this.weaponModel.renderOrder = 1000; // Render after everything else
             
             if (this.frameCounter % 60 === 0) {
-                console.log('Weapon model updated successfully');
+                console.log('DEBUG: Weapon model updated successfully');
             }
         } catch (error) {
-            console.error('Error updating weapon position:', error);
+            console.error('ERROR: Error updating weapon position:', error);
         }
     }
 
@@ -1310,7 +1323,7 @@ class SimpleGame {
                     this.moveRight = true;
                     break;
                 case 'KeyF':
-                    console.log('F key pressed in SimpleGame - this should toggle aiming down sights');
+                    console.log('DEBUG: F key pressed in SimpleGame - this should toggle aiming down sights');
                     
                     // Store current camera position and rotation
                     const currentPosition = this.camera.position.clone();
@@ -1318,22 +1331,26 @@ class SimpleGame {
                     
                     // Toggle aiming down sights
                     this.isAimingDownSights = !this.isAimingDownSights;
+                    console.log('DEBUG: isAimingDownSights toggled to:', this.isAimingDownSights);
                     
                     // Change camera FOV for zoom effect
                     if (this.isAimingDownSights) {
                         this.camera.fov = this.aimingDownSightsFOV;
+                        console.log('DEBUG: Camera FOV set to aimingDownSightsFOV:', this.aimingDownSightsFOV);
                         
                         // Adjust camera position when aiming to align with iron sights
                         // This creates a more realistic sight picture
                         this.camera.position.y += 0.03; // Raise the camera to align with sights
+                        console.log('DEBUG: Camera position adjusted for aiming:', this.camera.position);
                     } else {
                         this.camera.fov = this.defaultFOV;
+                        console.log('DEBUG: Camera FOV reset to defaultFOV:', this.defaultFOV);
                         
                         // Reset camera position
                         this.camera.position.copy(currentPosition);
+                        console.log('DEBUG: Camera position reset:', this.camera.position);
                     }
                     this.camera.updateProjectionMatrix();
-                    console.log('Camera FOV set to:', this.camera.fov);
                     
                     // Ensure camera rotation is preserved
                     this.camera.rotation.copy(currentRotation);
@@ -1455,17 +1472,51 @@ class SimpleGame {
 
     // Create a simple weapon model
     createSimpleWeaponModel() {
-        console.log("Creating Kar98 rifle model");
+        console.log("DEBUG: Creating Kar98 rifle model - method start");
         const weaponGroup = new THREE.Group();
         
-        // Create the main components of the Kar98
-        this.createKar98Components(weaponGroup);
-        
-        // Position the weapon in front of the camera
-        weaponGroup.position.set(0.25, -0.25, -0.5);
-        weaponGroup.rotation.y = Math.PI / 8;
-        
-        return weaponGroup;
+        try {
+            // Create the main components of the Kar98
+            console.log("DEBUG: Creating Kar98 components");
+            this.createKar98Components(weaponGroup);
+            
+            // Position the weapon in front of the camera
+            weaponGroup.position.set(0.25, -0.25, -0.5);
+            weaponGroup.rotation.y = Math.PI / 8;
+            
+            console.log("DEBUG: Kar98 model created successfully");
+            return weaponGroup;
+        } catch (error) {
+            console.error("ERROR: Failed to create Kar98 model:", error);
+            
+            // Fallback to a simple model if the detailed one fails
+            console.log("DEBUG: Creating fallback simple weapon model");
+            const fallbackGroup = new THREE.Group();
+            
+            // Main rifle body
+            const rifleBody = new THREE.Mesh(
+                new THREE.BoxGeometry(0.1, 0.05, 0.6),
+                new THREE.MeshBasicMaterial({ color: 0x5c3a21 }) // Brown wood color
+            );
+            fallbackGroup.add(rifleBody);
+            
+            // Barrel
+            const barrel = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.015, 0.015, 0.7, 8),
+                new THREE.MeshBasicMaterial({ color: 0x444444 }) // Dark metal color
+            );
+            barrel.rotation.x = Math.PI / 2;
+            barrel.position.z = -0.35;
+            barrel.position.y = 0.01;
+            fallbackGroup.add(barrel);
+            
+            // Position the weapon in front of the camera
+            fallbackGroup.position.set(0.25, -0.25, -0.5);
+            fallbackGroup.rotation.y = Math.PI / 8;
+            
+            console.log("DEBUG: Fallback model created");
+            return fallbackGroup;
+        }
     }
     
     // Create detailed components for the Kar98 rifle
