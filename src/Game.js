@@ -81,8 +81,6 @@ class Game {
         this.weaponSystem.setPlayer(this.player);
     }
     
-
-    
     setupEventListeners() {
         // Lock/unlock pointer
         document.addEventListener('click', (event) => {
@@ -91,6 +89,15 @@ class Game {
                 this.isRunning = true;
             } else if (this.weaponSystem.canShoot) {
                 this.shoot();
+            }
+        });
+        
+        // Right-click for regular aiming
+        document.addEventListener('contextmenu', (event) => {
+            event.preventDefault(); // Prevent context menu from appearing
+            if (this.player.getControls().isLocked && this.isRunning) {
+                const isAiming = this.weaponSystem.toggleAim();
+                this.ui.updateCrosshair(isAiming, this.weaponSystem.isAimingDownSights());
             }
         });
         
@@ -113,9 +120,14 @@ class Game {
     handleKeyDown(event) {
         switch (event.code) {
             case 'KeyF':
-                // Toggle aim
-                const isAiming = this.weaponSystem.toggleAim();
-                this.ui.updateCrosshair(isAiming);
+                // Toggle aim down sights
+                const adsResult = this.weaponSystem.toggleAimDownSights();
+                this.ui.updateCrosshair(this.weaponSystem.isAiming(), adsResult.isAimingDownSights);
+                
+                // Show message on first use
+                if (adsResult.isFirstTime) {
+                    this.ui.showMessage("Looking down sights for better accuracy", 3000);
+                }
                 break;
                 
             case 'KeyR':
@@ -148,7 +160,7 @@ class Game {
         if (!this.isRunning) return;
         
         // Update player
-        this.player.update(this.weaponSystem.isAimingDownSights());
+        this.player.update(this.weaponSystem.isAimingDownSights() || this.weaponSystem.isAiming());
         
         // Update weapon system
         this.weaponSystem.update({
@@ -161,6 +173,7 @@ class Game {
         
         // Update UI
         this.ui.updateAmmoCounter(this.weaponSystem.getBulletCount());
+        this.ui.updateCrosshair(this.weaponSystem.isAiming(), this.weaponSystem.isAimingDownSights());
         
         // Render scenes
         this.render();

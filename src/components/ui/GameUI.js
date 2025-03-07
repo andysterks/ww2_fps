@@ -135,9 +135,12 @@ class GameUI {
         }
     }
     
-    updateCrosshair(isAiming) {
+    updateCrosshair(isAiming, isAimingDownSights) {
         if (this.crosshair) {
-            if (isAiming) {
+            if (isAimingDownSights) {
+                // Hide crosshair when aiming down sights
+                this.crosshair.style.opacity = '0';
+            } else if (isAiming) {
                 // Smaller crosshair when aiming
                 this.crosshair.style.fontSize = '16px';
                 this.crosshair.style.opacity = '0.8';
@@ -169,9 +172,10 @@ class GameUI {
             <h2>Controls</h2>
             <p>WASD - Move</p>
             <p>Shift - Sprint</p>
-            <p>F - Aim</p>
+            <p>Right Click - Aim</p>
+            <p>F - Aim Down Sights</p>
             <p>R - Reload</p>
-            <p>Click - Shoot</p>
+            <p>Left Click - Shoot</p>
             <p>ESC - Exit pointer lock</p>
         `;
         

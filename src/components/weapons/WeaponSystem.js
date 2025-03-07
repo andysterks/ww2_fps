@@ -19,12 +19,15 @@ class WeaponSystem {
         this.weapon = null;
         this.muzzleFlash = null;
         this.isAiming = false;
+        this.isAimingDownSights = false;
+        this.hasAimedDownSights = false;
         this.isShooting = false;
         this.canShoot = true;
         
         // Weapon properties
         this.defaultFOV = 75;
         this.aimingFOV = 45;
+        this.adsZoomFOV = 30;
         this.shootingCooldown = 500; // milliseconds
         this.lastShotTime = 0;
         this.bulletCount = 8; // M1 Garand clip size
@@ -165,8 +168,20 @@ class WeaponSystem {
         
         if (this.weapon) {
             // Apply weapon position based on aim state
-            if (this.isAiming) {
-                // Aiming position (centered)
+            if (this.isAimingDownSights) {
+                // Aiming down sights position (centered and closer to camera)
+                this.weapon.position.set(
+                    0 + this.weaponBob.x * 0.1,
+                    -0.05 + this.weaponBob.y * 0.1,
+                    -0.2
+                );
+                this.weapon.rotation.y = 0;
+                
+                // Adjust FOV for aiming down sights
+                this.weaponCamera.fov = this.adsZoomFOV;
+                this.weaponCamera.updateProjectionMatrix();
+            } else if (this.isAiming) {
+                // Regular aiming position (centered)
                 this.weapon.position.set(
                     0 + this.weaponBob.x * 0.3,
                     -0.15 + this.weaponBob.y * 0.3,
@@ -194,8 +209,34 @@ class WeaponSystem {
     }
     
     toggleAim() {
+        // If currently aiming down sights, exit that mode first
+        if (this.isAimingDownSights) {
+            this.isAimingDownSights = false;
+        }
+        
         this.isAiming = !this.isAiming;
         return this.isAiming;
+    }
+    
+    toggleAimDownSights() {
+        // Toggle aiming down sights state
+        this.isAimingDownSights = !this.isAimingDownSights;
+        
+        // If enabling ADS, make sure regular aiming is also enabled
+        if (this.isAimingDownSights) {
+            this.isAiming = true;
+        }
+        
+        // Check if this is the first time aiming down sights
+        const isFirstTime = this.isAimingDownSights && !this.hasAimedDownSights;
+        if (isFirstTime) {
+            this.hasAimedDownSights = true;
+        }
+        
+        return {
+            isAimingDownSights: this.isAimingDownSights,
+            isFirstTime: isFirstTime
+        };
     }
     
     shoot() {
@@ -234,7 +275,9 @@ class WeaponSystem {
             this.muzzleFlash.material.opacity = 1.0;
             
             // Position muzzle flash based on aim state
-            if (this.isAiming) {
+            if (this.isAimingDownSights) {
+                this.muzzleFlash.position.set(0, -0.02, -0.6);
+            } else if (this.isAiming) {
                 this.muzzleFlash.position.set(0, -0.05, -0.8);
             } else {
                 this.muzzleFlash.position.set(0.25, -0.15, -1.0);
@@ -470,6 +513,10 @@ class WeaponSystem {
     }
     
     isAimingDownSights() {
+        return this.isAimingDownSights;
+    }
+    
+    isAiming() {
         return this.isAiming;
     }
     
