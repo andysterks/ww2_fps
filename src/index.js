@@ -960,6 +960,7 @@ class SimpleGame {
         if (!this.isRunning) {
             if (this.frameCounter % 60 === 0) {
                 console.log('Game not running, skipping animation frame');
+                console.log('DEBUG: isRunning:', this.isRunning, 'controls.isLocked:', this.controls ? this.controls.isLocked : 'controls not initialized');
             }
             return;
         }
@@ -1003,6 +1004,7 @@ class SimpleGame {
                 console.log('Scene children count:', this.scene.children.length);
                 console.log('Camera position:', this.camera.position);
                 console.log('Camera rotation:', this.camera.rotation);
+                console.log('DEBUG: isRunning:', this.isRunning, 'controls.isLocked:', this.controls ? this.controls.isLocked : 'controls not initialized');
             }
             
             // Clear the renderer
@@ -1263,168 +1265,166 @@ class SimpleGame {
 
     // Set up event listeners for user input
     setupEventListeners() {
-        console.log("Setting up event listeners");
+        console.log("DEBUG: Setting up event listeners");
         
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            this.camera.aspect = window.innerWidth / window.innerHeight;
-            this.camera.updateProjectionMatrix();
-            this.renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-        
-        // Handle pointer lock
-        const gameContainer = document.getElementById('game-container');
-        
-        gameContainer.addEventListener('click', () => {
+        // Lock/unlock pointer
+        document.addEventListener('click', (event) => {
+            console.log("DEBUG: Click event detected, controls.isLocked:", this.controls ? this.controls.isLocked : 'controls not initialized');
             if (!this.controls.isLocked) {
+                console.log("DEBUG: Attempting to lock controls");
                 this.controls.lock();
                 this.isRunning = true;
+                console.log("DEBUG: Controls lock requested, isRunning set to true");
+            } else if (this.weaponModel && this.canShoot) {
+                console.log("DEBUG: Attempting to shoot");
+                this.shoot();
+            }
+        });
+        
+        // Handle pointer lock change
+        document.addEventListener('pointerlockchange', () => {
+            console.log("DEBUG: Pointer lock change detected");
+            if (document.pointerLockElement === document.body) {
+                console.log("DEBUG: Pointer locked, setting isRunning to true");
+                this.isRunning = true;
+            } else {
+                console.log("DEBUG: Pointer unlocked, setting isRunning to false");
+                this.isRunning = false;
+            }
+        });
+        
+        // Direct handling for specific keys
+        document.addEventListener('keydown', (event) => {
+            console.log('DEBUG: Key pressed directly in setupEventListeners:', event.code);
+            
+            if (this.controls && this.controls.isLocked && this.isRunning) {
+                console.log("DEBUG: Key press while game is running:", event.code);
                 
-                // Enable debug info if in debug mode
-                if (this.debugMode) {
-                    const debugInfo = document.getElementById('debug-info');
-                    if (debugInfo) {
-                        debugInfo.style.display = 'block';
-                    }
+                switch (event.code) {
+                    case 'KeyW':
+                        this.moveForward = true;
+                        break;
+                    case 'KeyS':
+                        this.moveBackward = true;
+                        break;
+                    case 'KeyA':
+                        this.moveLeft = true;
+                        break;
+                    case 'KeyD':
+                        this.moveRight = true;
+                        break;
+                    case 'KeyF':
+                        console.log('DEBUG: F key pressed in SimpleGame - this should toggle aiming down sights');
+                        
+                        // Store current camera position and rotation
+                        const currentPosition = this.camera.position.clone();
+                        const currentRotation = this.camera.rotation.clone();
+                        
+                        // Toggle aiming down sights
+                        this.isAimingDownSights = !this.isAimingDownSights;
+                        console.log('DEBUG: isAimingDownSights toggled to:', this.isAimingDownSights);
+                        
+                        // Change camera FOV for zoom effect
+                        if (this.isAimingDownSights) {
+                            this.camera.fov = this.aimingDownSightsFOV;
+                            console.log('DEBUG: Camera FOV set to aimingDownSightsFOV:', this.aimingDownSightsFOV);
+                            
+                            // Adjust camera position when aiming to align with iron sights
+                            // This creates a more realistic sight picture
+                            this.camera.position.y += 0.03; // Raise the camera to align with sights
+                            console.log('DEBUG: Camera position adjusted for aiming:', this.camera.position);
+                        } else {
+                            this.camera.fov = this.defaultFOV;
+                            console.log('DEBUG: Camera FOV reset to defaultFOV:', this.defaultFOV);
+                            
+                            // Reset camera position
+                            this.camera.position.copy(currentPosition);
+                            console.log('DEBUG: Camera position reset:', this.camera.position);
+                        }
+                        this.camera.updateProjectionMatrix();
+                        
+                        // Ensure camera rotation is preserved
+                        this.camera.rotation.copy(currentRotation);
+                        
+                        // Make sure scene is visible
+                        this.scene.visible = true;
+                        
+                        // Make sure all objects in the scene are visible
+                        this.scene.traverse(object => {
+                            if (object.visible !== undefined) {
+                                object.visible = true;
+                            }
+                        });
+                        
+                        // Update weapon position immediately for responsive feedback
+                        this.updateWeaponPosition();
+                        
+                        // Log scene children
+                        console.log('Scene children when toggling aim:');
+                        this.scene.children.forEach((child, index) => {
+                            console.log(`Child ${index}:`, child.type, child.visible);
+                        });
+                        
+                        // Toggle aiming class on HUD
+                        const hudElement = document.getElementById('hud');
+                        if (hudElement) {
+                            hudElement.classList.toggle('aiming');
+                            console.log('Toggled aiming class on HUD');
+                        }
+                        
+                        // Change crosshair appearance
+                        const crosshair = document.getElementById('crosshair');
+                        if (crosshair) {
+                            crosshair.style.opacity = this.isAimingDownSights ? '0' : '1';
+                            console.log('Updated crosshair visibility:', crosshair.style.opacity);
+                        }
+                        
+                        // Toggle scope overlay
+                        const scopeOverlay = document.getElementById('scope-overlay');
+                        if (scopeOverlay) {
+                            scopeOverlay.classList.toggle('hidden');
+                            console.log('Toggled scope overlay visibility');
+                        }
+                        
+                        // Force a render to update the scene
+                        this.renderer.render(this.scene, this.camera);
+                        break;
+                    case 'ShiftLeft':
+                        this.isSprinting = true;
+                        break;
+                }
+            } else {
+                console.log("DEBUG: Key press ignored, game not running. isRunning:", this.isRunning, "controls.isLocked:", this.controls ? this.controls.isLocked : 'controls not initialized');
+            }
+        });
+        
+        // Handle key up events
+        document.addEventListener('keyup', (event) => {
+            if (this.controls && this.controls.isLocked && this.isRunning) {
+                switch (event.code) {
+                    case 'KeyW':
+                        this.moveForward = false;
+                        break;
+                    case 'KeyS':
+                        this.moveBackward = false;
+                        break;
+                    case 'KeyA':
+                        this.moveLeft = false;
+                        break;
+                    case 'KeyD':
+                        this.moveRight = false;
+                        break;
+                    case 'ShiftLeft':
+                        this.isSprinting = false;
+                        break;
                 }
             }
         });
         
-        this.controls.addEventListener('lock', () => {
-            console.log("Controls locked");
-        });
+        // Handle window resize
+        window.addEventListener('resize', () => this.onWindowResize());
         
-        this.controls.addEventListener('unlock', () => {
-            console.log("Controls unlocked");
-            this.isRunning = false;
-            
-            // Hide debug info when controls are unlocked
-            const debugInfo = document.getElementById('debug-info');
-            if (debugInfo) {
-                debugInfo.style.display = 'none';
-            }
-        });
-        
-        // Handle keyboard input
-        document.addEventListener('keydown', (event) => {
-            console.log('Key pressed in SimpleGame:', event.code);
-            
-            switch (event.code) {
-                case 'KeyW':
-                    this.moveForward = true;
-                    break;
-                case 'KeyS':
-                    this.moveBackward = true;
-                    break;
-                case 'KeyA':
-                    this.moveLeft = true;
-                    break;
-                case 'KeyD':
-                    this.moveRight = true;
-                    break;
-                case 'KeyF':
-                    console.log('DEBUG: F key pressed in SimpleGame - this should toggle aiming down sights');
-                    
-                    // Store current camera position and rotation
-                    const currentPosition = this.camera.position.clone();
-                    const currentRotation = this.camera.rotation.clone();
-                    
-                    // Toggle aiming down sights
-                    this.isAimingDownSights = !this.isAimingDownSights;
-                    console.log('DEBUG: isAimingDownSights toggled to:', this.isAimingDownSights);
-                    
-                    // Change camera FOV for zoom effect
-                    if (this.isAimingDownSights) {
-                        this.camera.fov = this.aimingDownSightsFOV;
-                        console.log('DEBUG: Camera FOV set to aimingDownSightsFOV:', this.aimingDownSightsFOV);
-                        
-                        // Adjust camera position when aiming to align with iron sights
-                        // This creates a more realistic sight picture
-                        this.camera.position.y += 0.03; // Raise the camera to align with sights
-                        console.log('DEBUG: Camera position adjusted for aiming:', this.camera.position);
-                    } else {
-                        this.camera.fov = this.defaultFOV;
-                        console.log('DEBUG: Camera FOV reset to defaultFOV:', this.defaultFOV);
-                        
-                        // Reset camera position
-                        this.camera.position.copy(currentPosition);
-                        console.log('DEBUG: Camera position reset:', this.camera.position);
-                    }
-                    this.camera.updateProjectionMatrix();
-                    
-                    // Ensure camera rotation is preserved
-                    this.camera.rotation.copy(currentRotation);
-                    
-                    // Make sure scene is visible
-                    this.scene.visible = true;
-                    
-                    // Make sure all objects in the scene are visible
-                    this.scene.traverse(object => {
-                        if (object.visible !== undefined) {
-                            object.visible = true;
-                        }
-                    });
-                    
-                    // Update weapon position immediately for responsive feedback
-                    this.updateWeaponPosition();
-                    
-                    // Log scene children
-                    console.log('Scene children when toggling aim:');
-                    this.scene.children.forEach((child, index) => {
-                        console.log(`Child ${index}:`, child.type, child.visible);
-                    });
-                    
-                    // Toggle aiming class on HUD
-                    const hudElement = document.getElementById('hud');
-                    if (hudElement) {
-                        hudElement.classList.toggle('aiming');
-                        console.log('Toggled aiming class on HUD');
-                    }
-                    
-                    // Change crosshair appearance
-                    const crosshair = document.getElementById('crosshair');
-                    if (crosshair) {
-                        crosshair.style.opacity = this.isAimingDownSights ? '0' : '1';
-                        console.log('Updated crosshair visibility:', crosshair.style.opacity);
-                    }
-                    
-                    // Toggle scope overlay
-                    const scopeOverlay = document.getElementById('scope-overlay');
-                    if (scopeOverlay) {
-                        scopeOverlay.classList.toggle('hidden');
-                        console.log('Toggled scope overlay visibility');
-                    }
-                    
-                    // Force a render to update the scene
-                    this.renderer.render(this.scene, this.camera);
-                    break;
-                case 'ShiftLeft':
-                    this.isSprinting = true;
-                    break;
-            }
-        });
-        
-        document.addEventListener('keyup', (event) => {
-            switch (event.code) {
-                case 'KeyW':
-                    this.moveForward = false;
-                    break;
-                case 'KeyS':
-                    this.moveBackward = false;
-                    break;
-                case 'KeyA':
-                    this.moveLeft = false;
-                    break;
-                case 'KeyD':
-                    this.moveRight = false;
-                    break;
-                case 'ShiftLeft':
-                    this.isSprinting = false;
-                    break;
-            }
-        });
-        
-        console.log("Event listeners set up");
+        console.log("DEBUG: Event listeners set up successfully");
     }
 
     // Update debug information display
@@ -1521,119 +1521,138 @@ class SimpleGame {
     
     // Create detailed components for the Kar98 rifle
     createKar98Components(weaponGroup) {
-        // Main wooden stock
-        const stockGeometry = new THREE.BoxGeometry(0.08, 0.12, 0.7);
-        const stockMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x5c3a21, // Brown wood color
-            roughness: 0.8,
-            metalness: 0.2
-        });
-        const stock = new THREE.Mesh(stockGeometry, stockMaterial);
-        stock.position.set(0, -0.02, 0);
-        weaponGroup.add(stock);
+        console.log("DEBUG: createKar98Components called");
         
-        // Barrel
-        const barrelGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.8, 16);
-        const barrelMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x444444, // Dark metal color
-            roughness: 0.5,
-            metalness: 0.8
-        });
-        const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
-        barrel.rotation.x = Math.PI / 2;
-        barrel.position.set(0, 0.03, -0.35);
-        weaponGroup.add(barrel);
-        
-        // Bolt mechanism
-        const boltGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.12, 8);
-        const boltMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x777777, // Metal color
-            roughness: 0.3,
-            metalness: 0.9
-        });
-        const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
-        bolt.rotation.z = Math.PI / 2;
-        bolt.position.set(0.06, 0.06, -0.1);
-        weaponGroup.add(bolt);
-        
-        // Bolt handle
-        const boltHandleGeometry = new THREE.SphereGeometry(0.02, 8, 8);
-        const boltHandle = new THREE.Mesh(boltHandleGeometry, boltMaterial);
-        boltHandle.position.set(0.12, 0.06, -0.1);
-        weaponGroup.add(boltHandle);
-        
-        // Trigger guard
-        const guardGeometry = new THREE.TorusGeometry(0.025, 0.005, 8, 16, Math.PI);
-        const guardMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x444444, // Dark metal color
-            roughness: 0.5,
-            metalness: 0.8
-        });
-        const guard = new THREE.Mesh(guardGeometry, guardMaterial);
-        guard.rotation.x = Math.PI / 2;
-        guard.position.set(0, -0.08, 0.1);
-        weaponGroup.add(guard);
-        
-        // Trigger
-        const triggerGeometry = new THREE.BoxGeometry(0.005, 0.03, 0.01);
-        const trigger = new THREE.Mesh(triggerGeometry, guardMaterial);
-        trigger.position.set(0, -0.09, 0.1);
-        weaponGroup.add(trigger);
-        
-        // Create iron sights
-        this.createKar98IronSights(weaponGroup);
-        
-        return weaponGroup;
+        try {
+            // Main wooden stock
+            const stockGeometry = new THREE.BoxGeometry(0.08, 0.12, 0.7);
+            const stockMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x5c3a21, // Brown wood color
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const stock = new THREE.Mesh(stockGeometry, stockMaterial);
+            stock.position.set(0, -0.02, 0);
+            weaponGroup.add(stock);
+            
+            // Barrel
+            const barrelGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.8, 16);
+            const barrelMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x444444, // Dark metal color
+                roughness: 0.5,
+                metalness: 0.8
+            });
+            const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
+            barrel.rotation.x = Math.PI / 2;
+            barrel.position.set(0, 0.03, -0.35);
+            weaponGroup.add(barrel);
+            
+            // Bolt mechanism
+            const boltGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.12, 8);
+            const boltMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x777777, // Metal color
+                roughness: 0.3,
+                metalness: 0.9
+            });
+            const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
+            bolt.rotation.z = Math.PI / 2;
+            bolt.position.set(0.06, 0.06, -0.1);
+            weaponGroup.add(bolt);
+            
+            // Bolt handle
+            const boltHandleGeometry = new THREE.SphereGeometry(0.02, 8, 8);
+            const boltHandle = new THREE.Mesh(boltHandleGeometry, boltMaterial);
+            boltHandle.position.set(0.12, 0.06, -0.1);
+            weaponGroup.add(boltHandle);
+            
+            // Trigger guard
+            const guardGeometry = new THREE.TorusGeometry(0.025, 0.005, 8, 16, Math.PI);
+            const guardMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x444444, // Dark metal color
+                roughness: 0.5,
+                metalness: 0.8
+            });
+            const guard = new THREE.Mesh(guardGeometry, guardMaterial);
+            guard.rotation.x = Math.PI / 2;
+            guard.position.set(0, -0.08, 0.1);
+            weaponGroup.add(guard);
+            
+            // Trigger
+            const triggerGeometry = new THREE.BoxGeometry(0.005, 0.03, 0.01);
+            const trigger = new THREE.Mesh(triggerGeometry, guardMaterial);
+            trigger.position.set(0, -0.09, 0.1);
+            weaponGroup.add(trigger);
+            
+            // Create iron sights
+            console.log("DEBUG: About to call createKar98IronSights");
+            this.createKar98IronSights(weaponGroup);
+            
+            console.log("DEBUG: createKar98Components completed successfully");
+            return weaponGroup;
+        } catch (error) {
+            console.error("ERROR: Failed to create Kar98 components:", error);
+            throw error; // Re-throw to be caught by the caller
+        }
     }
     
     // Create detailed iron sights for the Kar98
     createKar98IronSights(weaponGroup) {
-        // Front sight base
-        const frontSightBaseGeometry = new THREE.BoxGeometry(0.03, 0.02, 0.02);
-        const sightMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x222222, // Dark metal color
-            roughness: 0.5,
-            metalness: 0.8
-        });
-        const frontSightBase = new THREE.Mesh(frontSightBaseGeometry, sightMaterial);
-        frontSightBase.position.set(0, 0.05, -0.7);
-        weaponGroup.add(frontSightBase);
+        console.log("DEBUG: createKar98IronSights called");
         
-        // Front sight post (the part you align with the target)
-        const frontSightPostGeometry = new THREE.BoxGeometry(0.004, 0.02, 0.004);
-        const frontSightPost = new THREE.Mesh(frontSightPostGeometry, sightMaterial);
-        frontSightPost.position.set(0, 0.07, -0.7);
-        frontSightPost.name = "frontSightPost"; // Name it for easy reference
-        weaponGroup.add(frontSightPost);
-        
-        // Rear sight base
-        const rearSightBaseGeometry = new THREE.BoxGeometry(0.05, 0.01, 0.03);
-        const rearSightBase = new THREE.Mesh(rearSightBaseGeometry, sightMaterial);
-        rearSightBase.position.set(0, 0.07, -0.1);
-        weaponGroup.add(rearSightBase);
-        
-        // Rear sight aperture (the part you look through)
-        // Create a ring shape for the aperture
-        const innerRadius = 0.006;
-        const outerRadius = 0.012;
-        const thetaSegments = 16;
-        
-        const apertureShape = new THREE.Shape();
-        apertureShape.moveTo(outerRadius, 0);
-        apertureShape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
-        
-        const holeShape = new THREE.Path();
-        holeShape.moveTo(innerRadius, 0);
-        holeShape.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
-        apertureShape.holes.push(holeShape);
-        
-        const apertureGeometry = new THREE.ShapeGeometry(apertureShape, thetaSegments);
-        const rearSightAperture = new THREE.Mesh(apertureGeometry, sightMaterial);
-        rearSightAperture.rotation.x = Math.PI / 2;
-        rearSightAperture.position.set(0, 0.09, -0.1);
-        rearSightAperture.name = "rearSightAperture"; // Name it for easy reference
-        weaponGroup.add(rearSightAperture);
-        
-        return weaponGroup;
+        try {
+            // Front sight base
+            const frontSightBaseGeometry = new THREE.BoxGeometry(0.03, 0.02, 0.02);
+            const sightMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x222222, // Dark metal color
+                roughness: 0.5,
+                metalness: 0.8
+            });
+            const frontSightBase = new THREE.Mesh(frontSightBaseGeometry, sightMaterial);
+            frontSightBase.position.set(0, 0.05, -0.7);
+            weaponGroup.add(frontSightBase);
+            
+            // Front sight post (the part you align with the target)
+            const frontSightPostGeometry = new THREE.BoxGeometry(0.004, 0.02, 0.004);
+            const frontSightPost = new THREE.Mesh(frontSightPostGeometry, sightMaterial);
+            frontSightPost.position.set(0, 0.07, -0.7);
+            frontSightPost.name = "frontSightPost"; // Name it for easy reference
+            weaponGroup.add(frontSightPost);
+            console.log("DEBUG: Front sight post created with name:", frontSightPost.name);
+            
+            // Rear sight base
+            const rearSightBaseGeometry = new THREE.BoxGeometry(0.05, 0.01, 0.03);
+            const rearSightBase = new THREE.Mesh(rearSightBaseGeometry, sightMaterial);
+            rearSightBase.position.set(0, 0.07, -0.1);
+            weaponGroup.add(rearSightBase);
+            
+            // Rear sight aperture (the part you look through)
+            // Create a ring shape for the aperture
+            const innerRadius = 0.006;
+            const outerRadius = 0.012;
+            const thetaSegments = 16;
+            
+            const apertureShape = new THREE.Shape();
+            apertureShape.moveTo(outerRadius, 0);
+            apertureShape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
+            
+            const holeShape = new THREE.Path();
+            holeShape.moveTo(innerRadius, 0);
+            holeShape.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
+            apertureShape.holes.push(holeShape);
+            
+            const apertureGeometry = new THREE.ShapeGeometry(apertureShape, thetaSegments);
+            const rearSightAperture = new THREE.Mesh(apertureGeometry, sightMaterial);
+            rearSightAperture.rotation.x = Math.PI / 2;
+            rearSightAperture.position.set(0, 0.09, -0.1);
+            rearSightAperture.name = "rearSightAperture"; // Name it for easy reference
+            weaponGroup.add(rearSightAperture);
+            console.log("DEBUG: Rear sight aperture created with name:", rearSightAperture.name);
+            
+            console.log("DEBUG: createKar98IronSights completed successfully");
+            return weaponGroup;
+        } catch (error) {
+            console.error("ERROR: Failed to create Kar98 iron sights:", error);
+            throw error; // Re-throw to be caught by the caller
+        }
     }
 }
