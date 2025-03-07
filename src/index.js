@@ -278,83 +278,52 @@ class Player {
         this.isSprinting = false;
     }
 
-    // Create the player model (German soldier)
+    // Create a 3D model for the player
     createModel() {
-        console.log(`Creating model for player ${this.id}`);
-        
+        console.log(`DEBUG: Creating model for player ${this.id}`);
         try {
-            // Create a group to hold all player parts
-            console.log("Creating model group");
+            // Create a group for the player model
             this.model = new THREE.Group();
+            this.model.name = `player-${this.id}`;
             
-            // Materials
-            console.log("Creating materials");
-            const skinMaterial = new THREE.MeshLambertMaterial({ color: 0xffcc99 });
-            const uniformMaterial = new THREE.MeshLambertMaterial({ color: 0x5d5d5d }); // Field gray for German uniform
-            const helmetMaterial = new THREE.MeshLambertMaterial({ color: 0x3a3a3a }); // Darker gray for helmet
+            // Create a simple material for the player
+            const uniformMaterial = new THREE.MeshLambertMaterial({ 
+                color: this.isLocal ? 0x0000ff : 0xff0000 
+            });
             
-            // Head (slightly larger than a standard LEGO head for better visibility)
-            console.log("Creating head");
+            // Head
             const head = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.4, 0.4, 0.4, 8),
-                skinMaterial
+                new THREE.BoxGeometry(0.5, 0.5, 0.5),
+                uniformMaterial
             );
-            head.position.y = 1.6;
+            head.position.y = 1.75;
             head.name = 'head';
             this.model.add(head);
             
-            // Helmet (German Stahlhelm style)
-            console.log("Creating helmet");
-            const helmet = new THREE.Mesh(
-                new THREE.SphereGeometry(0.45, 8, 8, 0, Math.PI * 2, 0, Math.PI / 2),
-                helmetMaterial
-            );
-            helmet.position.y = 1.8;
-            helmet.name = 'helmet';
-            this.model.add(helmet);
-            
-            // Helmet brim
-            const helmetBrim = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8),
-                helmetMaterial
-            );
-            helmetBrim.position.y = 1.65;
-            helmetBrim.name = 'helmetBrim';
-            this.model.add(helmetBrim);
-            
-            // Torso
-            const torso = new THREE.Mesh(
-                new THREE.BoxGeometry(0.8, 0.8, 0.4),
+            // Body
+            const body = new THREE.Mesh(
+                new THREE.BoxGeometry(0.6, 0.8, 0.3),
                 uniformMaterial
             );
-            torso.position.y = 1.1;
-            torso.name = 'torso';
-            this.model.add(torso);
-            
-            // Belt
-            const belt = new THREE.Mesh(
-                new THREE.BoxGeometry(0.85, 0.1, 0.45),
-                new THREE.MeshLambertMaterial({ color: 0x222222 })
-            );
-            belt.position.y = 0.75;
-            belt.name = 'belt';
-            this.model.add(belt);
+            body.position.y = 1.1;
+            body.name = 'body';
+            this.model.add(body);
             
             // Left arm
             const leftArm = new THREE.Mesh(
-                new THREE.BoxGeometry(0.25, 0.6, 0.25),
+                new THREE.BoxGeometry(0.2, 0.7, 0.2),
                 uniformMaterial
             );
-            leftArm.position.set(0.525, 1.1, 0);
+            leftArm.position.set(0.4, 1.1, 0);
             leftArm.name = 'leftArm';
             this.model.add(leftArm);
             
             // Right arm
             const rightArm = new THREE.Mesh(
-                new THREE.BoxGeometry(0.25, 0.6, 0.25),
+                new THREE.BoxGeometry(0.2, 0.7, 0.2),
                 uniformMaterial
             );
-            rightArm.position.set(-0.525, 1.1, 0);
+            rightArm.position.set(-0.4, 1.1, 0);
             rightArm.name = 'rightArm';
             this.model.add(rightArm);
             
@@ -377,8 +346,9 @@ class Player {
             this.model.add(rightLeg);
             
             // Add a simple rifle (Kar98k style)
+            console.log('DEBUG: Creating Kar98k rifle for player model');
             const rifle = new THREE.Group();
-            rifle.name = 'rifle';
+            rifle.name = 'playerModelRifle';
             
             // Rifle body
             const rifleBody = new THREE.Mesh(
@@ -386,6 +356,7 @@ class Player {
                 new THREE.MeshLambertMaterial({ color: 0x5c2e00 })
             );
             rifleBody.position.z = 0.6;
+            rifleBody.name = 'playerModelRifleBody';
             rifle.add(rifleBody);
             
             // Rifle barrel
@@ -395,37 +366,41 @@ class Player {
             );
             rifleBarrel.rotation.x = Math.PI / 2;
             rifleBarrel.position.z = 1.1;
+            rifleBarrel.name = 'playerModelRifleBarrel';
             rifle.add(rifleBarrel);
             
             // Position the rifle in the right hand
             rifle.position.set(-0.6, 1.1, 0.2);
             rifle.rotation.y = Math.PI / 4;
+            console.log('DEBUG: Rifle position:', rifle.position);
+            console.log('DEBUG: Rifle rotation:', rifle.rotation);
             this.model.add(rifle);
             
             // Add the model to the scene
             if (this.game && this.game.scene) {
-                console.log(`Adding model for player ${this.id} to scene`);
+                console.log(`DEBUG: Adding model for player ${this.id} to scene`);
                 this.game.scene.add(this.model);
                 
                 // Set initial position
                 this.model.position.copy(this.position);
                 this.model.position.y = 0; // Keep y at 0 to ensure feet are on ground
                 this.model.rotation.y = this.rotation.y;
+                console.log(`DEBUG: Player model position:`, this.model.position);
                 
                 // If this is the local player, hide the model since we're in first person
                 if (this.isLocal) {
-                    console.log("Local player - hiding model");
+                    console.log("DEBUG: Local player - hiding model");
                     this.model.visible = false;
                 } else {
-                    console.log(`Remote player ${this.id} - model visible at position:`, this.model.position);
+                    console.log(`DEBUG: Remote player ${this.id} - model visible at position:`, this.model.position);
                 }
             } else {
-                console.error(`Cannot add model for player ${this.id} - game or scene not available`);
+                console.error(`DEBUG: Cannot add model for player ${this.id} - game or scene not available`);
             }
             
-            console.log(`Model creation complete for player ${this.id}`);
+            console.log(`DEBUG: Model creation complete for player ${this.id}`);
         } catch (error) {
-            console.error(`Error creating model for player ${this.id}:`, error);
+            console.error(`DEBUG: Error creating model for player ${this.id}:`, error);
         }
     }
 
@@ -833,7 +808,7 @@ class SimpleGame {
             return;
         }
         
-        console.log("Creating test remote players");
+        console.log("DEBUG: Creating test remote players");
         
         // Create 3 test remote players at different positions
         const positions = [
@@ -844,7 +819,7 @@ class SimpleGame {
         
         positions.forEach((pos, index) => {
             const playerId = `remote-player-${index}`;
-            console.log(`Creating test player ${playerId} at position:`, pos);
+            console.log(`DEBUG: Creating test player ${playerId} at position:`, pos);
             
             const remotePlayer = new Player(playerId, this, false, pos);
             remotePlayer.createModel();
@@ -853,21 +828,32 @@ class SimpleGame {
             if (remotePlayer.model) {
                 remotePlayer.model.position.copy(remotePlayer.position);
                 remotePlayer.model.visible = true;
-                console.log(`Player ${playerId} model position:`, remotePlayer.model.position);
+                console.log(`DEBUG: Player ${playerId} model position:`, remotePlayer.model.position);
+                
+                // Log the rifle position
+                const rifle = remotePlayer.model.getObjectByName('playerModelRifle');
+                if (rifle) {
+                    console.log(`DEBUG: Player ${playerId} rifle position (local):`, rifle.position);
+                    
+                    // Calculate world position
+                    const worldPosition = new THREE.Vector3();
+                    rifle.getWorldPosition(worldPosition);
+                    console.log(`DEBUG: Player ${playerId} rifle position (world):`, worldPosition);
+                }
             }
             
             this.players.set(playerId, remotePlayer);
-            console.log(`Test remote player ${playerId} created and added to players map`);
+            console.log(`DEBUG: Test remote player ${playerId} created and added to players map`);
         });
         
         // Log the total number of players
-        console.log(`Total players in game: ${this.players.size}`);
+        console.log(`DEBUG: Total players in game: ${this.players.size}`);
         
         // Log all players' positions
         this.players.forEach((player, id) => {
-            console.log(`Player ${id} position:`, player.position);
+            console.log(`DEBUG: Player ${id} position:`, player.position);
             if (player.model) {
-                console.log(`Player ${id} model position:`, player.model.position);
+                console.log(`DEBUG: Player ${id} model position:`, player.model.position);
             }
         });
     }
