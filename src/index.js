@@ -1824,32 +1824,46 @@ class SimpleGame {
         try {
             // Load textures for wood and metal
             const textureLoader = new THREE.TextureLoader();
-            const woodTexture = textureLoader.load('textures/wood.jpg');
-            const metalTexture = textureLoader.load('textures/metal.jpg');
+            const woodTexture = textureLoader.load('textures/wood.jpg',
+                () => console.log('DEBUG: Wood texture loaded successfully'),
+                undefined,
+                (err) => console.error('ERROR: Failed to load wood texture', err)
+            );
+            const metalTexture = textureLoader.load('textures/metal.jpg',
+                () => console.log('DEBUG: Metal texture loaded successfully'),
+                undefined,
+                (err) => console.error('ERROR: Failed to load metal texture', err)
+            );
 
             // Main wooden stock with texture
             const stockGeometry = new THREE.BoxGeometry(0.08, 0.12, 0.7);
             const stockMaterial = new THREE.MeshStandardMaterial({ map: woodTexture });
+            console.log('DEBUG: Stock material properties:', stockMaterial);
             const stock = new THREE.Mesh(stockGeometry, stockMaterial);
             stock.position.set(0, -0.02, 0);
+            console.log('DEBUG: Stock position:', stock.position);
             stock.name = "weaponStock";
             weaponGroup.add(stock);
 
             // Barrel with texture
             const barrelGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.8, 16);
             const barrelMaterial = new THREE.MeshStandardMaterial({ map: metalTexture });
+            console.log('DEBUG: Barrel material properties:', barrelMaterial);
             const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
             barrel.rotation.x = Math.PI / 2;
             barrel.position.set(0, 0.03, -0.35);
+            console.log('DEBUG: Barrel position:', barrel.position);
             barrel.name = "weaponBarrel";
             weaponGroup.add(barrel);
 
             // Bolt mechanism with texture
             const boltGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.12, 8);
             const boltMaterial = new THREE.MeshStandardMaterial({ map: metalTexture });
+            console.log('DEBUG: Bolt material properties:', boltMaterial);
             const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
             bolt.rotation.z = Math.PI / 2;
             bolt.position.set(0.06, 0.06, -0.1);
+            console.log('DEBUG: Bolt position:', bolt.position);
             bolt.name = "weaponBolt";
             weaponGroup.add(bolt);
 
@@ -1857,6 +1871,7 @@ class SimpleGame {
             const boltHandleGeometry = new THREE.SphereGeometry(0.02, 8, 8);
             const boltHandle = new THREE.Mesh(boltHandleGeometry, boltMaterial);
             boltHandle.position.set(0.12, 0.06, -0.1);
+            console.log('DEBUG: Bolt handle position:', boltHandle.position);
             boltHandle.name = "weaponBoltHandle";
             weaponGroup.add(boltHandle);
 
@@ -1866,6 +1881,8 @@ class SimpleGame {
             // Position the weapon in front of the camera
             weaponGroup.position.set(0.25, -0.25, -0.5);
             weaponGroup.rotation.y = Math.PI / 8;
+            console.log('DEBUG: Weapon group position:', weaponGroup.position);
+            console.log('DEBUG: Weapon group rotation:', weaponGroup.rotation);
 
             console.log("DEBUG: Detailed Kar98 model created successfully:", weaponGroup);
             console.log("DEBUG: Weapon position:", weaponGroup.position);
