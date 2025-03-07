@@ -1528,16 +1528,16 @@ class SimpleGame {
             
             // Always handle F key, even if not running
             if (event.code === 'KeyF') {
-                console.log('DEBUG: F key pressed - toggling aiming down sights');
+                console.log('F key pressed - toggling aiming down sights');
                 
                 // Log scene hierarchy before toggling
                 console.log('DEBUG: Scene hierarchy before toggling:');
                 this.logSceneHierarchy(this.scene);
                 
-                // Log camera children
+                // Log camera children before toggling
                 console.log('DEBUG: Camera children before toggling:');
                 this.camera.children.forEach((child, index) => {
-                    console.log(`Child ${index}:`, child.name, child.type, child.visible);
+                    console.log(`Child ${index}:`, child.type, child.name, child.visible);
                 });
                 
                 // Toggle aiming down sights
@@ -1546,6 +1546,20 @@ class SimpleGame {
                 // Store current camera position and rotation for smooth transition
                 const currentPosition = this.camera.position.clone();
                 const currentRotation = this.camera.rotation.clone();
+                
+                // IMPORTANT: Make sure weapon is a child of camera
+                if (this.weaponModel && this.weaponModel.parent !== this.camera) {
+                    console.log('DEBUG: Weapon model is not a child of camera, reparenting');
+                    
+                    // Remove from current parent
+                    if (this.weaponModel.parent) {
+                        this.weaponModel.parent.remove(this.weaponModel);
+                    }
+                    
+                    // Add to camera
+                    this.camera.add(this.weaponModel);
+                    console.log('DEBUG: Weapon model parent after reparenting:', this.weaponModel.parent ? this.weaponModel.parent.name : 'none');
+                }
                 
                 if (this.isAimingDownSights) {
                     // When aiming down sights, slightly adjust camera position
@@ -1557,6 +1571,37 @@ class SimpleGame {
                     this.camera.position.addScaledVector(lookDirection, 0.05);
                     
                     console.log('DEBUG: Camera position adjusted for aiming:', this.camera.position);
+                    
+                    // Position weapon for aiming down sights
+                    if (this.weaponModel) {
+                        const oldPosition = this.weaponModel.position.clone();
+                        const oldRotation = this.weaponModel.rotation.clone();
+                        
+                        // Position for proper iron sight alignment
+                        this.weaponModel.position.set(
+                            0,        // Centered horizontally
+                            -0.01,    // Raised to align sights with center of screen
+                            -0.22     // Closer to camera for better sight picture
+                        );
+                        
+                        // Rotate the weapon to be straight ahead with slight upward tilt
+                        this.weaponModel.rotation.set(
+                            0.01,     // Slight upward tilt to align sights
+                            0,        // No yaw
+                            0         // No roll
+                        );
+                        
+                        console.log('DEBUG: Weapon position changed directly in F handler from', oldPosition, 'to', this.weaponModel.position);
+                        console.log('DEBUG: Weapon rotation changed directly in F handler from', oldRotation, 'to', this.weaponModel.rotation);
+                        
+                        // Make sure weapon is visible
+                        this.weaponModel.visible = true;
+                        
+                        // Get world position of weapon
+                        const worldPosition = new THREE.Vector3();
+                        this.weaponModel.getWorldPosition(worldPosition);
+                        console.log('DEBUG: Weapon world position after direct positioning:', worldPosition);
+                    }
                     
                     // Show message for first time users
                     if (!this.hasShownAimingMessage) {
@@ -1592,6 +1637,34 @@ class SimpleGame {
                     this.camera.position.copy(currentPosition);
                     this.camera.rotation.copy(currentRotation);
                     console.log('DEBUG: Camera position and rotation reset');
+                    
+                    // Position weapon for hip fire
+                    if (this.weaponModel) {
+                        const oldPosition = this.weaponModel.position.clone();
+                        const oldRotation = this.weaponModel.rotation.clone();
+                        
+                        this.weaponModel.position.set(
+                            0.25,   // Offset to the right
+                            -0.25,  // Lower position
+                            -0.5    // Further from camera
+                        );
+                        this.weaponModel.rotation.set(
+                            0,              // No pitch
+                            Math.PI / 8,    // Slight angle
+                            0               // No roll
+                        );
+                        
+                        console.log('DEBUG: Weapon position changed directly in F handler from', oldPosition, 'to', this.weaponModel.position);
+                        console.log('DEBUG: Weapon rotation changed directly in F handler from', oldRotation, 'to', this.weaponModel.rotation);
+                        
+                        // Make sure weapon is visible
+                        this.weaponModel.visible = true;
+                        
+                        // Get world position of weapon
+                        const worldPosition = new THREE.Vector3();
+                        this.weaponModel.getWorldPosition(worldPosition);
+                        console.log('DEBUG: Weapon world position after direct positioning:', worldPosition);
+                    }
                 }
                 
                 // Update weapon position immediately for responsive feedback
@@ -1622,10 +1695,10 @@ class SimpleGame {
                 console.log('DEBUG: Scene hierarchy after toggling:');
                 this.logSceneHierarchy(this.scene);
                 
-                // Log camera children
+                // Log camera children after toggling
                 console.log('DEBUG: Camera children after toggling:');
                 this.camera.children.forEach((child, index) => {
-                    console.log(`Child ${index}:`, child.name, child.type, child.visible);
+                    console.log(`Child ${index}:`, child.type, child.name, child.visible);
                 });
                 
                 return;
