@@ -19,7 +19,7 @@ class WeaponSystem {
         this.weapon = null;
         this.muzzleFlash = null;
         this.isAiming = false;
-        this.isAimingDownSights = false;
+        this._isAimingDownSights = false;
         this.hasAimedDownSights = false;
         this.isShooting = false;
         this.canShoot = true;
@@ -168,7 +168,7 @@ class WeaponSystem {
         
         if (this.weapon) {
             // Apply weapon position based on aim state
-            if (this.isAimingDownSights) {
+            if (this._isAimingDownSights) {
                 // Aiming down sights position (centered and closer to camera)
                 this.weapon.position.set(
                     0 + this.weaponBob.x * 0.1,
@@ -210,8 +210,8 @@ class WeaponSystem {
     
     toggleAim() {
         // If currently aiming down sights, exit that mode first
-        if (this.isAimingDownSights) {
-            this.isAimingDownSights = false;
+        if (this._isAimingDownSights) {
+            this._isAimingDownSights = false;
         }
         
         this.isAiming = !this.isAiming;
@@ -220,21 +220,21 @@ class WeaponSystem {
     
     toggleAimDownSights() {
         // Toggle aiming down sights state
-        this.isAimingDownSights = !this.isAimingDownSights;
+        this._isAimingDownSights = !this._isAimingDownSights;
         
         // If enabling ADS, make sure regular aiming is also enabled
-        if (this.isAimingDownSights) {
+        if (this._isAimingDownSights) {
             this.isAiming = true;
         }
         
         // Check if this is the first time aiming down sights
-        const isFirstTime = this.isAimingDownSights && !this.hasAimedDownSights;
+        const isFirstTime = this._isAimingDownSights && !this.hasAimedDownSights;
         if (isFirstTime) {
             this.hasAimedDownSights = true;
         }
         
         return {
-            isAimingDownSights: this.isAimingDownSights,
+            isAimingDownSights: this._isAimingDownSights,
             isFirstTime: isFirstTime
         };
     }
@@ -275,7 +275,7 @@ class WeaponSystem {
             this.muzzleFlash.material.opacity = 1.0;
             
             // Position muzzle flash based on aim state
-            if (this.isAimingDownSights) {
+            if (this._isAimingDownSights) {
                 this.muzzleFlash.position.set(0, -0.02, -0.6);
             } else if (this.isAiming) {
                 this.muzzleFlash.position.set(0, -0.05, -0.8);
@@ -513,7 +513,7 @@ class WeaponSystem {
     }
     
     isAimingDownSights() {
-        return this.isAimingDownSights;
+        return this._isAimingDownSights;
     }
     
     isAiming() {
