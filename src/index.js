@@ -104,10 +104,47 @@ document.addEventListener('DOMContentLoaded', () => {
             scopeOverlay.style.height = '100%';
             scopeOverlay.style.pointerEvents = 'none';
             
-            // Create iron sight elements
+            // Create iron sight elements - these are visual aids to help with alignment
+            // Front sight post
+            const frontSightPost = document.createElement('div');
+            frontSightPost.className = 'front-sight-post';
+            frontSightPost.style.position = 'absolute';
+            frontSightPost.style.top = '50%';
+            frontSightPost.style.left = '50%';
+            frontSightPost.style.transform = 'translate(-50%, -50%)';
+            frontSightPost.style.width = '2px';
+            frontSightPost.style.height = '15px';
+            frontSightPost.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            frontSightPost.style.zIndex = '12';
+            scopeOverlay.appendChild(frontSightPost);
+            
+            // Rear sight aperture
             const rearSight = document.createElement('div');
             rearSight.className = 'rear-sight';
+            rearSight.style.position = 'absolute';
+            rearSight.style.top = '50%';
+            rearSight.style.left = '50%';
+            rearSight.style.transform = 'translate(-50%, -50%)';
+            rearSight.style.width = '20px';
+            rearSight.style.height = '20px';
+            rearSight.style.borderRadius = '50%';
+            rearSight.style.border = '3px solid rgba(0, 0, 0, 0.8)';
+            rearSight.style.backgroundColor = 'transparent';
+            rearSight.style.zIndex = '11';
             scopeOverlay.appendChild(rearSight);
+            
+            // Add vignette effect
+            const vignette = document.createElement('div');
+            vignette.className = 'vignette';
+            vignette.style.position = 'absolute';
+            vignette.style.top = '0';
+            vignette.style.left = '0';
+            vignette.style.width = '100%';
+            vignette.style.height = '100%';
+            vignette.style.background = 'radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.7) 100%)';
+            vignette.style.pointerEvents = 'none';
+            vignette.style.zIndex = '10';
+            scopeOverlay.appendChild(vignette);
             
             hudContainer.appendChild(scopeOverlay);
             
@@ -514,7 +551,7 @@ class SimpleGame {
             // Camera settings
             this.defaultFOV = 75;
             this.aimingFOV = 45;
-            this.aimingDownSightsFOV = 30;
+            this.aimingDownSightsFOV = 60; // Less extreme zoom for iron sights
             this.isAimingDownSights = false;
             
             // Create weapon model
@@ -997,16 +1034,23 @@ class SimpleGame {
                 // Position the weapon so that the iron sights align with the center of the screen
                 this.weaponModel.position.set(
                     0,      // Centered horizontally
-                    -0.02,  // Slightly below center to show the iron sights
-                    -0.3    // Closer to camera when aiming
+                    -0.035, // Adjusted to align front sight with rear aperture
+                    -0.28   // Adjusted distance from camera
                 );
                 
                 // Rotate the weapon to be straight ahead
                 this.weaponModel.rotation.set(
-                    0,      // No pitch
+                    0.01,   // Slight upward tilt to align sights
                     0,      // No yaw
                     0       // No roll
                 );
+                
+                // Find front and rear sights to ensure they're visible
+                this.weaponModel.traverse(child => {
+                    if (child.name === "frontSightPost" || child.name === "rearSightAperture") {
+                        child.visible = true;
+                    }
+                });
                 
                 if (this.frameCounter % 60 === 0) {
                     console.log('Weapon positioned for aiming down sights');
@@ -1278,14 +1322,20 @@ class SimpleGame {
                     // Change camera FOV for zoom effect
                     if (this.isAimingDownSights) {
                         this.camera.fov = this.aimingDownSightsFOV;
+                        
+                        // Adjust camera position when aiming to align with iron sights
+                        // This creates a more realistic sight picture
+                        this.camera.position.y += 0.03; // Raise the camera to align with sights
                     } else {
                         this.camera.fov = this.defaultFOV;
+                        
+                        // Reset camera position
+                        this.camera.position.copy(currentPosition);
                     }
                     this.camera.updateProjectionMatrix();
                     console.log('Camera FOV set to:', this.camera.fov);
                     
-                    // Ensure camera position and rotation are preserved
-                    this.camera.position.copy(currentPosition);
+                    // Ensure camera rotation is preserved
                     this.camera.rotation.copy(currentRotation);
                     
                     // Make sure scene is visible
@@ -1297,6 +1347,9 @@ class SimpleGame {
                             object.visible = true;
                         }
                     });
+                    
+                    // Update weapon position immediately for responsive feedback
+                    this.updateWeaponPosition();
                     
                     // Log scene children
                     console.log('Scene children when toggling aim:');
@@ -1314,8 +1367,8 @@ class SimpleGame {
                     // Change crosshair appearance
                     const crosshair = document.getElementById('crosshair');
                     if (crosshair) {
-                        crosshair.style.opacity = crosshair.style.opacity === '0' ? '1' : '0';
-                        console.log('Toggled crosshair visibility:', crosshair.style.opacity);
+                        crosshair.style.opacity = this.isAimingDownSights ? '0' : '1';
+                        console.log('Updated crosshair visibility:', crosshair.style.opacity);
                     }
                     
                     // Toggle scope overlay
