@@ -511,6 +511,16 @@ class SimpleGame {
             console.log("Creating renderer");
             this.renderer = new THREE.WebGLRenderer({ antialias: true });
             
+            // Camera settings
+            this.defaultFOV = 75;
+            this.aimingFOV = 45;
+            this.aimingDownSightsFOV = 30;
+            this.isAimingDownSights = false;
+            
+            // Create weapon model
+            this.weaponModel = this.createSimpleWeaponModel();
+            this.scene.add(this.weaponModel);
+            
             // Update debug message
             if (debugDiv) {
                 debugDiv.textContent = 'Setting up renderer...';
@@ -891,70 +901,82 @@ class SimpleGame {
     // Main animation loop
     animate() {
         // Request next frame
-        requestAnimationFrame(() => this.animate());
+        requestAnimationFrame(() => this.animate.call(this));
         
-        try {
-            // Calculate delta time
-            const now = performance.now();
-            const delta = (now - this.lastFrameTime) / 1000;
-            this.lastFrameTime = now;
+        // Skip if not running
+        if (!this.isRunning) return;
+        
+        // Update weapon position based on movement and aiming
+        this.updateWeaponPosition();
+        
+        // Update player position
+        this.updatePlayerPosition();
+        
+        // Update debug info
+        if (this.debugMode) {
+            this.updateDebugInfo();
+        }
+        
+        // Render scene
+        this.renderer.render(this.scene, this.camera);
+    }
+
+    // Update weapon position based on movement and aiming
+    updateWeaponPosition() {
+        if (!this.weaponModel) return;
+        
+        if (this.isAimingDownSights) {
+            // Aiming down sights position (centered and closer to camera)
+            this.weaponModel.position.set(
+                0,
+                -0.05,
+                -0.2
+            );
+            this.weaponModel.rotation.y = 0;
+        } else {
+            // Hip position
+            this.weaponModel.position.set(
+                0.25,
+                -0.25,
+                -0.5
+            );
+            this.weaponModel.rotation.y = Math.PI / 8;
+        }
+    }
+
+    // Update player position
+    updatePlayerPosition() {
+        // Handle player movement
+        if (this.controls.isLocked) {
+            // Calculate movement speed based on sprint state
+            const speed = this.isSprinting ? this.playerSpeed * this.sprintMultiplier : this.playerSpeed;
             
-            // Skip if game is paused
-            if (!this.isRunning) return;
+            // Calculate movement direction
+            this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+            this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
+            this.direction.normalize(); // Normalize for consistent speed in all directions
             
-            // Handle player movement
-            if (this.controls.isLocked) {
-                // Calculate movement speed based on sprint state
-                const speed = this.isSprinting ? this.playerSpeed * this.sprintMultiplier : this.playerSpeed;
-                
-                // Calculate movement direction
-                this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
-                this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
-                this.direction.normalize(); // Normalize for consistent speed in all directions
-                
-                // Apply movement to controls
-                if (this.moveForward || this.moveBackward) {
-                    this.controls.moveForward(this.direction.z * speed * delta);
-                }
-                if (this.moveLeft || this.moveRight) {
-                    this.controls.moveRight(this.direction.x * speed * delta);
-                }
+            // Apply movement to controls
+            if (this.moveForward || this.moveBackward) {
+                this.controls.moveForward(this.direction.z * speed * delta);
             }
-            
-            // Update all players
-            this.players.forEach(player => {
-                player.update(delta);
-            });
-            
-            // Send network updates at fixed intervals
-            if (this.socket && this.socket.connected && this.localPlayer) {
-                const timeSinceLastUpdate = now - this.lastNetworkUpdate;
-                if (timeSinceLastUpdate > this.networkUpdateInterval) {
-                    this.sendNetworkUpdate();
-                    this.lastNetworkUpdate = now;
-                }
+            if (this.moveLeft || this.moveRight) {
+                this.controls.moveRight(this.direction.x * speed * delta);
             }
-            
-            // Update debug info if enabled
-            if (this.debugMode) {
-                this.updateDebugInfo();
+        }
+        
+        // Update all players
+        this.players.forEach(player => {
+            player.update(delta);
+        });
+        
+        // Send network updates at fixed intervals
+        if (this.socket && this.socket.connected && this.localPlayer) {
+            const timeSinceLastUpdate = now - this.lastNetworkUpdate;
+            if (timeSinceLastUpdate > this.networkUpdateInterval) {
+                this.sendNetworkUpdate();
+                this.lastNetworkUpdate = now;
             }
-            
-            // Render the scene
-            this.renderer.render(this.scene, this.camera);
-            
-            // Update frame counter for debugging
-            if (!this.frameCounter) {
-                this.frameCounter = 0;
-            }
-            this.frameCounter++;
-            
-            // Log every 60 frames
-            if (this.frameCounter % 60 === 0) {
-                console.log(`Frame ${this.frameCounter} rendered`);
-            }
-        } catch (error) {
-            console.error('Error in animation loop:', error);
         }
     }
 
@@ -1138,7 +1160,19 @@ class SimpleGame {
                     break;
                 case 'KeyF':
                     console.log('F key pressed in SimpleGame - this should toggle aiming down sights');
-                    // Toggle aiming down sights if we had a weapon system
+                    // Toggle aiming down sights
+                    this.isAimingDownSights = !this.isAimingDownSights;
+                    
+                    // Change camera FOV for zoom effect
+                    if (this.isAimingDownSights) {
+                        this.camera.fov = this.aimingDownSightsFOV;
+                    } else {
+                        this.camera.fov = this.defaultFOV;
+                    }
+                    this.camera.updateProjectionMatrix();
+                    console.log('Camera FOV set to:', this.camera.fov);
+                    
+                    // Toggle aiming class on HUD
                     const hudElement = document.getElementById('hud');
                     if (hudElement) {
                         hudElement.classList.toggle('aiming');
@@ -1229,5 +1263,34 @@ class SimpleGame {
         
         // Update the debug info display
         debugInfo.innerHTML = info;
+    }
+
+    // Create a simple weapon model
+    createSimpleWeaponModel() {
+        console.log("Creating simple weapon model");
+        const weaponGroup = new THREE.Group();
+        
+        // Main rifle body
+        const rifleBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1, 0.05, 0.6),
+            new THREE.MeshBasicMaterial({ color: 0x5c3a21 }) // Brown wood color
+        );
+        weaponGroup.add(rifleBody);
+        
+        // Barrel
+        const barrel = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.015, 0.015, 0.7, 8),
+            new THREE.MeshBasicMaterial({ color: 0x444444 }) // Dark metal color
+        );
+        barrel.rotation.x = Math.PI / 2;
+        barrel.position.z = -0.35;
+        barrel.position.y = 0.01;
+        weaponGroup.add(barrel);
+        
+        // Position the weapon in front of the camera
+        weaponGroup.position.set(0.25, -0.25, -0.5);
+        weaponGroup.rotation.y = Math.PI / 8;
+        
+        return weaponGroup;
     }
 }
