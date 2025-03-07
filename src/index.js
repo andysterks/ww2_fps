@@ -1822,52 +1822,57 @@ class SimpleGame {
         weaponGroup.name = "playerWeapon"; // Give it a unique name
         
         try {
-            // Main wooden stock
+            // Load textures for wood and metal
+            const textureLoader = new THREE.TextureLoader();
+            const woodTexture = textureLoader.load('textures/wood.jpg');
+            const metalTexture = textureLoader.load('textures/metal.jpg');
+
+            // Main wooden stock with texture
             const stockGeometry = new THREE.BoxGeometry(0.08, 0.12, 0.7);
-            const stockMaterial = new THREE.MeshBasicMaterial({ color: 0x5c3a21 }); // Brown wood color
+            const stockMaterial = new THREE.MeshStandardMaterial({ map: woodTexture });
             const stock = new THREE.Mesh(stockGeometry, stockMaterial);
             stock.position.set(0, -0.02, 0);
             stock.name = "weaponStock";
             weaponGroup.add(stock);
-            
-            // Barrel
+
+            // Barrel with texture
             const barrelGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.8, 16);
-            const barrelMaterial = new THREE.MeshBasicMaterial({ color: 0x444444 }); // Dark metal color
+            const barrelMaterial = new THREE.MeshStandardMaterial({ map: metalTexture });
             const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
             barrel.rotation.x = Math.PI / 2;
             barrel.position.set(0, 0.03, -0.35);
             barrel.name = "weaponBarrel";
             weaponGroup.add(barrel);
-            
-            // Bolt mechanism
+
+            // Bolt mechanism with texture
             const boltGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.12, 8);
-            const boltMaterial = new THREE.MeshBasicMaterial({ color: 0x777777 }); // Metal color
+            const boltMaterial = new THREE.MeshStandardMaterial({ map: metalTexture });
             const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
             bolt.rotation.z = Math.PI / 2;
             bolt.position.set(0.06, 0.06, -0.1);
             bolt.name = "weaponBolt";
             weaponGroup.add(bolt);
-            
-            // Bolt handle
+
+            // Bolt handle with texture
             const boltHandleGeometry = new THREE.SphereGeometry(0.02, 8, 8);
             const boltHandle = new THREE.Mesh(boltHandleGeometry, boltMaterial);
             boltHandle.position.set(0.12, 0.06, -0.1);
             boltHandle.name = "weaponBoltHandle";
             weaponGroup.add(boltHandle);
-            
+
             // Create detailed iron sights
             this.createDetailedKar98IronSights(weaponGroup);
-            
+
             // Position the weapon in front of the camera
             weaponGroup.position.set(0.25, -0.25, -0.5);
             weaponGroup.rotation.y = Math.PI / 8;
-            
+
             console.log("DEBUG: Detailed Kar98 model created successfully:", weaponGroup);
             console.log("DEBUG: Weapon position:", weaponGroup.position);
             console.log("DEBUG: Weapon rotation:", weaponGroup.rotation);
-            
+
             // IMPORTANT: Do not add to scene here, it will be added to the camera later
-            
+
             return weaponGroup;
         } catch (error) {
             console.error("DEBUG: Failed to create detailed Kar98 model:", error);
