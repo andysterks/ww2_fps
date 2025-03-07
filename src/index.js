@@ -1041,6 +1041,7 @@ class SimpleGame {
         }
         
         try {
+            // Always update weapon position, even if game is not running
             if (this.isAimingDownSights) {
                 // Aiming down sights position for Kar98
                 // Position the weapon so that the iron sights align with the center of the screen
@@ -1100,6 +1101,9 @@ class SimpleGame {
             
             // Make sure weapon doesn't interfere with scene visibility
             this.weaponModel.renderOrder = 1000; // Render after everything else
+            
+            // Force a render to update the scene, even if game is not running
+            this.renderer.render(this.scene, this.camera);
             
             if (this.frameCounter % 60 === 0) {
                 console.log('DEBUG: Weapon model updated successfully');
