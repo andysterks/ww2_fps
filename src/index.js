@@ -1873,7 +1873,11 @@ class SimpleGame {
 
             // Main wooden stock with texture
             const stockGeometry = new THREE.BoxGeometry(0.08, 0.12, 0.7);
-            const stockMaterial = new THREE.MeshStandardMaterial({ map: woodTexture });
+            const stockMaterial = new THREE.MeshStandardMaterial({ 
+                map: woodTexture,
+                roughness: 0.8,
+                metalness: 0.2
+            });
             console.log('DEBUG: Stock material properties:', stockMaterial);
             const stock = new THREE.Mesh(stockGeometry, stockMaterial);
             stock.position.set(0, -0.02, 0);
@@ -1883,7 +1887,11 @@ class SimpleGame {
 
             // Barrel with texture
             const barrelGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.8, 16);
-            const barrelMaterial = new THREE.MeshStandardMaterial({ map: metalTexture });
+            const barrelMaterial = new THREE.MeshStandardMaterial({ 
+                map: metalTexture,
+                roughness: 0.5,
+                metalness: 0.8
+            });
             console.log('DEBUG: Barrel material properties:', barrelMaterial);
             const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
             barrel.rotation.x = Math.PI / 2;
@@ -1894,7 +1902,11 @@ class SimpleGame {
 
             // Bolt mechanism with texture
             const boltGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.12, 8);
-            const boltMaterial = new THREE.MeshStandardMaterial({ map: metalTexture });
+            const boltMaterial = new THREE.MeshStandardMaterial({ 
+                map: metalTexture,
+                roughness: 0.3,
+                metalness: 0.9
+            });
             console.log('DEBUG: Bolt material properties:', boltMaterial);
             const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
             bolt.rotation.z = Math.PI / 2;
@@ -1924,8 +1936,16 @@ class SimpleGame {
             console.log("DEBUG: Weapon position:", weaponGroup.position);
             console.log("DEBUG: Weapon rotation:", weaponGroup.rotation);
 
-            // IMPORTANT: Do not add to scene here, it will be added to the camera later
+            // Add ambient light to ensure the model is visible
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+            weaponGroup.add(ambientLight);
 
+            // Add directional light to create shadows and highlights
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(0, 1, 0);
+            weaponGroup.add(directionalLight);
+
+            // IMPORTANT: Do not add to scene here, it will be added to the camera later
             return weaponGroup;
         } catch (error) {
             console.error("DEBUG: Failed to create detailed Kar98 model:", error);
