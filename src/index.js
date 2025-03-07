@@ -1591,21 +1591,22 @@ class SimpleGame {
                         const oldRotation = this.weaponModel.rotation.clone();
                         
                         // Position for proper iron sight alignment
+                        // These values are critical for proper sight alignment
                         this.weaponModel.position.set(
                             0,        // Centered horizontally
-                            -0.01,    // Raised to align sights with center of screen
-                            -0.22     // Closer to camera for better sight picture
+                            -0.05,    // Lower to align sights with center of screen
+                            -0.15     // Closer to camera for better sight picture
                         );
                         
-                        // Rotate the weapon to be straight ahead with slight upward tilt
+                        // Rotate the weapon to be straight ahead
                         this.weaponModel.rotation.set(
-                            0.01,     // Slight upward tilt to align sights
+                            0,        // No pitch
                             0,        // No yaw
                             0         // No roll
                         );
                         
-                        console.log('DEBUG: Weapon position changed directly in F handler from', oldPosition, 'to', this.weaponModel.position);
-                        console.log('DEBUG: Weapon rotation changed directly in F handler from', oldRotation, 'to', this.weaponModel.rotation);
+                        console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
+                        console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
                         
                         // Make sure weapon is visible
                         this.weaponModel.visible = true;
@@ -1613,7 +1614,29 @@ class SimpleGame {
                         // Get world position of weapon
                         const worldPosition = new THREE.Vector3();
                         this.weaponModel.getWorldPosition(worldPosition);
-                        console.log('DEBUG: Weapon world position after direct positioning:', worldPosition);
+                        console.log('DEBUG: Weapon world position after positioning:', worldPosition);
+                        
+                        // Log detailed position and rotation of iron sights
+                        this.weaponModel.traverse(child => {
+                            if (child.name === "frontSightPost" || child.name === "rearSightAperture") {
+                                console.log(`DEBUG: ${child.name} position:`, child.position);
+                                console.log(`DEBUG: ${child.name} rotation:`, child.rotation);
+                                
+                                // Get world position of sights
+                                const sightWorldPosition = new THREE.Vector3();
+                                child.getWorldPosition(sightWorldPosition);
+                                console.log(`DEBUG: ${child.name} world position:`, sightWorldPosition);
+                            }
+                        });
+                        
+                        // Adjust FOV for aiming
+                        this.camera.fov = 55; // Narrower FOV when aiming
+                        this.camera.updateProjectionMatrix();
+                        
+                        // Log camera settings during aiming
+                        console.log('DEBUG: Camera FOV during aiming:', this.camera.fov);
+                        console.log('DEBUG: Camera position during aiming:', this.camera.position);
+                        console.log('DEBUG: Camera rotation during aiming:', this.camera.rotation);
                     }
                     
                     // Show message for first time users
@@ -1947,7 +1970,7 @@ class SimpleGame {
     createDetailedKar98IronSights(weaponGroup) {
         // Front sight housing (the metal base that holds the front sight)
         const frontSightHousingGeometry = new THREE.BoxGeometry(0.03, 0.03, 0.02);
-        const sightMaterial = new THREE.MeshBasicMaterial({ color: 0x222222 }); // Dark metal color
+        const sightMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 }); // Dark metal color
         const frontSightHousing = new THREE.Mesh(frontSightHousingGeometry, sightMaterial);
         frontSightHousing.position.set(0, 0.06, -0.7);
         weaponGroup.add(frontSightHousing);
@@ -1987,6 +2010,8 @@ class SimpleGame {
         rearSightNotch.position.set(0, 0.085, -0.1);
         rearSightNotch.name = "rearSightAperture"; // Name it for easy reference
         weaponGroup.add(rearSightNotch);
+        
+        console.log('DEBUG: Iron sights created with front sight at', frontSightPost.position, 'and rear sight at', rearSightNotch.position);
         
         return weaponGroup;
     }
