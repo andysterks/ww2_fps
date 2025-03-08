@@ -587,10 +587,7 @@ class SimpleGame {
             this.hasShownAimingMessage = false; // Track if we've shown the aiming message
             
             // Create weapon model - but don't add it to the scene yet
-            console.log("DEBUG: About to create Kar98 model");
             this.weaponModel = this.createSimpleWeaponModel();
-            console.log("DEBUG: Kar98 model created:", this.weaponModel);
-            console.log("DEBUG: Weapon parent after creation:", this.weaponModel.parent ? this.weaponModel.parent.name : 'none');
             
             // IMPORTANT: Add weapon model to camera, not scene
             console.log("DEBUG: Adding weapon model to camera");
@@ -1059,14 +1056,6 @@ class SimpleGame {
                 this.updateDebugInfo();
             }
             
-            // Log scene children count occasionally
-            if (this.frameCounter % 60 === 0) {
-                console.log('Scene children count:', this.scene.children.length);
-                console.log('Camera position:', this.camera.position);
-                console.log('Camera rotation:', this.camera.rotation);
-                console.log('DEBUG: isRunning:', this.isRunning, 'controls.isLocked:', this.controls ? this.controls.isLocked : 'controls not initialized');
-            }
-            
             // Clear the renderer
             this.renderer.clear();
             
@@ -1126,17 +1115,7 @@ class SimpleGame {
             console.warn('Delta time is missing or zero, using default value');
             delta = 0.016; // Default to 60fps
         }
-        
-        console.log('Updating player position with delta:', delta);
-        console.log('DEBUG: Movement flags:', {
-            moveForward: this.moveForward,
-            moveBackward: this.moveBackward,
-            moveLeft: this.moveLeft,
-            moveRight: this.moveRight,
-            isSprinting: this.isSprinting
-        });
-        console.log('DEBUG: isRunning:', this.isRunning, 'controls.isLocked:', this.controls ? this.controls.isLocked : 'controls not initialized');
-        
+
         // Handle player movement even if controls aren't locked
         if (this.isRunning) {
             console.log('DEBUG: Game is running, handling movement');
@@ -1186,7 +1165,7 @@ class SimpleGame {
                 console.error('ERROR: Failed to update player position:', error);
             }
         } else {
-            console.log('DEBUG: Game is not running, skipping movement');
+            //console.log('DEBUG: Game is not running, skipping movement');
         }
         
         // Update all players
