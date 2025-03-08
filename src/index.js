@@ -1864,7 +1864,7 @@ class SimpleGame {
             weaponGroup.add(barrel);
 
             // Bolt mechanism with texture
-            const boltGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.03, 8);
+            const boltGeometry = new THREE.CylinderGeometry(0.01, 0.01, 0.03, 8);
             const boltMaterial = new THREE.MeshStandardMaterial({ 
                 map: metalTexture,
                 roughness: 0.3,
@@ -1873,17 +1873,17 @@ class SimpleGame {
             console.log('DEBUG: Bolt material properties:', boltMaterial);
             const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
             bolt.rotation.z = Math.PI / 2;
-            bolt.position.set(0.04, 0.01, .05);
+            bolt.position.set(0.04, 0.019, .05);
             console.log('DEBUG: Bolt position:', bolt.position);
             bolt.name = "weaponBolt";
             weaponGroup.add(bolt);
 
             // Bolt handle with texture
-            const boltHandleGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.08, 8);
+            const boltHandleGeometry = new THREE.CylinderGeometry(0.009, 0.009, 0.05, 8);
             const boltHandle = new THREE.Mesh(boltHandleGeometry, boltMaterial);
 
             // Position it at the end of the bolt
-            boltHandle.position.set(0.07, -0.01, .05);
+            boltHandle.position.set(0.065, 0.002, .05);
 
             // Rotate it to a 45-degree angle (default cylinder is vertical)
             boltHandle.rotation.z = Math.PI / 4; // 45 degrees in radians
