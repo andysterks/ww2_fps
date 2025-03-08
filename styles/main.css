@@ -69,27 +69,40 @@ body {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, calc(-50% - 10px));
-    width: 3px;
-    height: 20px;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 15px;
     background-color: #000;
     z-index: 12;
-    box-shadow: 0 0 2px 1px rgba(255,255,255,0.5);
+    box-shadow: 0 0 1px 1px rgba(255,255,255,0.3);
 }
 
 /* Rear sight aperture */
 .rear-sight {
     position: absolute;
-    top: 50%;
+    top: calc(50% + 5px);
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 3px solid #000;
+    width: 30px;
+    height: 15px;
+    border: none;
     background-color: transparent;
     z-index: 11;
-    box-shadow: 0 0 2px 1px rgba(255,255,255,0.5);
+    overflow: hidden;
+}
+
+/* Create V-notch for rear sight */
+.rear-sight::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-bottom: 15px solid #000;
 }
 
 /* Reduce HUD elements opacity when aiming */
@@ -179,4 +192,17 @@ body {
 
 #health {
     left: 20px;
+}
+
+/* Add this new class */
+.front-sight-post {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 15px;
+    background-color: #000;
+    z-index: 12;
+    box-shadow: 0 0 1px 1px rgba(255,255,255,0.3);
 }

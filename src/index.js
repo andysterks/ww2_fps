@@ -581,8 +581,8 @@ class SimpleGame {
             
             // Camera settings
             this.defaultFOV = 75;
-            this.aimingFOV = 45;
-            this.aimingDownSightsFOV = 55; // Moderate zoom for iron sights
+            this.aimingFOV = 65; // Less aggressive initial aim
+            this.aimingDownSightsFOV = 35; // More zoom when aiming down sights for better accuracy
             this.isAimingDownSights = false;
             this.hasShownAimingMessage = false; // Track if we've shown the aiming message
             
@@ -1083,185 +1083,33 @@ class SimpleGame {
 
     // Update weapon position based on movement and aiming
     updateWeaponPosition() {
-        if (!this.weaponModel) {
-            console.log('DEBUG: No weapon model to update in updateWeaponPosition');
-            return;
-        }
-        
-        console.log('DEBUG: Updating weapon position, isAimingDownSights:', this.isAimingDownSights);
-        console.log('DEBUG: Current weapon model:', this.weaponModel);
-        console.log('DEBUG: Current weapon position:', this.weaponModel.position);
-        console.log('DEBUG: Current weapon rotation:', this.weaponModel.rotation);
-        console.log('DEBUG: Weapon model parent:', this.weaponModel.parent ? this.weaponModel.parent.name : 'none');
-        
-        // Get world position of weapon
-        const worldPosition = new THREE.Vector3();
-        this.weaponModel.getWorldPosition(worldPosition);
-        console.log('DEBUG: Weapon world position:', worldPosition);
-        
-        try {
-            // Always update weapon position, even if game is not running
-            if (this.isAimingDownSights) {
-                // Aiming down sights position for Kar98
-                // Position the weapon so that the iron sights align with the center of the screen
-                const oldPosition = this.weaponModel.position.clone();
-                const oldRotation = this.weaponModel.rotation.clone();
-                
-                // IMPORTANT: Make sure the weapon is a child of the camera
-                if (this.weaponModel.parent !== this.camera) {
-                    console.log('DEBUG: Weapon model is not a child of camera, reparenting');
-                    
-                    // Remove from current parent
-                    if (this.weaponModel.parent) {
-                        this.weaponModel.parent.remove(this.weaponModel);
-                    }
-                    
-                    // Add to camera
-                    this.camera.add(this.weaponModel);
-                }
-                
-                // Position for proper iron sight alignment
-                // Move the weapon up and closer to the camera
-                this.weaponModel.position.set(
-                    0,        // Centered horizontally
-                    -0.01,    // Raised to align sights with center of screen
-                    -0.22     // Closer to camera for better sight picture
-                );
-                
-                // Rotate the weapon to be straight ahead with slight upward tilt
-                this.weaponModel.rotation.set(
-                    0.01,     // Slight upward tilt to align sights
-                    0,        // No yaw
-                    0         // No roll
-                );
-                
-                console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
-                console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
-                
-                // Get updated world position of weapon
-                const newWorldPosition = new THREE.Vector3();
-                this.weaponModel.getWorldPosition(newWorldPosition);
-                console.log('DEBUG: Weapon new world position:', newWorldPosition);
-                
-                // Find front and rear sights to ensure they're visible
-                let frontSightFound = false;
-                let rearSightFound = false;
-                
-                this.weaponModel.traverse(child => {
-                    if (child.name === "frontSightPost") {
-                        frontSightFound = true;
-                        child.visible = true;
-                        console.log('DEBUG: Front sight found:', child);
-                        
-                        // Get world position of front sight
-                        const frontSightWorldPos = new THREE.Vector3();
-                        child.getWorldPosition(frontSightWorldPos);
-                        console.log('DEBUG: Front sight world position:', frontSightWorldPos);
-                    }
-                    if (child.name === "rearSightAperture") {
-                        rearSightFound = true;
-                        child.visible = true;
-                        console.log('DEBUG: Rear sight found:', child);
-                        
-                        // Get world position of rear sight
-                        const rearSightWorldPos = new THREE.Vector3();
-                        child.getWorldPosition(rearSightWorldPos);
-                        console.log('DEBUG: Rear sight world position:', rearSightWorldPos);
-                    }
-                });
-                
-                console.log('DEBUG: Front sight found:', frontSightFound, 'Rear sight found:', rearSightFound);
-                
-                // Change camera FOV for zoom effect - use a moderate zoom for iron sights
-                const oldFOV = this.camera.fov;
-                this.camera.fov = this.aimingDownSightsFOV || 55; // Less extreme zoom for iron sights
-                this.camera.updateProjectionMatrix();
-                console.log('DEBUG: Camera FOV changed from', oldFOV, 'to', this.camera.fov);
-                
-                // Hide remote players when aiming down sights to avoid confusion
-                this.players.forEach((player, id) => {
-                    if (!player.isLocal && player.model) {
-                        player.model.visible = false;
-                        console.log(`DEBUG: Hiding remote player ${id} while aiming down sights`);
-                    }
-                });
-                
-                // Log detailed position and rotation of iron sights
-                this.weaponModel.traverse(child => {
-                    if (child.name === "frontSightPost" || child.name === "rearSightAperture") {
-                        console.log(`DEBUG: ${child.name} position:`, child.position);
-                        console.log(`DEBUG: ${child.name} rotation:`, child.rotation);
-                    }
-                });
+        if (!this.weaponModel) return;
 
-                // Log camera settings during aiming
-                console.log('DEBUG: Camera FOV during aiming:', this.camera.fov);
-                console.log('DEBUG: Camera position during aiming:', this.camera.position);
-                console.log('DEBUG: Camera rotation during aiming:', this.camera.rotation);
-                
-            } else {
-                // Hip position
-                const oldPosition = this.weaponModel.position.clone();
-                const oldRotation = this.weaponModel.rotation.clone();
-                
-                // IMPORTANT: Make sure the weapon is a child of the camera
-                if (this.weaponModel.parent !== this.camera) {
-                    console.log('DEBUG: Weapon model is not a child of camera, reparenting');
-                    
-                    // Remove from current parent
-                    if (this.weaponModel.parent) {
-                        this.weaponModel.parent.remove(this.weaponModel);
-                    }
-                    
-                    // Add to camera
-                    this.camera.add(this.weaponModel);
-                }
-                
-                this.weaponModel.position.set(
-                    0.25,   // Offset to the right
-                    -0.25,  // Lower position
-                    -0.5    // Further from camera
-                );
-                this.weaponModel.rotation.set(
-                    0,              // No pitch
-                    Math.PI / 8,    // Slight angle
-                    0               // No roll
-                );
-                
-                console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
-                console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
-                
-                // Get updated world position of weapon
-                const newWorldPosition = new THREE.Vector3();
-                this.weaponModel.getWorldPosition(newWorldPosition);
-                console.log('DEBUG: Weapon new world position:', newWorldPosition);
-                
-                // Reset camera FOV
-                const oldFOV = this.camera.fov;
-                this.camera.fov = this.defaultFOV || 75;
-                this.camera.updateProjectionMatrix();
-                console.log('DEBUG: Camera FOV changed from', oldFOV, 'to', this.camera.fov);
-                
-                // Show remote players when not aiming down sights
-                this.players.forEach((player, id) => {
-                    if (!player.isLocal && player.model) {
-                        player.model.visible = true;
-                        console.log(`DEBUG: Showing remote player ${id} when not aiming down sights`);
-                    }
-                });
-            }
-            
-            // Make sure weapon is visible
-            this.weaponModel.visible = true;
-            
-            // Make sure weapon doesn't interfere with scene visibility
-            this.weaponModel.renderOrder = 1000; // Render after everything else
-            
-            // Force a render to update the scene, even if game is not running
-            this.renderer.render(this.scene, this.camera);
-            
-        } catch (error) {
-            console.error('DEBUG: Error updating weapon position:', error);
+        // Default position (hip fire)
+        let targetPosition = new THREE.Vector3(0.3, -0.3, -0.6);
+        let targetRotation = new THREE.Euler(0, 0, 0);
+
+        if (this.isAimingDownSights) {
+            // Adjusted position for aiming down sights - bring weapon closer to eye level
+            targetPosition = new THREE.Vector3(0, -0.08, -0.2);
+            // Slight tilt for more realistic sight picture
+            targetRotation = new THREE.Euler(0, -0.01, 0);
+        }
+
+        // Smooth transition between positions
+        this.weaponModel.position.lerp(targetPosition, 0.1);
+        
+        // Apply rotation changes
+        this.weaponModel.rotation.x = THREE.MathUtils.lerp(this.weaponModel.rotation.x, targetRotation.x, 0.1);
+        this.weaponModel.rotation.y = THREE.MathUtils.lerp(this.weaponModel.rotation.y, targetRotation.y, 0.1);
+        this.weaponModel.rotation.z = THREE.MathUtils.lerp(this.weaponModel.rotation.z, targetRotation.z, 0.1);
+
+        // Add subtle weapon sway when moving
+        if (this.moveForward || this.moveBackward || this.moveLeft || this.moveRight) {
+            const swayAmount = 0.02;
+            const swaySpeed = 4;
+            this.weaponModel.position.y += Math.sin(Date.now() * 0.01 * swaySpeed) * swayAmount;
+            this.weaponModel.position.x += Math.sin(Date.now() * 0.005 * swaySpeed) * swayAmount * 0.5;
         }
     }
 
@@ -1996,23 +1844,23 @@ class SimpleGame {
         weaponGroup.add(frontSightHousing);
         
         // Front sight post (the thin vertical blade you align with the target)
-        const frontSightPostGeometry = new THREE.BoxGeometry(0.002, 0.025, 0.002);
+        const frontSightPostGeometry = new THREE.BoxGeometry(0.002, 0.02, 0.002); // Thinner and shorter
         const frontSightPost = new THREE.Mesh(frontSightPostGeometry, sightMaterial);
-        frontSightPost.position.set(0, 0.085, -0.7);
+        frontSightPost.position.set(0, 0.07, -0.7); // Lowered further
         frontSightPost.name = "frontSightPost"; // Name it for easy reference
         weaponGroup.add(frontSightPost);
         
         // Front sight protective wings (the metal pieces that protect the front sight)
-        const frontSightWingGeometry = new THREE.BoxGeometry(0.01, 0.025, 0.002);
+        const frontSightWingGeometry = new THREE.BoxGeometry(0.01, 0.02, 0.002); // Shorter height
         
         // Left wing
         const leftWing = new THREE.Mesh(frontSightWingGeometry, sightMaterial);
-        leftWing.position.set(-0.015, 0.085, -0.7);
+        leftWing.position.set(-0.015, 0.07, -0.7); // Match front sight position
         weaponGroup.add(leftWing);
         
         // Right wing
         const rightWing = new THREE.Mesh(frontSightWingGeometry, sightMaterial);
-        rightWing.position.set(0.015, 0.085, -0.7);
+        rightWing.position.set(0.015, 0.07, -0.7); // Match front sight position
         weaponGroup.add(rightWing);
         
         // Rear sight base (the metal piece that holds the rear sight)
@@ -2023,11 +1871,11 @@ class SimpleGame {
         
         // Rear sight aperture (the V-notch or hole you look through)
         // For Kar98, we'll create a V-notch style rear sight
-        const rearSightNotchGeometry = new THREE.CylinderGeometry(0.01, 0.01, 0.02, 3); // Triangular prism
+        const rearSightNotchGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.02, 3); // Wider triangular prism
         const rearSightNotch = new THREE.Mesh(rearSightNotchGeometry, sightMaterial);
         rearSightNotch.rotation.x = Math.PI / 2;
         rearSightNotch.rotation.z = Math.PI; // Rotate to get the V shape pointing up
-        rearSightNotch.position.set(0, 0.085, -0.1);
+        rearSightNotch.position.set(0, 0.075, -0.1); // Slightly higher than front sight
         rearSightNotch.name = "rearSightAperture"; // Name it for easy reference
         weaponGroup.add(rearSightNotch);
         

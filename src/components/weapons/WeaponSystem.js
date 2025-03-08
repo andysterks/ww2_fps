@@ -182,10 +182,11 @@ class WeaponSystem {
                 // Aiming down sights position (centered and closer to camera)
                 this.weapon.position.set(
                     0 + this.weaponBob.x * 0.1,
-                    -0.05 + this.weaponBob.y * 0.1,
-                    -0.2
+                    -0.12 + this.weaponBob.y * 0.1, // Lower position (-0.12 instead of -0.1)
+                    -0.18 // Closer to camera (-0.18 instead of -0.2)
                 );
                 this.weapon.rotation.y = 0;
+                this.weapon.rotation.x = 0.03; // Slight upward tilt
                 
                 // Adjust FOV for aiming down sights
                 this.weaponCamera.fov = this.adsZoomFOV;
@@ -251,7 +252,6 @@ class WeaponSystem {
         }
         
         console.log('After toggle, new state:', {
-            isAiming: this.isAiming,
             isAimingDownSights: this._isAimingDownSights,
             isFirstTime: isFirstTime
         });
