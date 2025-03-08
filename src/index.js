@@ -1835,7 +1835,7 @@ class SimpleGame {
             );
 
             // Main wooden stock with texture
-            const stockGeometry = new THREE.BoxGeometry(0.08, 0.12, 0.7);
+            const stockGeometry = new THREE.BoxGeometry(0.06, .04, .8);
             const stockMaterial = new THREE.MeshStandardMaterial({ 
                 map: woodTexture,
                 roughness: 0.8,
@@ -1843,7 +1843,7 @@ class SimpleGame {
             });
             console.log('DEBUG: Stock material properties:', stockMaterial);
             const stock = new THREE.Mesh(stockGeometry, stockMaterial);
-            stock.position.set(0, -0.02, 0);
+            stock.position.set(0, 0.02, -0.09);
             console.log('DEBUG: Stock position:', stock.position);
             stock.name = "weaponStock";
             weaponGroup.add(stock);
