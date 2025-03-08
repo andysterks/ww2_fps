@@ -1849,7 +1849,7 @@ class SimpleGame {
             weaponGroup.add(stock);
 
             // Barrel with texture
-            const barrelGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.8, 16);
+            const barrelGeometry = new THREE.CylinderGeometry(0.008, 0.008, 0.8, 16);
             const barrelMaterial = new THREE.MeshStandardMaterial({ 
                 map: metalTexture,
                 roughness: 0.5,
@@ -1879,7 +1879,7 @@ class SimpleGame {
             weaponGroup.add(bolt);
 
             // Bolt handle with texture
-            const boltHandleGeometry = new THREE.CylinderGeometry(0.009, 0.009, 0.05, 8);
+            const boltHandleGeometry = new THREE.CylinderGeometry(0.007, 0.007, 0.05, 8);
             const boltHandle = new THREE.Mesh(boltHandleGeometry, boltMaterial);
 
             // Position it at the end of the bolt
@@ -1890,6 +1890,13 @@ class SimpleGame {
 
             boltHandle.name = "weaponBoltHandle";
             weaponGroup.add(boltHandle);
+
+            // add ball at end of bolt handle
+            const boltHandleBallGeometry = new THREE.SphereGeometry(0.01, 8, 8);
+            const boltHandleBall = new THREE.Mesh(boltHandleBallGeometry, boltMaterial);
+            boltHandleBall.position.set(0.083, -0.015, .05);
+            boltHandleBall.name = "weaponBoltHandleBall";
+            weaponGroup.add(boltHandleBall);
 
             // Create detailed iron sights
             this.createDetailedKar98IronSights(weaponGroup);
