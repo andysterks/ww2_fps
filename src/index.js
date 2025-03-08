@@ -649,7 +649,9 @@ class SimpleGame {
             
             // Set up camera and controls
             console.log("Setting up camera position");
-            this.camera.position.y = 1.6; // Eye level
+            this.camera.position.set(-1.7, 1.6, -4.4); // Position in front of the rifle (which is at z=-5)
+            // Make sure the player is facing the rifle
+            this.camera.lookAt(0, 1.5, -5);
             console.log("Creating pointer lock controls");
             
             // Use document.body for pointer lock controls instead of renderer.domElement
