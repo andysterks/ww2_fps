@@ -1873,7 +1873,7 @@ class SimpleGame {
             console.log('DEBUG: Bolt material properties:', boltMaterial);
             const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
             bolt.rotation.z = Math.PI / 2;
-            bolt.position.set(0.06, 0.06, -0.1);
+            bolt.position.set(0.06, 0.01, -0.1);
             console.log('DEBUG: Bolt position:', bolt.position);
             bolt.name = "weaponBolt";
             weaponGroup.add(bolt);
@@ -1881,7 +1881,7 @@ class SimpleGame {
             // Bolt handle with texture
             const boltHandleGeometry = new THREE.SphereGeometry(0.02, 8, 8);
             const boltHandle = new THREE.Mesh(boltHandleGeometry, boltMaterial);
-            boltHandle.position.set(0.12, 0.06, -0.1);
+            boltHandle.position.set(0.12, -0.01, -0.1);
             console.log('DEBUG: Bolt handle position:', boltHandle.position);
             boltHandle.name = "weaponBoltHandle";
             weaponGroup.add(boltHandle);
@@ -1951,6 +1951,17 @@ class SimpleGame {
     
     // Create detailed iron sights for the Kar98
     createDetailedKar98IronSights(weaponGroup) {
+        // curved housing for the front sight
+        const vectA = new THREE.Vector3(.1,.05,-.09); //origin
+        const vectB = new THREE.Vector3(.1,.05,-.09); //tangent
+        const vectC = new THREE.Vector3(.1,.05,-.09); //destination
+
+        const curve = new THREE.QuadraticBezierCurve3(vectA,vectB,vectC);
+        const mesh = new THREE.Mesh( new THREE.TubeGeometry( curve, 20, 1, 2, false ) );
+        mesh.position.set(0,0.09,-.19);
+        mesh.name = "frontSightHousing";
+        weaponGroup.add(mesh);
+
         // Front sight housing (the metal base that holds the front sight)
         const frontSightHousingGeometry = new THREE.BoxGeometry(0.03, 0.03, 0.02);
         const sightMaterial = new THREE.MeshStandardMaterial({ color: 0x222222 }); // Dark metal color
@@ -1981,7 +1992,7 @@ class SimpleGame {
         // Rear sight base (the metal piece that holds the rear sight)
         const rearSightBaseGeometry = new THREE.BoxGeometry(0.05, 0.01, 0.03);
         const rearSightBase = new THREE.Mesh(rearSightBaseGeometry, sightMaterial);
-        rearSightBase.position.set(0, 0.07, -0.1);
+        rearSightBase.position.set(0, 0.05, -0.13);
         weaponGroup.add(rearSightBase);
         
         // Rear sight aperture (the V-notch or hole you look through)
@@ -1990,11 +2001,11 @@ class SimpleGame {
         const rearSightNotch = new THREE.Mesh(rearSightNotchGeometry, sightMaterial);
         rearSightNotch.rotation.x = Math.PI / 2;
         rearSightNotch.rotation.z = Math.PI; // Rotate to get the V shape pointing up
-        rearSightNotch.position.set(0, 0.075, -0.1); // Slightly higher than front sight
+        rearSightNotch.position.set(0, 0.065, -0.1); // Slightly higher than front sight
         rearSightNotch.name = "rearSightAperture"; // Name it for easy reference
         weaponGroup.add(rearSightNotch);
         
-        console.log('DEBUG: Iron sights created with front sight at', frontSightPost.position, 'and rear sight at', rearSightNotch.position);
+        //console.log('DEBUG: Iron sights created with front sight at', frontSightPost.position, 'and rear sight at', rearSightNotch.position);
         
         return weaponGroup;
     }
