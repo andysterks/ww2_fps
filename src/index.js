@@ -997,29 +997,15 @@ class SimpleGame {
     // Main animation loop
     animate() {
         // Request next frame
-        requestAnimationFrame(() => this.animate.call(this));
+        this.animationFrameId = requestAnimationFrame(this.animate.bind(this));
         
         // Calculate delta time
         const now = performance.now();
-        const delta = (now - (this.lastFrameTime || now)) / 1000;
+        const delta = (now - this.lastFrameTime) / 1000; // Convert to seconds
         this.lastFrameTime = now;
         
-        // Initialize frame counter if not exists
-        if (!this.frameCounter) this.frameCounter = 0;
+        // Increment frame counter
         this.frameCounter++;
-        
-        // Limit logging to avoid console spam
-        if (this.frameCounter % 60 === 0) {
-            console.log('Animation frame, delta:', delta, 'isAimingDownSights:', this.isAimingDownSights);
-            console.log('DEBUG: isRunning:', this.isRunning, 'controls.isLocked:', this.controls ? this.controls.isLocked : 'controls not initialized');
-            console.log('DEBUG: Movement flags:', {
-                moveForward: this.moveForward,
-                moveBackward: this.moveBackward,
-                moveLeft: this.moveLeft,
-                moveRight: this.moveRight,
-                isSprinting: this.isSprinting
-            });
-        }
         
         // Always run the game loop, even if not in pointer lock
         try {
@@ -1043,6 +1029,29 @@ class SimpleGame {
                         object.visible = true;
                     }
                 });
+            }
+            
+            // Handle the floating rifle if it exists
+            if (this.floatingRifle && this.camera) {
+                // Calculate distance from player to rifle for info display only
+                const playerPosition = new THREE.Vector3();
+                this.camera.getWorldPosition(playerPosition);
+                const riflePosition = new THREE.Vector3(0, 1.5, -5); // Rifle's fixed position
+                const distanceToRifle = playerPosition.distanceTo(riflePosition);
+                
+                // Log distance occasionally for debugging
+                if (this.frameCounter % 60 === 0) {
+                    console.log('Distance to rifle:', distanceToRifle);
+                }
+                
+                // Update info text with distance
+                this.updateRifleInfoText(distanceToRifle);
+                
+                // Adjust light intensity based on proximity
+                const rifleLight = this.scene.getObjectByName("rifleSpotlight");
+                if (rifleLight) {
+                    rifleLight.intensity = 0.8 + (0.7 * (1 - Math.min(1, distanceToRifle / 8)));
+                }
             }
             
             // Update weapon position based on movement and aiming
@@ -1278,6 +1287,10 @@ class SimpleGame {
             this.createBuilding(-10, 0, -15, 0xA0522D);
             this.createBuilding(15, 0, -30, 0xCD853F);
             
+            // Add a floating Kar98 rifle for examination
+            console.log("Adding floating Kar98 rifle");
+            this.createFloatingKar98Rifle();
+            
             console.log("Test environment created successfully");
         } catch (error) {
             console.error("Error creating test environment:", error);
@@ -1299,6 +1312,127 @@ class SimpleGame {
         building.receiveShadow = true;
         
         this.scene.add(building);
+    }
+
+    // Create a floating Kar98 rifle for examination
+    createFloatingKar98Rifle() {
+        console.log("Creating floating Kar98 rifle for examination");
+        
+        try {
+            // Create a copy of the Kar98 rifle model
+            const floatingRifle = this.createSimpleWeaponModel();
+            
+            // Name it for easy reference
+            floatingRifle.name = "floatingKar98Rifle";
+            
+            // Position it in the environment - slightly below eye level
+            // Assuming player eye level is around 1.7 units
+            floatingRifle.position.set(0, 1.5, -5); // 5 units in front of the starting position
+            
+            // Set a fixed rotation - horizontal with slight angle for better viewing
+            floatingRifle.rotation.set(0, Math.PI / 6, 0);
+            
+            // Scale it up slightly for better visibility
+            floatingRifle.scale.set(2, 2, 2);
+            
+            // Create a display platform for the rifle
+            const platformGeometry = new THREE.CylinderGeometry(1, 1.2, 0.1, 16);
+            const platformMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x333333,
+                metalness: 0.7,
+                roughness: 0.2,
+                emissive: 0x222222
+            });
+            const platform = new THREE.Mesh(platformGeometry, platformMaterial);
+            platform.position.set(0, 0.05, -5); // Position below the rifle
+            platform.receiveShadow = true;
+            platform.name = "rifleDisplayPlatform";
+            this.scene.add(platform);
+            
+            // Add a subtle glow effect around the rifle (static, no animation)
+            const glowGeometry = new THREE.SphereGeometry(0.5, 16, 16);
+            const glowMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffcc,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.DoubleSide
+            });
+            const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
+            glowSphere.position.copy(floatingRifle.position);
+            glowSphere.scale.set(3, 3, 5); // Elongated to cover the rifle
+            glowSphere.name = "rifleGlowEffect";
+            this.scene.add(glowSphere);
+            
+            // Store reference to glow effect
+            this.rifleGlowEffect = glowSphere;
+            
+            // Add to scene
+            this.scene.add(floatingRifle);
+            
+            // Store reference
+            this.floatingRifle = floatingRifle;
+            
+            // Add a subtle point light to highlight the rifle
+            const rifleLight = new THREE.PointLight(0xffffcc, 0.8, 5);
+            rifleLight.position.set(0, 1.7, -5);
+            rifleLight.name = "rifleSpotlight";
+            this.scene.add(rifleLight);
+            
+            // Add a small info text using HTML overlay
+            this.addRifleInfoText();
+            
+            console.log("Floating Kar98 rifle created successfully");
+            return floatingRifle;
+        } catch (error) {
+            console.error("Error creating floating Kar98 rifle:", error);
+            return null;
+        }
+    }
+    
+    // Add an HTML overlay with information about the rifle
+    addRifleInfoText() {
+        const infoDiv = document.createElement('div');
+        infoDiv.id = 'rifle-info';
+        infoDiv.style.position = 'absolute';
+        infoDiv.style.bottom = '20px';
+        infoDiv.style.left = '50%';
+        infoDiv.style.transform = 'translateX(-50%)';
+        infoDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        infoDiv.style.color = 'white';
+        infoDiv.style.padding = '10px 20px';
+        infoDiv.style.borderRadius = '5px';
+        infoDiv.style.fontFamily = 'Arial, sans-serif';
+        infoDiv.style.fontSize = '14px';
+        infoDiv.style.textAlign = 'center';
+        infoDiv.style.zIndex = '1000';
+        infoDiv.style.pointerEvents = 'none'; // Don't block mouse events
+        infoDiv.innerHTML = 'Karabiner 98k - German Bolt-Action Rifle<br>Walk around to examine the weapon from all angles';
+        
+        document.body.appendChild(infoDiv);
+    }
+    
+    // Update the rifle info text with distance information
+    updateRifleInfoText(distance) {
+        const infoDiv = document.getElementById('rifle-info');
+        if (infoDiv) {
+            // Format distance to 1 decimal place
+            const formattedDistance = distance.toFixed(1);
+            
+            // Simple info text without interaction hints
+            const infoText = `Karabiner 98k - German Bolt-Action Rifle<br>
+                             Walk around to examine the weapon from all angles<br>
+                             <span style="font-size: 12px; color: #aaa;">Distance: ${formattedDistance} meters</span>`;
+            
+            // Update the HTML
+            infoDiv.innerHTML = infoText;
+            
+            // Simple color change based on proximity
+            if (distance < 3) {
+                infoDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+            } else {
+                infoDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            }
+        }
     }
 
     // Set up event listeners for user input
