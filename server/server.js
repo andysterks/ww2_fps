@@ -34,56 +34,57 @@ const io = new Server(httpServer, {
 });
 
 // Store connected players
-const players = new Map();
+const players = {};
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
     console.log(`Player connected: ${socket.id}`);
     
-    // Initialize player data
-    players.set(socket.id, {
-        id: socket.id,
-        position: { x: 0, y: 0, z: 0 },
-        rotation: { x: 0, y: 0, z: 0 },
-        moveForward: false,
-        moveBackward: false,
-        moveLeft: false,
-        moveRight: false,
-        isSprinting: false
-    });
-    
-    // Send current players list when requested
-    socket.on('request-players', () => {
-        console.log('Player requested players list');
-        const playersList = Array.from(players.entries()).map(([id, data]) => ({
-            id,
-            ...data
-        }));
-        console.log('Sending players list:', playersList);
-        socket.emit('players-list', playersList);
+    // Handle player join
+    socket.on('playerJoin', (playerData) => {
+        console.log(`Player joined: ${socket.id}`, playerData);
+        
+        // Store player data
+        players[socket.id] = {
+            id: socket.id,
+            position: playerData.position || { x: 0, y: 0, z: 0 },
+            rotation: playerData.rotation || { x: 0, y: 0, z: 0 },
+            moveForward: false,
+            moveBackward: false,
+            moveLeft: false,
+            moveRight: false,
+            isSprinting: false,
+            timestamp: Date.now()
+        };
+        
+        // Send existing players to the new player
+        const existingPlayers = Object.values(players).filter(p => p.id !== socket.id);
+        console.log('Sending existing players to new player:', existingPlayers);
+        socket.emit('existingPlayers', existingPlayers);
+        
+        // Notify other players about the new player
+        socket.broadcast.emit('playerJoined', players[socket.id]);
     });
     
     // Handle player updates
-    socket.on('player-update', (data) => {
+    socket.on('playerUpdate', (playerData) => {
         // Update player data in our records
-        const player = players.get(socket.id);
-        if (player) {
-            Object.assign(player, data);
+        if (players[socket.id]) {
+            // Update position and rotation
+            players[socket.id].position = playerData.position;
+            players[socket.id].rotation = playerData.rotation;
+            
+            // Update movement flags
+            players[socket.id].moveForward = playerData.moveForward || false;
+            players[socket.id].moveBackward = playerData.moveBackward || false;
+            players[socket.id].moveLeft = playerData.moveLeft || false;
+            players[socket.id].moveRight = playerData.moveRight || false;
+            players[socket.id].isSprinting = playerData.isSprinting || false;
+            players[socket.id].timestamp = playerData.timestamp || Date.now();
             
             // Broadcast to all other players
-            socket.broadcast.emit('player-update', {
-                id: socket.id,
-                ...data
-            });
+            socket.broadcast.emit('playerUpdate', players[socket.id]);
         }
-    });
-    
-    // Handle player actions (shooting, etc.)
-    socket.on('player-action', (data) => {
-        socket.broadcast.emit('player-action', {
-            id: socket.id,
-            ...data
-        });
     });
     
     // Handle disconnection
@@ -91,17 +92,10 @@ io.on('connection', (socket) => {
         console.log(`Player disconnected: ${socket.id}, reason: ${reason}`);
         
         // Remove player from our records
-        players.delete(socket.id);
+        delete players[socket.id];
         
         // Notify other players
-        io.emit('player-left', { id: socket.id });
-    });
-    
-    // Notify other players about the new player
-    socket.broadcast.emit('player-joined', {
-        id: socket.id,
-        position: players.get(socket.id).position,
-        rotation: players.get(socket.id).rotation
+        io.emit('playerLeft', socket.id);
     });
 });
 
@@ -115,6 +109,6 @@ const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0'; // Listen on all network interfaces
 httpServer.listen(PORT, HOST, () => {
     console.log(`Server running on http://${HOST}:${PORT}`);
-    console.log('For local access, use: http://localhost:${PORT}');
+    console.log(`For local access, use: http://localhost:${PORT}`);
     console.log('For network access, use your computer\'s IP address');
 }); 

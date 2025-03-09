@@ -251,6 +251,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Player class to manage individual player instances
 class Player {
     constructor(id, game, isLocal = false, initialPosition = { x: 0, y: 0, z: 0 }) {
+        console.log(`DEBUG: Creating player ${id}, isLocal: ${isLocal}, initialPosition:`, initialPosition);
         this.id = id;
         this.game = game;
         this.isLocal = isLocal;
@@ -281,6 +282,7 @@ class Player {
     // Create a 3D model for the player
     createModel() {
         console.log(`DEBUG: Creating model for player ${this.id}`);
+        
         try {
             // Create a group for the player model
             this.model = new THREE.Group();
@@ -345,143 +347,186 @@ class Player {
             rightLeg.name = 'rightLeg';
             this.model.add(rightLeg);
             
-            // Add a simple rifle (Kar98k style)
-            console.log('DEBUG: Creating Kar98k rifle for player model');
-            const rifle = new THREE.Group();
-            rifle.name = 'playerModelRifle';
+            // Only add rifle to remote players (local player has first-person weapon)
+            if (!this.isLocal) {
+                // Add a simple rifle (Kar98k style)
+                console.log('DEBUG: Creating Kar98k rifle for player model');
+                const rifle = new THREE.Group();
+                rifle.name = 'playerModelRifle';
+                
+                // Rifle body
+                const rifleBody = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.1, 0.1, 1.2),
+                    new THREE.MeshLambertMaterial({ color: 0x5c2e00 })
+                );
+                rifleBody.position.z = 0.6;
+                rifleBody.name = 'playerModelRifleBody';
+                rifle.add(rifleBody);
+                
+                // Rifle barrel
+                const rifleBarrel = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8),
+                    new THREE.MeshLambertMaterial({ color: 0x333333 })
+                );
+                rifleBarrel.rotation.x = Math.PI / 2;
+                rifleBarrel.position.z = 1.1;
+                rifleBarrel.name = 'playerModelRifleBarrel';
+                rifle.add(rifleBarrel);
+                
+                // Position the rifle in the right hand
+                rifle.position.set(-0.6, 1.1, 0.2);
+                rifle.rotation.y = Math.PI / 4;
+                
+                this.model.add(rifle);
+            }
             
-            // Rifle body
-            const rifleBody = new THREE.Mesh(
-                new THREE.BoxGeometry(0.1, 0.1, 1.2),
-                new THREE.MeshLambertMaterial({ color: 0x5c2e00 })
-            );
-            rifleBody.position.z = 0.6;
-            rifleBody.name = 'playerModelRifleBody';
-            rifle.add(rifleBody);
+            // Set initial position
+            this.model.position.copy(this.position);
             
-            // Rifle barrel
-            const rifleBarrel = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8),
-                new THREE.MeshLambertMaterial({ color: 0x333333 })
-            );
-            rifleBarrel.rotation.x = Math.PI / 2;
-            rifleBarrel.position.z = 1.1;
-            rifleBarrel.name = 'playerModelRifleBarrel';
-            rifle.add(rifleBarrel);
+            console.log(`DEBUG: Model created for player ${this.id}`);
+            return this.model;
+        } catch (error) {
+            console.error(`DEBUG: Error creating model for player ${this.id}:`, error);
             
-            // Position the rifle in the right hand
-            rifle.position.set(-0.6, 1.1, 0.2);
-            rifle.rotation.y = Math.PI / 4;
-            console.log('DEBUG: Rifle position:', rifle.position);
-            console.log('DEBUG: Rifle rotation:', rifle.rotation);
-            this.model.add(rifle);
-            
-            // Add the model to the scene
-            if (this.game && this.game.scene) {
-                console.log(`DEBUG: Adding model for player ${this.id} to scene`);
-                this.game.scene.add(this.model);
+            // Create a minimal model as fallback
+            try {
+                console.log(`DEBUG: Creating minimal fallback model for player ${this.id}`);
+                this.model = new THREE.Group();
+                this.model.name = `player-${this.id}-fallback`;
+                
+                // Simple box as fallback
+                const fallbackMesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.5, 1.8, 0.5),
+                    new THREE.MeshLambertMaterial({ color: this.isLocal ? 0x0000ff : 0xff0000 })
+                );
+                fallbackMesh.position.y = 0.9; // Center vertically
+                this.model.add(fallbackMesh);
                 
                 // Set initial position
                 this.model.position.copy(this.position);
-                this.model.position.y = 0; // Keep y at 0 to ensure feet are on ground
-                this.model.rotation.y = this.rotation.y;
-                console.log(`DEBUG: Player model position:`, this.model.position);
                 
-                // If this is the local player, hide the model since we're in first person
-                if (this.isLocal) {
-                    console.log("DEBUG: Local player - hiding model");
-                    this.model.visible = false;
-                } else {
-                    console.log(`DEBUG: Remote player ${this.id} - model visible at position:`, this.model.position);
-                }
-            } else {
-                console.error(`DEBUG: Cannot add model for player ${this.id} - game or scene not available`);
+                return this.model;
+            } catch (fallbackError) {
+                console.error(`DEBUG: Failed to create fallback model for player ${this.id}:`, fallbackError);
+                return null;
             }
-            
-            console.log(`DEBUG: Model creation complete for player ${this.id}`);
-        } catch (error) {
-            console.error(`DEBUG: Error creating model for player ${this.id}:`, error);
         }
     }
 
     // Update player position and rotation based on controls (for local player)
     // or based on network data (for remote players)
     update(delta) {
-        if (this.isLocal) {
-            // Local player's position is controlled by the camera/controls
-            if (this.game && this.game.camera) {
-                this.position.copy(this.game.camera.position);
-                this.rotation.y = this.game.camera.rotation.y;
-            }
-        } else {
-            // Remote player - use improved interpolation
-            const LERP_FACTOR = Math.min(1, delta * 15); // Adjust interpolation speed
-            
-            // Interpolate position with improved smoothing
-            this.position.lerp(this.targetPosition, LERP_FACTOR);
-            
-            // Interpolate rotation with improved smoothing
-            const deltaRotation = this.targetRotation.y - this.rotation.y;
-            const adjustedRotation = deltaRotation > Math.PI ? deltaRotation - Math.PI * 2 : 
-                                   deltaRotation < -Math.PI ? deltaRotation + Math.PI * 2 : 
-                                   deltaRotation;
-            this.rotation.y += adjustedRotation * LERP_FACTOR;
-            
-            // Update model position and rotation
-            if (this.model) {
-                this.model.position.copy(this.position);
-                this.model.position.y = 0; // Keep y at 0 to ensure feet are on ground
-                this.model.rotation.y = this.rotation.y;
+        try {
+            // For local player, position is controlled by the camera/controls
+            if (this.isLocal) {
+                if (this.game && this.game.camera) {
+                    this.position.copy(this.game.camera.position);
+                    this.rotation.y = this.game.camera.rotation.y;
+                }
+            } else {
+                // For remote players, interpolate towards target position and rotation
+                // Only log occasionally to reduce console spam
+                if (this.game && this.game.frameCounter % 60 === 0) {
+                    console.log(`DEBUG: Updating remote player ${this.id}`);
+                    console.log(`DEBUG: Current position:`, this.position.clone());
+                    console.log(`DEBUG: Target position:`, this.targetPosition.clone());
+                    console.log(`DEBUG: Distance to target:`, this.position.distanceTo(this.targetPosition));
+                }
                 
-                // Animate the model based on movement
-                this.animateModel(delta);
+                // Make sure target position and rotation are valid
+                if (!this.targetPosition) {
+                    this.targetPosition = new THREE.Vector3(0, 0, 0);
+                }
+                
+                if (!this.targetRotation) {
+                    this.targetRotation = new THREE.Euler(0, 0, 0);
+                }
+                
+                // Interpolation factor (0-1) - higher values = faster interpolation
+                const lerpFactor = Math.min(1, delta * 5); // Adjust for smoother movement
+                
+                // Interpolate position
+                this.position.lerp(this.targetPosition, lerpFactor);
+                
+                // Interpolate rotation (only y for now)
+                if (!isNaN(this.rotation.y) && !isNaN(this.targetRotation.y)) {
+                    this.rotation.y = THREE.MathUtils.lerp(
+                        this.rotation.y,
+                        this.targetRotation.y,
+                        lerpFactor
+                    );
+                }
+                
+                // Update model position and rotation
+                if (this.model) {
+                    // Make sure model is visible
+                    this.model.visible = true;
+                    
+                    // Update model position and rotation
+                    this.model.position.copy(this.position);
+                    this.model.rotation.y = this.rotation.y;
+                    
+                    // Log model position occasionally
+                    if (this.game && this.game.frameCounter % 60 === 0) {
+                        console.log(`DEBUG: Model position:`, this.model.position.clone());
+                    }
+                }
             }
+            
+            // Animate the model (legs, arms, etc.)
+            this.animateModel(delta);
+        } catch (error) {
+            console.error(`ERROR: Failed to update player ${this.id}:`, error);
         }
     }
     
     // Separate method for model animation
     animateModel(delta) {
-        if (!this.model || !this.model.children) return;
-        
-        const isMoving = 
-            this.position.distanceTo(this.targetPosition) > 0.01 ||
-            Math.abs(this.rotation.y - this.targetRotation.y) > 0.01;
-        
-        if (isMoving) {
-            // Calculate animation speed
-            const animSpeed = this.isSprinting ? 15 : 10;
+        try {
+            if (!this.model || !this.model.children) return;
             
-            // Update animation timers
-            if (!this.legSwing) this.legSwing = 0;
-            if (!this.armSwing) this.armSwing = 0;
+            const isMoving = 
+                this.position.distanceTo(this.targetPosition) > 0.01 ||
+                Math.abs(this.rotation.y - this.targetRotation.y) > 0.01;
             
-            this.legSwing += delta * animSpeed;
-            this.armSwing = this.legSwing;
-            
-            // Apply animations
-            this.model.children.forEach(part => {
-                switch(part.name) {
-                    case 'leftLeg':
-                        part.rotation.x = Math.sin(this.legSwing) * 0.5;
-                        break;
-                    case 'rightLeg':
-                        part.rotation.x = Math.sin(this.legSwing + Math.PI) * 0.5;
-                        break;
-                    case 'leftArm':
-                        part.rotation.x = Math.sin(this.armSwing + Math.PI) * 0.5;
-                        break;
-                    case 'rightArm':
-                        part.rotation.x = Math.sin(this.armSwing) * 0.5;
-                        break;
-                }
-            });
-        } else {
-            // Reset animations when not moving
-            this.model.children.forEach(part => {
-                if (['leftLeg', 'rightLeg', 'leftArm', 'rightArm'].includes(part.name)) {
-                    part.rotation.x = 0;
-                }
-            });
+            if (isMoving) {
+                // Calculate animation speed
+                const animSpeed = this.isSprinting ? 15 : 10;
+                
+                // Update animation timers
+                if (!this.legSwing) this.legSwing = 0;
+                if (!this.armSwing) this.armSwing = 0;
+                
+                this.legSwing += delta * animSpeed;
+                this.armSwing = this.legSwing;
+                
+                // Apply animations
+                this.model.children.forEach(part => {
+                    switch(part.name) {
+                        case 'leftLeg':
+                            part.rotation.x = Math.sin(this.legSwing) * 0.5;
+                            break;
+                        case 'rightLeg':
+                            part.rotation.x = Math.sin(this.legSwing + Math.PI) * 0.5;
+                            break;
+                        case 'leftArm':
+                            part.rotation.x = Math.sin(this.armSwing + Math.PI) * 0.5;
+                            break;
+                        case 'rightArm':
+                            part.rotation.x = Math.sin(this.armSwing) * 0.5;
+                            break;
+                    }
+                });
+            } else {
+                // Reset animations when not moving
+                this.model.children.forEach(part => {
+                    if (['leftLeg', 'rightLeg', 'leftArm', 'rightArm'].includes(part.name)) {
+                        part.rotation.x = 0;
+                    }
+                });
+            }
+        } catch (error) {
+            console.error(`ERROR: Failed to animate player ${this.id} model:`, error);
         }
     }
     
@@ -495,52 +540,100 @@ class Player {
     }
     
     // Update player position based on network data (for remote players)
-    updateFromNetwork(position, rotation) {
-        if (!this.isLocal) {
-            const timestamp = Date.now();
+    updateFromNetwork(position, rotation, moveForward, moveBackward, moveLeft, moveRight, isSprinting) {
+        try {
+            console.log(`DEBUG: Updating remote player ${this.id} from network`);
             
-            // Store the position update with timestamp
-            if (!this.positionBuffer) {
-                this.positionBuffer = [];
+            // Make sure position and rotation are valid
+            if (!position) {
+                console.error(`ERROR: Invalid position data for player ${this.id}`);
+                return;
             }
             
-            this.positionBuffer.push({
-                position: new THREE.Vector3(position.x, position.y, position.z),
-                rotation: new THREE.Euler(rotation.x, rotation.y, rotation.z),
-                timestamp
-            });
+            // Update target position for interpolation
+            this.targetPosition.set(
+                position.x !== undefined ? position.x : this.targetPosition.x,
+                position.y !== undefined ? position.y : this.targetPosition.y,
+                position.z !== undefined ? position.z : this.targetPosition.z
+            );
             
-            // Keep only the last 10 updates
-            while (this.positionBuffer.length > 10) {
-                this.positionBuffer.shift();
+            // Update target rotation for interpolation
+            if (rotation) {
+                this.targetRotation.set(
+                    rotation.x !== undefined ? rotation.x : this.targetRotation.x,
+                    rotation.y !== undefined ? rotation.y : this.targetRotation.y,
+                    rotation.z !== undefined ? rotation.z : this.targetRotation.z
+                );
             }
             
-            // Set immediate target for interpolation
-            this.targetPosition.set(position.x, position.y, position.z);
-            this.targetRotation.set(rotation.x, rotation.y, rotation.z);
+            // Update movement flags
+            this.moveForward = moveForward || false;
+            this.moveBackward = moveBackward || false;
+            this.moveLeft = moveLeft || false;
+            this.moveRight = moveRight || false;
+            this.isSprinting = isSprinting || false;
+            
+            // Log occasionally to reduce console spam
+            if (this.game && this.game.frameCounter % 300 === 0) {
+                console.log(`DEBUG: Updated target position for player ${this.id}:`, this.targetPosition.clone());
+                console.log(`DEBUG: Updated target rotation for player ${this.id}:`, this.targetRotation.clone());
+                console.log(`DEBUG: Updated movement flags:`, {
+                    forward: this.moveForward,
+                    backward: this.moveBackward,
+                    left: this.moveLeft,
+                    right: this.moveRight,
+                    sprint: this.isSprinting
+                });
+            }
+            
+            // Update model position and rotation immediately
+            if (this.model) {
+                // Make sure model is visible
+                this.model.visible = true;
+            }
+        } catch (error) {
+            console.error(`ERROR: Failed to update player ${this.id} from network:`, error);
         }
     }
 
     // Serialize player data for network transmission
     serialize() {
-        return {
-            id: this.id,
-            position: {
-                x: this.position.x,
-                y: this.position.y,
-                z: this.position.z
-            },
-            rotation: {
-                x: this.rotation.x,
-                y: this.rotation.y,
-                z: this.rotation.z
-            },
-            moveForward: this.moveForward,
-            moveBackward: this.moveBackward,
-            moveLeft: this.moveLeft,
-            moveRight: this.moveRight,
-            isSprinting: this.isSprinting
-        };
+        try {
+            // Create a safe copy of position and rotation
+            const safePosition = {
+                x: this.position ? this.position.x || 0 : 0,
+                y: this.position ? this.position.y || 0 : 0,
+                z: this.position ? this.position.z || 0 : 0
+            };
+            
+            const safeRotation = {
+                x: this.rotation ? this.rotation.x || 0 : 0,
+                y: this.rotation ? this.rotation.y || 0 : 0,
+                z: this.rotation ? this.rotation.z || 0 : 0
+            };
+            
+            const data = {
+                id: this.id,
+                position: safePosition,
+                rotation: safeRotation
+            };
+            
+            // Only log occasionally to reduce console spam
+            if (this.game && this.game.frameCounter % 300 === 0) {
+                console.log(`DEBUG: Serialized player ${this.id} data:`, data);
+            }
+            
+            return data;
+        } catch (error) {
+            console.error(`ERROR: Failed to serialize player ${this.id}:`, error);
+            
+            // Return a safe fallback
+            return {
+                id: this.id,
+                position: { x: 0, y: 0, z: 0 },
+                rotation: { x: 0, y: 0, z: 0 }
+            };
+        }
     }
 
     getPosition() {
@@ -562,100 +655,56 @@ class Player {
 
 class SimpleGame {
     constructor() {
+        console.log("DEBUG: Initializing SimpleGame");
+        
         try {
-            console.log("DEBUG: SimpleGame constructor called");
-            
-            // Update debug message
-            const debugDiv = document.querySelector('div[style*="Game initializing"]');
-            if (debugDiv) {
-                debugDiv.textContent = 'Setting up scene...';
-            }
-            
             // Initialize properties
-            console.log("DEBUG: Creating scene");
             this.scene = new THREE.Scene();
-            console.log("DEBUG: Creating camera");
             this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            console.log("DEBUG: Creating renderer");
             this.renderer = new THREE.WebGLRenderer({ antialias: true });
+            this.controls = null;
+            this.animationFrameId = null;
+            this.lastFrameTime = performance.now();
+            this.frameCounter = 0;
+            this.debugMode = true;
             
-            // Camera settings
-            this.defaultFOV = 75;
-            this.aimingFOV = 65; // Less aggressive initial aim
-            this.aimingDownSightsFOV = 35; // More zoom when aiming down sights for better accuracy
+            // Initialize players collection as an object (not a Map)
+            this.players = {};
+            this.localPlayer = null;
+            
+            // Network properties
+            this.socket = null;
+            this.lastNetworkUpdateTime = 0;
+            
+            // Movement flags
+            this.moveForward = false;
+            this.moveBackward = false;
+            this.moveLeft = false;
+            this.moveRight = false;
+            this.isSprinting = false;
             this.isAimingDownSights = false;
-            this.hasShownAimingMessage = false; // Track if we've shown the aiming message
             
-            // Create weapon model - but don't add it to the scene yet
-            this.weaponModel = this.createSimpleWeaponModel();
-            
-            // IMPORTANT: Add weapon model to camera, not scene
-            console.log("DEBUG: Adding weapon model to camera");
-            this.camera.add(this.weaponModel);
-            console.log("DEBUG: Weapon model parent after adding to camera:", this.weaponModel.parent ? this.weaponModel.parent.name : 'none');
-            
-            // Update debug message
-            if (debugDiv) {
-                debugDiv.textContent = 'Setting up renderer...';
-            }
+            // Physics variables
+            this.velocity = new THREE.Vector3();
+            this.direction = new THREE.Vector3();
+            this.playerSpeed = 5.0;
+            this.sprintMultiplier = 2.0;
+            this.isRunning = false;
             
             // Set up renderer
-            console.log("Setting renderer size");
+            console.log("DEBUG: Setting up renderer");
             this.renderer.setSize(window.innerWidth, window.innerHeight);
-            console.log("Enabling shadow maps");
+            this.renderer.setPixelRatio(window.devicePixelRatio);
             this.renderer.shadowMap.enabled = true;
             this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            
-            // Find game container
-            console.log("Finding game container");
-            const gameContainer = document.getElementById('game-container');
-            if (!gameContainer) {
-                console.error("Game container not found!");
-                
-                // Update debug message
-                const debugDiv = document.querySelector('div[style*="Setting up"]');
-                if (debugDiv) {
-                    debugDiv.textContent = 'ERROR: Game container not found!';
-                    debugDiv.style.color = 'red';
-                }
-                
-                // Create game container if it doesn't exist
-                console.log("Creating new game container");
-                const newContainer = document.createElement('div');
-                newContainer.id = 'game-container';
-                newContainer.style.width = '100%';
-                newContainer.style.height = '100%';
-                newContainer.style.position = 'absolute';
-                newContainer.style.top = '0';
-                newContainer.style.left = '0';
-                document.body.appendChild(newContainer);
-                
-                // Update debug message
-                if (debugDiv) {
-                    debugDiv.textContent = 'Created missing game container';
-                    debugDiv.style.color = 'orange';
-                }
-                
-                // Use the newly created container
-                this.gameContainer = newContainer;
-            } else {
-                console.log("Game container found");
-                this.gameContainer = gameContainer;
-            }
-            
-            // Append renderer to container
-            console.log("Appending renderer to container");
-            this.gameContainer.appendChild(this.renderer.domElement);
+            document.body.appendChild(this.renderer.domElement);
             
             // Set up camera and controls
-            console.log("Setting up camera position");
-            this.camera.position.set(-1.7, 1.6, -4.4); // Position in front of the rifle (which is at z=-5)
-            // Make sure the player is facing the rifle
-            this.camera.lookAt(0, 1.5, -5);
-            console.log("Creating pointer lock controls");
+            console.log("DEBUG: Setting up camera position");
+            this.camera.position.y = 1.6; // Eye level
+            console.log("DEBUG: Creating pointer lock controls");
             
-            // Use document.body for pointer lock controls instead of renderer.domElement
-            console.log("DEBUG: Creating PointerLockControls with document.body");
+            // Create PointerLockControls
             this.controls = new PointerLockControls(this.camera, document.body);
             
             // Log controls properties
@@ -663,144 +712,85 @@ class SimpleGame {
                 isLocked: this.controls.isLocked,
                 hasControls: !!this.controls,
                 hasMoveForward: typeof this.controls.moveForward === 'function',
-                hasMoveRight: typeof this.controls.moveRight === 'function',
-                domElement: this.controls.domElement
+                hasMoveRight: typeof this.controls.moveRight === 'function'
             });
-            
-            // Update debug message
-            if (debugDiv) {
-                debugDiv.textContent = 'Setting up controls...';
-            }
             
             // Add controls to scene to ensure they're properly initialized
             console.log("DEBUG: Adding controls to scene");
             this.scene.add(this.controls.getObject());
             
-            // Movement variables
-            this.moveForward = false;
-            this.moveBackward = false;
-            this.moveLeft = false;
-            this.moveRight = false;
-            this.isSprinting = false;
-            this.sprintMultiplier = 2.0; // Increased from 1.5 for more noticeable sprint
-            this.isRunning = false; // Game state (paused/running)
+            // Create weapon model - but don't add it to the scene yet
+            this.weaponModel = this.createSimpleWeaponModel();
             
-            // Physics variables
-            this.velocity = new THREE.Vector3();
-            this.direction = new THREE.Vector3();
-            this.playerSpeed = 2.0; // Reduced from 5.0 for better matching with static player
-            this.prevTime = performance.now();
-            this.lastFrameTime = performance.now();
+            // IMPORTANT: Add weapon model to camera, not scene
+            console.log("DEBUG: Adding weapon model to camera");
+            this.camera.add(this.weaponModel);
             
-            // Animation variables
-            this.animationClock = 0;
-            
-            // Debug mode
-            this.debugMode = true;
-            
-            // Players collection
-            this.players = new Map();
-            
-            // Update debug message
-            if (debugDiv) {
-                debugDiv.textContent = 'Creating environment...';
-            }
-            
-            // Create a simple test environment
+            // Create test environment
+            console.log("DEBUG: Creating test environment");
             this.createSimpleTestEnvironment();
             
-            // Update debug message
-            if (debugDiv) {
-                debugDiv.textContent = 'Creating local player...';
-            }
-            
-            // Create local player
-            this.createLocalPlayer();
-            
-            // Update debug message
-            if (debugDiv) {
-                debugDiv.textContent = 'Initializing network...';
-            }
-            
-            // Initialize network (before creating test players)
-            try {
-                this.initNetwork();
-            } catch (error) {
-                console.error("Error initializing network:", error);
-                
-                // Update debug message
-                if (debugDiv) {
-                    debugDiv.textContent = 'Network error, continuing with offline mode...';
-                    debugDiv.style.color = 'orange';
-                }
-            }
-            
-            // Update debug message
-            if (debugDiv) {
-                debugDiv.textContent = 'Creating test players...';
-            }
-            
-            // Create some test remote players (for development)
-            this.createTestRemotePlayers();
-            
-            // Update debug message
-            if (debugDiv) {
-                debugDiv.textContent = 'Setting up event listeners...';
-            }
-            
             // Set up event listeners
+            console.log("DEBUG: Setting up event listeners");
             this.setupEventListeners();
             
-            // Update debug message
-            if (debugDiv) {
-                debugDiv.textContent = 'Starting animation loop...';
-            }
+            // Create local player
+            console.log("DEBUG: Creating local player");
+            this.createLocalPlayer();
             
             // Start animation loop
+            console.log("DEBUG: Starting animation loop");
             this.animate();
             
-            // Update debug message
-            if (debugDiv) {
-                debugDiv.textContent = 'Game initialized successfully!';
-                debugDiv.style.color = 'green';
-                
-                // Hide debug message after 5 seconds
-                setTimeout(() => {
-                    debugDiv.style.opacity = '0';
-                    debugDiv.style.transition = 'opacity 1s';
-                }, 5000);
-            }
-            
-            console.log("Game initialized successfully");
+            console.log("DEBUG: Game initialized successfully");
         } catch (error) {
-            console.error("Error initializing game:", error);
+            console.error("DEBUG: Error initializing game:", error);
+            this.showErrorMessage(error);
         }
     }
     
     // Create the local player
     createLocalPlayer() {
-        console.log("Creating local player");
+        console.log("DEBUG: Creating local player");
         
         try {
-            const localPlayerId = 'local-player';
-            console.log("Creating local player with ID:", localPlayerId);
+            // Create local player with ID 'local-player' (will be updated with socket ID later)
+            const initialPosition = { 
+                x: this.camera ? this.camera.position.x : 0, 
+                y: this.camera ? this.camera.position.y : 1.6, 
+                z: this.camera ? this.camera.position.z : 0 
+            };
             
-            // Set y to the camera height (1.6) for the local player
-            const localPlayer = new Player(localPlayerId, this, true);
-            console.log("Local player instance created");
+            console.log("DEBUG: Initial player position:", initialPosition);
+            
+            // Create the local player
+            this.localPlayer = new Player('local-player', this, true, initialPosition);
             
             // Create the player model
-            console.log("Creating local player model");
-            localPlayer.createModel();
-            console.log("Local player model created");
+            this.localPlayer.createModel();
             
-            // Add to players collection
-            this.players.set(localPlayerId, localPlayer);
-            this.localPlayer = localPlayer;
+            // Store in players object
+            this.players['local-player'] = this.localPlayer;
             
-            console.log("Local player created successfully");
+            console.log("DEBUG: Local player created successfully");
+            
+            // Initialize network after creating local player
+            console.log("DEBUG: Initializing network after local player creation");
+            this.initNetwork();
         } catch (error) {
-            console.error("Error creating local player:", error);
+            console.error("DEBUG: Error creating local player:", error);
+            
+            // Try to recover by creating a minimal player
+            try {
+                console.log("DEBUG: Attempting to create minimal local player");
+                this.localPlayer = new Player('local-player', this, true, { x: 0, y: 1.6, z: 0 });
+                this.players['local-player'] = this.localPlayer;
+                
+                // Initialize network
+                this.initNetwork();
+            } catch (recoveryError) {
+                console.error("DEBUG: Recovery failed:", recoveryError);
+            }
         }
     }
     
@@ -864,220 +854,480 @@ class SimpleGame {
     
     // Initialize network functionality
     initNetwork() {
-        // Connect to the server
-        console.log('Connecting to server...');
+        console.log("DEBUG: Initializing network connection");
         
         try {
+            // Connect to the server
+            console.log("DEBUG: Attempting to connect to server...");
+            
             // Use socket.io for WebSocket communication
             const serverUrl = window.location.hostname === 'localhost' ? 
                 'http://localhost:3000' : // Use explicit URL when running locally
                 `${window.location.protocol}//${window.location.hostname}:3000`; // Use port 3000 for network connections
             
-            console.log('Connecting to server at:', serverUrl);
+            console.log('DEBUG: Connecting to server at:', serverUrl);
             
-            // Create socket instance with updated configuration
             this.socket = io(serverUrl, {
-                path: '/socket.io/',
-                transports: ['websocket', 'polling'],
-                upgrade: true,
-                rememberUpgrade: true,
-                reconnection: true,
-                reconnectionAttempts: Infinity,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                timeout: 20000,
-                autoConnect: true,
-                forceNew: true,
-                withCredentials: true
+                reconnectionAttempts: 5,
+                timeout: 10000
             });
             
-            // Debug connection state
-            this.socket.on('connect_error', (error) => {
-                console.error('Connection error:', error);
-                console.log('Current transport:', this.socket.io.engine?.transport?.name);
-                console.log('Connection details:', {
-                    url: serverUrl,
-                    protocol: window.location.protocol,
-                    hostname: window.location.hostname,
-                    port: window.location.port
-                });
-            });
-
-            this.socket.on('connect_timeout', () => {
-                console.error('Connection timeout');
-            });
-
+            console.log("DEBUG: Socket object created:", this.socket);
+            
+            // Set up connection event handlers
             this.socket.on('connect', () => {
-                console.log('Connected to server with ID:', this.socket.id);
-                console.log('Using transport:', this.socket.io.engine.transport.name);
-                
-                // Remove any existing test players
-                this.players.forEach((player, id) => {
-                    if (id !== 'local-player' && !player.isLocal) {
-                        this.removePlayer(id);
-                    }
-                });
+                console.log("DEBUG: Connected to server with ID:", this.socket.id);
                 
                 // Update local player ID to match socket ID
                 if (this.localPlayer) {
+                    const oldId = this.localPlayer.id;
                     this.localPlayer.id = this.socket.id;
+                    
+                    // Update players collection
+                    delete this.players[oldId];
+                    this.players[this.socket.id] = this.localPlayer;
+                    
+                    console.log(`DEBUG: Updated local player ID from ${oldId} to ${this.socket.id}`);
                 }
                 
-                // Request current players list from server
-                this.socket.emit('request-players');
+                // Send initial player data
+                const playerData = {
+                    id: this.socket.id,
+                    position: this.localPlayer.getPosition(),
+                    rotation: this.localPlayer.getRotation()
+                };
+                
+                console.log("DEBUG: Sending initial player data:", playerData);
+                this.socket.emit('playerJoin', playerData);
             });
             
-            // Handle receiving current players list
-            this.socket.on('players-list', (players) => {
-                console.log('Received players list:', players);
+            this.socket.on('connect_error', (error) => {
+                console.error("DEBUG: Connection error:", error);
+            });
+            
+            this.socket.on('connect_timeout', () => {
+                console.error("DEBUG: Connection timeout");
+            });
+            
+            this.socket.on('disconnect', (reason) => {
+                console.log("DEBUG: Disconnected from server, reason:", reason);
+            });
+            
+            // Handle player join events
+            this.socket.on('playerJoined', (playerData) => {
+                console.log("DEBUG: Player joined event received:", playerData);
+                
+                // Don't add ourselves
+                if (playerData.id === this.socket.id) {
+                    console.log("DEBUG: Ignoring own player join event");
+                    return;
+                }
+                
+                console.log("DEBUG: Adding remote player:", playerData.id);
+                this.addRemotePlayer(playerData.id, playerData.position);
+            });
+            
+            // Handle existing players
+            this.socket.on('existingPlayers', (players) => {
+                console.log("DEBUG: Existing players data received:", players);
+                
                 players.forEach(player => {
-                    if (player.id !== this.socket.id && !this.players.has(player.id)) {
-                        this.addRemotePlayer(player.id, player.position);
+                    // Don't add ourselves
+                    if (player.id === this.socket.id) {
+                        console.log("DEBUG: Ignoring own player in existing players list");
+                        return;
                     }
+                    
+                    console.log("DEBUG: Adding existing remote player:", player.id);
+                    this.addRemotePlayer(player.id, player.position);
                 });
             });
             
-            // Handle new player joining
-            this.socket.on('player-joined', (data) => {
-                console.log('Player joined:', data);
-                if (data.id !== this.socket.id && !this.players.has(data.id)) {
-                    this.addRemotePlayer(data.id, data.position || { x: 0, y: 0, z: 0 });
-                }
-            });
-            
-            // Handle player leaving
-            this.socket.on('player-left', (data) => {
-                console.log('Player left:', data);
-                if (data.id && this.players.has(data.id)) {
-                    this.removePlayer(data.id);
-                }
+            // Handle player leave events
+            this.socket.on('playerLeft', (playerId) => {
+                console.log("DEBUG: Player left event received:", playerId);
+                this.removePlayer(playerId);
             });
             
             // Handle player updates
-            this.socket.on('player-update', (data) => {
-                if (data.id === this.socket.id) return; // Ignore our own updates
+            this.socket.on('playerUpdate', (playerData) => {
+                // Don't update ourselves
+                if (playerData.id === this.socket.id) return;
                 
-                const player = this.players.get(data.id);
-                if (player && !player.isLocal) {
-                    console.log(`Updating player ${data.id} position:`, data.position);
-                    player.updateFromNetwork(data.position, data.rotation);
-                    player.setMovementFlags(
-                        data.moveForward,
-                        data.moveBackward,
-                        data.moveLeft,
-                        data.moveRight,
-                        data.isSprinting
-                    );
+                const player = this.players[playerData.id];
+                if (player) {
+                    console.log("DEBUG: Received update for player:", playerData.id);
+                    console.log("DEBUG: Update data:", playerData);
+                    player.updateFromNetwork(playerData.position, playerData.rotation, playerData.moveForward, playerData.moveBackward, playerData.moveLeft, playerData.moveRight, playerData.isSprinting);
+                } else {
+                    console.warn("DEBUG: Received update for unknown player:", playerData.id);
+                    // Add the player if they don't exist
+                    this.addRemotePlayer(playerData.id, playerData.position);
                 }
             });
             
-            // Set network update interval
-            this.networkUpdateInterval = 50; // 20 updates per second
-            this.lastNetworkUpdate = 0;
+            console.log("DEBUG: Network event handlers set up");
             
+            // Start sending regular updates
+            this.lastNetworkUpdateTime = performance.now();
+            
+            console.log("DEBUG: Network initialization complete");
         } catch (error) {
-            console.error("Error initializing network:", error);
+            console.error("DEBUG: Error initializing network:", error);
         }
     }
-
+    
+    // Send network update to server
+    sendNetworkUpdate() {
+        try {
+            if (!this.socket || !this.socket.connected) {
+                console.warn("DEBUG: Cannot send network update - socket not connected");
+                return;
+            }
+            
+            if (!this.localPlayer) {
+                console.warn("DEBUG: Cannot send network update - local player not initialized");
+                return;
+            }
+            
+            // Get current camera position and rotation
+            const position = {
+                x: this.camera.position.x,
+                y: this.camera.position.y,
+                z: this.camera.position.z
+            };
+            
+            const rotation = {
+                x: this.camera.rotation.x,
+                y: this.camera.rotation.y,
+                z: this.camera.rotation.z
+            };
+            
+            // Create player data
+            const playerData = {
+                id: this.socket.id,
+                position: position,
+                rotation: rotation,
+                // Include movement flags for smoother animations
+                moveForward: this.moveForward,
+                moveBackward: this.moveBackward,
+                moveLeft: this.moveLeft,
+                moveRight: this.moveRight,
+                isSprinting: this.isSprinting,
+                timestamp: Date.now()
+            };
+            
+            // Only log occasionally to reduce console spam
+            if (this.frameCounter % 300 === 0) {
+                console.log("DEBUG: Sending player update:", playerData);
+            }
+            
+            // Send update to server
+            this.socket.emit('playerUpdate', playerData);
+            
+            // Update local player's position and rotation
+            if (this.localPlayer) {
+                this.localPlayer.position.copy(this.camera.position);
+                this.localPlayer.rotation.copy(this.camera.rotation);
+            }
+        } catch (error) {
+            console.error("DEBUG: Error sending network update:", error);
+        }
+    }
+    
+    // Add a remote player to the game
+    addRemotePlayer(playerId, position) {
+        console.log("DEBUG: Adding remote player:", playerId, "at position:", position);
+        
+        try {
+            // Check if player already exists
+            if (this.players[playerId]) {
+                console.warn("DEBUG: Player already exists:", playerId);
+                return this.players[playerId];
+            }
+            
+            // Ensure position is valid
+            const safePosition = {
+                x: position && !isNaN(position.x) ? position.x : 0,
+                y: position && !isNaN(position.y) ? position.y : 1.6,
+                z: position && !isNaN(position.z) ? position.z : 0
+            };
+            
+            console.log("DEBUG: Creating remote player with position:", safePosition);
+            
+            // Create new player
+            const player = new Player(playerId, this, false, safePosition);
+            
+            // Create model
+            const playerModel = player.createModel();
+            
+            // Add to scene if model was created successfully
+            if (playerModel) {
+                console.log("DEBUG: Adding remote player model to scene");
+                this.scene.add(playerModel);
+                
+                // Make sure model is visible
+                playerModel.visible = true;
+                
+                // Set model position
+                playerModel.position.copy(player.position);
+                
+                console.log("DEBUG: Remote player model added to scene successfully");
+                console.log("DEBUG: Model position:", playerModel.position.clone());
+            } else {
+                console.error("DEBUG: Remote player model creation failed");
+            }
+            
+            // Store in players object
+            this.players[playerId] = player;
+            console.log("DEBUG: Remote player added successfully, total players:", Object.keys(this.players).length);
+            
+            return player;
+        } catch (error) {
+            console.error("DEBUG: Error adding remote player:", error);
+            return null;
+        }
+    }
+    
     // Remove a player from the game
     removePlayer(playerId) {
-        const player = this.players.get(playerId);
-        if (player) {
-            console.log(`Removing player ${playerId}`);
+        console.log("DEBUG: Removing player:", playerId);
+        
+        try {
+            const player = this.players[playerId];
+            if (!player) {
+                console.warn("DEBUG: Player not found:", playerId);
+                return;
+            }
             
-            // Remove the player's model from the scene
-            if (player.model && this.scene) {
+            // Remove from scene
+            if (player.model) {
+                console.log("DEBUG: Removing player model from scene");
                 this.scene.remove(player.model);
             }
             
-            // Remove the player from our map
-            this.players.delete(playerId);
+            // Remove from players object
+            delete this.players[playerId];
+            console.log("DEBUG: Player removed successfully, remaining players:", Object.keys(this.players).length);
+        } catch (error) {
+            console.error("DEBUG: Error removing player:", error);
         }
     }
 
     // Main animation loop
     animate() {
-        // Request next frame
-        this.animationFrameId = requestAnimationFrame(this.animate.bind(this));
-        
-        // Calculate delta time
-        const now = performance.now();
-        const delta = (now - this.lastFrameTime) / 1000; // Convert to seconds
-        this.lastFrameTime = now;
-        
-        // Increment frame counter
-        this.frameCounter++;
-        
-        // Always run the game loop, even if not in pointer lock
         try {
-            // Make sure scene is visible
-            if (!this.scene.visible) {
-                console.warn('Scene was not visible, making it visible');
-                this.scene.visible = true;
-            }
+            // Request next frame
+            this.animationFrameId = requestAnimationFrame(this.animate.bind(this));
             
-            // Check if scene has any children
-            if (this.scene.children.length === 0) {
-                console.warn('Scene has no children, recreating environment');
-                this.createSimpleTestEnvironment();
-            }
+            // Calculate delta time
+            const now = performance.now();
+            const delta = (now - this.lastFrameTime) / 1000; // Convert to seconds
+            this.lastFrameTime = now;
             
-            // Make sure all objects in the scene are visible
-            if (this.frameCounter % 10 === 0) { // Check less frequently to avoid performance issues
-                this.scene.traverse(object => {
-                    if (object.visible !== undefined && !object.visible) {
-                        console.warn('Found invisible object, making it visible:', object.type);
-                        object.visible = true;
+            // Increment frame counter
+            this.frameCounter++;
+            
+            // Always run the game loop, even if not in pointer lock
+            try {
+                // Make sure scene is visible
+                if (!this.scene.visible) {
+                    console.warn('Scene was not visible, making it visible');
+                    this.scene.visible = true;
+                }
+                
+                // Check if scene has any children
+                if (this.scene.children.length === 0) {
+                    console.warn('Scene has no children, recreating environment');
+                    this.createSimpleTestEnvironment();
+                }
+                
+                // Make sure all objects in the scene are visible
+                if (this.frameCounter % 10 === 0) { // Check less frequently to avoid performance issues
+                    this.scene.traverse(object => {
+                        if (object.visible !== undefined && !object.visible) {
+                            console.warn('Found invisible object, making it visible:', object.type);
+                            object.visible = true;
+                        }
+                    });
+                }
+                
+                // Check if pointer is locked
+                if (document.pointerLockElement === document.body) {
+                    if (!this.isRunning) {
+                        console.log("DEBUG: Pointer lock detected, setting isRunning to true");
+                        this.isRunning = true;
                     }
-                });
-            }
-            
-            // Handle the floating rifle if it exists
-            if (this.floatingRifle && this.camera) {
-                // Calculate distance from player to rifle for info display only
-                const playerPosition = new THREE.Vector3();
-                this.camera.getWorldPosition(playerPosition);
-                const riflePosition = new THREE.Vector3(0, 1.5, -5); // Rifle's fixed position
-                const distanceToRifle = playerPosition.distanceTo(riflePosition);
-                
-                // Log distance occasionally for debugging
-                if (this.frameCounter % 60 === 0) {
-                    console.log('Distance to rifle:', distanceToRifle);
+                } else {
+                    if (this.isRunning) {
+                        console.log("DEBUG: Pointer lock lost, setting isRunning to false");
+                        this.isRunning = false;
+                    }
                 }
                 
-                // Update info text with distance
-                this.updateRifleInfoText(distanceToRifle);
-                
-                // Adjust light intensity based on proximity
-                const rifleLight = this.scene.getObjectByName("rifleSpotlight");
-                if (rifleLight) {
-                    rifleLight.intensity = 0.8 + (0.7 * (1 - Math.min(1, distanceToRifle / 8)));
+                // Handle the floating rifle if it exists
+                try {
+                    if (this.floatingRifle && this.camera) {
+                        // Calculate distance from player to rifle for info display only
+                        const playerPosition = new THREE.Vector3();
+                        this.camera.getWorldPosition(playerPosition);
+                        const riflePosition = new THREE.Vector3(0, 1.5, -5); // Rifle's fixed position
+                        const distanceToRifle = playerPosition.distanceTo(riflePosition);
+                        
+                        // Update info text with distance
+                        this.updateRifleInfoText(distanceToRifle);
+                        
+                        // Adjust light intensity based on proximity
+                        const rifleLight = this.scene.getObjectByName("rifleSpotlight");
+                        if (rifleLight) {
+                            rifleLight.intensity = 0.8 + (0.7 * (1 - Math.min(1, distanceToRifle / 8)));
+                        }
+                    }
+                } catch (error) {
+                    console.error('ERROR: Failed to update floating rifle:', error);
                 }
+                
+                // Update weapon position based on movement and aiming
+                try {
+                    this.updateWeaponPosition();
+                } catch (error) {
+                    console.error('ERROR: Failed to update weapon position:', error);
+                }
+                
+                // Update player position - always call this, even if not in pointer lock
+                try {
+                    this.updatePlayerPosition(delta);
+                } catch (error) {
+                    console.error('ERROR: Failed to update player position:', error);
+                }
+                
+                // Update remote players
+                try {
+                    // Log number of players
+                    if (this.frameCounter % 60 === 0) {
+                        console.log("DEBUG: Number of players:", Object.keys(this.players).length);
+                        
+                        // Log all players
+                        for (const playerId in this.players) {
+                            const player = this.players[playerId];
+                            console.log(`DEBUG: Player ${playerId}:`, {
+                                isLocal: player.isLocal,
+                                position: player.position ? player.position.clone() : 'undefined',
+                                hasModel: !!player.model
+                            });
+                        }
+                    }
+                    
+                    // Update all remote players
+                    for (const playerId in this.players) {
+                        const player = this.players[playerId];
+                        if (player && !player.isLocal) {
+                            try {
+                                player.update(delta);
+                                
+                                // Make sure model is visible and in the scene
+                                if (player.model) {
+                                    if (!player.model.parent) {
+                                        console.log(`DEBUG: Adding model for player ${playerId} to scene`);
+                                        this.scene.add(player.model);
+                                    }
+                                    
+                                    player.model.visible = true;
+                                }
+                            } catch (playerError) {
+                                console.error(`ERROR: Failed to update remote player ${playerId}:`, playerError);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('ERROR: Failed to update remote players:', error);
+                }
+                
+                // Send network updates at a fixed interval
+                try {
+                    if (this.socket && this.socket.connected && this.localPlayer) {
+                        const networkUpdateInterval = 50; // 20 updates per second
+                        if (now - this.lastNetworkUpdateTime > networkUpdateInterval) {
+                            this.sendNetworkUpdate();
+                            this.lastNetworkUpdateTime = now;
+                        }
+                    }
+                } catch (error) {
+                    console.error('ERROR: Failed to send network update:', error);
+                }
+                
+                // Update debug info
+                try {
+                    if (this.debugMode) {
+                        this.updateDebugInfo();
+                    }
+                } catch (error) {
+                    console.error('ERROR: Failed to update debug info:', error);
+                }
+                
+                // Render scene
+                try {
+                    // Clear the renderer
+                    this.renderer.clear();
+                    
+                    // Render scene
+                    this.renderer.render(this.scene, this.camera);
+                    
+                    if (this.frameCounter % 60 === 0) {
+                        console.log('DEBUG: Frame rendered successfully');
+                        console.log('DEBUG: isRunning:', this.isRunning, 'controls.isLocked:', this.controls ? this.controls.isLocked : 'controls not initialized');
+                    }
+                } catch (error) {
+                    console.error('ERROR: Failed to render scene:', error);
+                }
+            } catch (innerError) {
+                console.error('ERROR: Inner animation loop error:', innerError);
             }
+        } catch (outerError) {
+            console.error('CRITICAL ERROR: Outer animation loop error:', outerError);
             
-            // Update weapon position based on movement and aiming
-            this.updateWeaponPosition();
-            
-            // Update player position - always call this, even if not in pointer lock
-            this.updatePlayerPosition(delta);
-            
-            // Update debug info
-            if (this.debugMode) {
-                this.updateDebugInfo();
+            // Try to recover by restarting the animation loop
+            if (!this.recoveryAttempted) {
+                console.log('Attempting to recover from critical error...');
+                this.recoveryAttempted = true;
+                
+                // Force a new animation frame
+                requestAnimationFrame(this.animate.bind(this));
+            } else {
+                console.error('Recovery failed, animation loop stopped');
+                
+                // Display error message on screen
+                this.showErrorMessage(outerError);
             }
-            
-            // Clear the renderer
-            this.renderer.clear();
-            
-            // Render scene
-            this.renderer.render(this.scene, this.camera);
-            
-            if (this.frameCounter % 60 === 0) {
-                console.log('Frame rendered successfully');
-            }
-        } catch (error) {
-            console.error('Error in animation loop:', error);
+        }
+    }
+
+    // Show error message on screen
+    showErrorMessage(error) {
+        try {
+            const errorDiv = document.createElement('div');
+            errorDiv.style.position = 'absolute';
+            errorDiv.style.top = '50%';
+            errorDiv.style.left = '50%';
+            errorDiv.style.transform = 'translate(-50%, -50%)';
+            errorDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.8)';
+            errorDiv.style.color = 'white';
+            errorDiv.style.padding = '20px';
+            errorDiv.style.borderRadius = '5px';
+            errorDiv.style.fontFamily = 'Arial, sans-serif';
+            errorDiv.style.fontSize = '16px';
+            errorDiv.style.textAlign = 'center';
+            errorDiv.style.zIndex = '1000';
+            errorDiv.innerHTML = `
+                <h2>Game Error</h2>
+                <p>${error.message}</p>
+                <p>Please refresh the page to try again.</p>
+                <button onclick="location.reload()">Refresh</button>
+            `;
+            document.body.appendChild(errorDiv);
+        } catch (e) {
+            // Last resort - alert
+            alert(`Game error: ${error.message}. Please refresh the page.`);
         }
     }
 
@@ -1122,121 +1372,100 @@ class SimpleGame {
 
     // Update player position
     updatePlayerPosition(delta) {
-        if (!delta) {
-            console.warn('Delta time is missing or zero, using default value');
-            delta = 0.016; // Default to 60fps
-        }
-
-        // Handle player movement even if controls aren't locked
-        if (this.isRunning) {
-            console.log('DEBUG: Game is running, handling movement');
+        try {
+            if (!delta) {
+                console.warn('Delta time is missing or zero, using default value');
+                delta = 0.016; // Default to 60fps
+            }
+    
+            // Initialize velocity and direction if they don't exist
+            if (!this.velocity) this.velocity = new THREE.Vector3();
+            if (!this.direction) this.direction = new THREE.Vector3();
             
-            try {
+            // Initialize player speed if it doesn't exist
+            if (!this.playerSpeed) this.playerSpeed = 5.0;
+            if (!this.sprintMultiplier) this.sprintMultiplier = 2.0;
+    
+            // Handle player movement even if controls aren't locked
+            if (this.isRunning) {
                 // Calculate movement speed based on sprint state
                 const speed = this.isSprinting ? this.playerSpeed * this.sprintMultiplier : this.playerSpeed;
-                console.log('DEBUG: Movement speed:', speed);
                 
                 // Calculate movement direction
                 this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
                 this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
                 this.direction.normalize(); // Normalize for consistent speed in all directions
-                console.log('DEBUG: Movement direction:', { x: this.direction.x, z: this.direction.z });
+                
+                if (this.frameCounter % 60 === 0) {
+                    console.log('DEBUG: Movement flags:', {
+                        forward: this.moveForward,
+                        backward: this.moveBackward,
+                        left: this.moveLeft,
+                        right: this.moveRight,
+                        sprint: this.isSprinting
+                    });
+                    console.log('DEBUG: Direction:', this.direction);
+                    console.log('DEBUG: Speed:', speed);
+                }
                 
                 // Apply movement to controls
-                if (this.moveForward || this.moveBackward) {
-                    console.log('DEBUG: Moving forward/backward');
-                    if (this.controls && this.controls.moveForward) {
-                        this.controls.moveForward(this.direction.z * speed * delta);
-                        console.log('DEBUG: Called controls.moveForward with:', this.direction.z * speed * delta);
-                    } else {
-                        console.error('ERROR: controls.moveForward is not a function');
-                        // Fallback: update camera position directly
-                        const cameraDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
-                        this.camera.position.addScaledVector(cameraDirection, this.direction.z * speed * delta);
-                        console.log('DEBUG: Updated camera position directly for forward/backward movement');
+                if (this.controls) {
+                    // Check if any movement keys are pressed
+                    const isMoving = this.moveForward || this.moveBackward || this.moveLeft || this.moveRight;
+                    
+                    if (isMoving) {
+                        if (this.moveForward || this.moveBackward) {
+                            // Check if moveForward method exists on controls
+                            if (typeof this.controls.moveForward === 'function') {
+                                this.controls.moveForward(this.direction.z * speed * delta);
+                            } else {
+                                console.error('ERROR: controls.moveForward is not a function');
+                                // Fallback: manually move the camera
+                                const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
+                                this.camera.position.addScaledVector(dir, this.direction.z * speed * delta);
+                            }
+                        }
+                        
+                        if (this.moveLeft || this.moveRight) {
+                            // Check if moveRight method exists on controls
+                            if (typeof this.controls.moveRight === 'function') {
+                                this.controls.moveRight(this.direction.x * speed * delta);
+                            } else {
+                                console.error('ERROR: controls.moveRight is not a function');
+                                // Fallback: manually move the camera
+                                const right = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
+                                this.camera.position.addScaledVector(right, this.direction.x * speed * delta);
+                            }
+                        }
+                        
+                        if (this.frameCounter % 60 === 0) {
+                            console.log('DEBUG: Camera position after movement:', this.camera.position);
+                        }
                     }
+                } else {
+                    console.error('ERROR: Controls not initialized');
                 }
-                if (this.moveLeft || this.moveRight) {
-                    console.log('DEBUG: Moving left/right');
-                    if (this.controls && this.controls.moveRight) {
-                        this.controls.moveRight(this.direction.x * speed * delta);
-                        console.log('DEBUG: Called controls.moveRight with:', this.direction.x * speed * delta);
-                    } else {
-                        console.error('ERROR: controls.moveRight is not a function');
-                        // Fallback: update camera position directly
-                        const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
-                        this.camera.position.addScaledVector(cameraRight, this.direction.x * speed * delta);
-                        console.log('DEBUG: Updated camera position directly for left/right movement');
-                    }
-                }
+            }
+            
+            // Update local player position if it exists
+            if (this.localPlayer) {
+                this.localPlayer.update(delta);
+            }
+            
+            // Send network updates at fixed intervals
+            if (this.socket && this.socket.connected && this.localPlayer) {
+                const now = performance.now();
+                if (!this.lastNetworkUpdateTime) this.lastNetworkUpdateTime = now;
                 
-                // Log camera position after movement
-                console.log('DEBUG: Camera position after movement:', this.camera.position);
-            } catch (error) {
-                console.error('ERROR: Failed to update player position:', error);
+                const networkUpdateInterval = 100; // 10 updates per second
+                if (now - this.lastNetworkUpdateTime > networkUpdateInterval) {
+                    this.sendNetworkUpdate();
+                    this.lastNetworkUpdateTime = now;
+                }
             }
-        } else {
-            //console.log('DEBUG: Game is not running, skipping movement');
+        } catch (error) {
+            console.error('ERROR: Failed to update player position:', error);
         }
-        
-        // Update all players
-        this.players.forEach(player => {
-            player.update(delta);
-        });
-        
-        // Send network updates at fixed intervals
-        if (this.socket && this.socket.connected && this.localPlayer) {
-            const now = performance.now();
-            const timeSinceLastUpdate = now - (this.lastNetworkUpdate || now);
-            if (timeSinceLastUpdate > this.networkUpdateInterval) {
-                this.sendNetworkUpdate();
-                this.lastNetworkUpdate = now;
-            }
-        }
-    }
-
-    // Send local player data to the network
-    sendNetworkUpdate() {
-        if (!this.socket || !this.socket.connected || !this.localPlayer) return;
-        
-        // Get the local player's position and rotation
-        const position = this.localPlayer.getPosition();
-        const rotation = this.localPlayer.getRotation();
-        
-        // Send the player's current state to the server
-        this.socket.emit('player-update', {
-            id: this.socket.id, // Include the player's ID
-            position,
-            rotation,
-            // Include movement flags for smoother animations
-            moveForward: this.moveForward,
-            moveBackward: this.moveBackward,
-            moveLeft: this.moveLeft,
-            moveRight: this.moveRight,
-            isSprinting: this.isSprinting,
-            timestamp: Date.now() // Add timestamp for interpolation
-        });
-        
-        // Debug log
-        console.log('Sent position update:', position);
-    }
-
-    // Add a remote player to the game
-    addRemotePlayer(playerId, position) {
-        console.log(`Adding remote player ${playerId} at position:`, position);
-        
-        // Ensure position is at ground level (y=0)
-        const groundedPosition = {
-            x: position.x,
-            y: 0, // Always set y to 0 to ensure feet are on ground
-            z: position.z
-        };
-        
-        const remotePlayer = new Player(playerId, this, false, groundedPosition);
-        remotePlayer.createModel();
-        this.players.set(playerId, remotePlayer);
-        
-        console.log(`Remote player ${playerId} added successfully`);
     }
 
     // Create a simple test environment
@@ -1441,334 +1670,132 @@ class SimpleGame {
     setupEventListeners() {
         console.log("DEBUG: Setting up event listeners");
         
-        // Lock/unlock pointer - use document.body instead of controls.lock()
-        document.addEventListener('click', (event) => {
-            console.log("DEBUG: Click event detected, controls.isLocked:", this.controls ? this.controls.isLocked : 'controls not initialized');
-            console.log("DEBUG: Current pointerLockElement:", document.pointerLockElement);
-            console.log("DEBUG: document.body is:", document.body);
+        try {
+            // Handle window resize
+            window.addEventListener('resize', this.onWindowResize.bind(this));
+            console.log("DEBUG: Added resize event listener");
             
-            if (!this.controls.isLocked) {
-                console.log("DEBUG: Attempting to lock controls");
+            // Handle pointer lock changes
+            document.addEventListener('pointerlockchange', () => {
+                console.log("DEBUG: Pointer lock change event fired");
+                console.log("DEBUG: pointerLockElement:", document.pointerLockElement);
                 
-                try {
-                    // Request pointer lock on document.body
+                if (document.pointerLockElement === document.body) {
+                    console.log("DEBUG: Pointer lock acquired");
+                    this.isRunning = true;
+                } else {
+                    console.log("DEBUG: Pointer lock released");
+                    this.isRunning = false;
+                }
+            });
+            
+            // Handle click on the game container to request pointer lock
+            document.body.addEventListener('click', () => {
+                console.log("DEBUG: Body clicked, requesting pointer lock");
+                
+                // Only request pointer lock if not already locked
+                if (document.pointerLockElement !== document.body) {
+                    console.log("DEBUG: Requesting pointer lock on document.body");
+                    
+                    // Request pointer lock on the document body
                     document.body.requestPointerLock = document.body.requestPointerLock || 
                                                       document.body.mozRequestPointerLock ||
                                                       document.body.webkitRequestPointerLock;
                     
-                    // Check if requestPointerLock is available
-                    if (document.body.requestPointerLock) {
-                        console.log("DEBUG: requestPointerLock is available, calling it");
-                        document.body.requestPointerLock();
-                    } else {
-                        console.error("ERROR: requestPointerLock is not available on document.body");
-                        // Fallback to controls.lock()
-                        console.log("DEBUG: Falling back to controls.lock()");
-                        this.controls.lock();
-                    }
-                    
-                    console.log("DEBUG: Pointer lock requested directly on document.body");
-                    
-                    // Force isRunning to true
-                    this.isRunning = true;
-                    console.log("DEBUG: Forced isRunning to true");
-                } catch (error) {
-                    console.error("ERROR: Failed to request pointer lock:", error);
+                    document.body.requestPointerLock();
                 }
-            } else if (this.weaponModel && this.canShoot) {
-                console.log("DEBUG: Attempting to shoot");
-                this.shoot();
-            }
-        });
-        
-        // Handle pointer lock change
-        document.addEventListener('pointerlockchange', () => {
-            console.log("DEBUG: Pointer lock change detected");
-            console.log("DEBUG: pointerLockElement:", document.pointerLockElement);
-            console.log("DEBUG: document.body:", document.body);
-            console.log("DEBUG: Are they equal?", document.pointerLockElement === document.body);
+            });
             
-            if (document.pointerLockElement === document.body) {
-                console.log("DEBUG: Pointer locked, setting isRunning to true");
-                this.isRunning = true;
-            } else {
-                console.log("DEBUG: Pointer unlocked, setting isRunning to false");
-                this.isRunning = false;
-            }
-        });
-        
-        // Direct handling for specific keys
-        document.addEventListener('keydown', (event) => {
-            console.log('DEBUG: Key pressed directly in setupEventListeners:', event.code);
-            console.log('DEBUG: isRunning:', this.isRunning, 'controls.isLocked:', this.controls ? this.controls.isLocked : 'controls not initialized');
-            
-            // Always handle F key, even if not running
-            if (event.code === 'KeyF') {
-                console.log('F key pressed - toggling aiming down sights');
-                
-                // Log scene hierarchy before toggling
-                console.log('DEBUG: Scene hierarchy before toggling:');
-                this.logSceneHierarchy(this.scene);
-                
-                // Log camera children before toggling
-                console.log('DEBUG: Camera children before toggling:');
-                this.camera.children.forEach((child, index) => {
-                    console.log(`Child ${index}:`, child.type, child.name, child.visible);
-                });
-                
-                // Toggle aiming down sights
-                this.isAimingDownSights = !this.isAimingDownSights;
-                
-                // Store current camera position and rotation for smooth transition
-                const currentPosition = this.camera.position.clone();
-                const currentRotation = this.camera.rotation.clone();
-                
-                // IMPORTANT: Make sure weapon is a child of camera
-                if (this.weaponModel && this.weaponModel.parent !== this.camera) {
-                    console.log('DEBUG: Weapon model is not a child of camera, reparenting');
-                    
-                    // Remove from current parent
-                    if (this.weaponModel.parent) {
-                        this.weaponModel.parent.remove(this.weaponModel);
-                    }
-                    
-                    // Add to camera
-                    this.camera.add(this.weaponModel);
-                    console.log('DEBUG: Weapon model parent after reparenting:', this.weaponModel.parent ? this.weaponModel.parent.name : 'none');
-                }
-                
-                if (this.isAimingDownSights) {
-                    // When aiming down sights, slightly adjust camera position
-                    // This creates a more realistic sight picture
-                    this.camera.position.y += 0.02; // Raise the camera slightly to align with sights
-                    
-                    // Add a slight forward movement to simulate bringing the weapon up to eye level
-                    const lookDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
-                    this.camera.position.addScaledVector(lookDirection, 0.05);
-                    
-                    console.log('DEBUG: Camera position adjusted for aiming:', this.camera.position);
-                    
-                    // Position weapon for aiming down sights
-                    if (this.weaponModel) {
-                        const oldPosition = this.weaponModel.position.clone();
-                        const oldRotation = this.weaponModel.rotation.clone();
-                        
-                        // Position for proper iron sight alignment
-                        // These values are critical for proper sight alignment
-                        this.weaponModel.position.set(
-                            0,        // Centered horizontally
-                            -0.05,    // Lower to align sights with center of screen
-                            -0.15     // Closer to camera for better sight picture
-                        );
-                        
-                        // Rotate the weapon to be straight ahead
-                        this.weaponModel.rotation.set(
-                            0,        // No pitch
-                            0,        // No yaw
-                            0         // No roll
-                        );
-                        
-                        console.log('DEBUG: Weapon position changed from', oldPosition, 'to', this.weaponModel.position);
-                        console.log('DEBUG: Weapon rotation changed from', oldRotation, 'to', this.weaponModel.rotation);
-                        
-                        // Make sure weapon is visible
-                        this.weaponModel.visible = true;
-                        
-                        // Get world position of weapon
-                        const worldPosition = new THREE.Vector3();
-                        this.weaponModel.getWorldPosition(worldPosition);
-                        console.log('DEBUG: Weapon world position after positioning:', worldPosition);
-                        
-                        // Log detailed position and rotation of iron sights
-                        this.weaponModel.traverse(child => {
-                            if (child.name === "frontSightPost" || child.name === "rearSightAperture") {
-                                console.log(`DEBUG: ${child.name} position:`, child.position);
-                                console.log(`DEBUG: ${child.name} rotation:`, child.rotation);
-                                
-                                // Get world position of sights
-                                const sightWorldPosition = new THREE.Vector3();
-                                child.getWorldPosition(sightWorldPosition);
-                                console.log(`DEBUG: ${child.name} world position:`, sightWorldPosition);
-                            }
-                        });
-                        
-                        // Adjust FOV for aiming
-                        this.camera.fov = 55; // Narrower FOV when aiming
-                        this.camera.updateProjectionMatrix();
-                        
-                        // Log camera settings during aiming
-                        console.log('DEBUG: Camera FOV during aiming:', this.camera.fov);
-                        console.log('DEBUG: Camera position during aiming:', this.camera.position);
-                        console.log('DEBUG: Camera rotation during aiming:', this.camera.rotation);
-                    }
-                    
-                    // Show message for first time users
-                    if (!this.hasShownAimingMessage) {
-                        const message = document.createElement('div');
-                        message.style.position = 'absolute';
-                        message.style.top = '20%';
-                        message.style.left = '50%';
-                        message.style.transform = 'translateX(-50%)';
-                        message.style.color = 'white';
-                        message.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
-                        message.style.padding = '10px';
-                        message.style.borderRadius = '5px';
-                        message.style.fontFamily = 'Arial, sans-serif';
-                        message.style.fontSize = '16px';
-                        message.style.textAlign = 'center';
-                        message.style.zIndex = '1000';
-                        message.style.transition = 'opacity 0.5s ease-in-out';
-                        message.textContent = 'Align the front sight post with the target through the rear sight notch';
-                        document.body.appendChild(message);
-                        
-                        // Fade out and remove after 3 seconds
-                        setTimeout(() => {
-                            message.style.opacity = '0';
-                            setTimeout(() => {
-                                document.body.removeChild(message);
-                            }, 500);
-                        }, 3000);
-                        
-                        this.hasShownAimingMessage = true;
-                    }
-                } else {
-                    // Reset camera position and rotation when not aiming
-                    this.camera.position.copy(currentPosition);
-                    this.camera.rotation.copy(currentRotation);
-                    console.log('DEBUG: Camera position and rotation reset');
-                    
-                    // Position weapon for hip fire
-                    if (this.weaponModel) {
-                        const oldPosition = this.weaponModel.position.clone();
-                        const oldRotation = this.weaponModel.rotation.clone();
-                        
-                        this.weaponModel.position.set(
-                            0.25,   // Offset to the right
-                            -0.25,  // Lower position
-                            -0.5    // Further from camera
-                        );
-                        this.weaponModel.rotation.set(
-                            0,              // No pitch
-                            Math.PI / 8,    // Slight angle
-                            0               // No roll
-                        );
-                        
-                        console.log('DEBUG: Weapon position changed directly in F handler from', oldPosition, 'to', this.weaponModel.position);
-                        console.log('DEBUG: Weapon rotation changed directly in F handler from', oldRotation, 'to', this.weaponModel.rotation);
-                        
-                        // Make sure weapon is visible
-                        this.weaponModel.visible = true;
-                        
-                        // Get world position of weapon
-                        const worldPosition = new THREE.Vector3();
-                        this.weaponModel.getWorldPosition(worldPosition);
-                        console.log('DEBUG: Weapon world position after direct positioning:', worldPosition);
-                    }
-                }
-                
-                // Update weapon position immediately for responsive feedback
-                this.updateWeaponPosition();
-                
-                // Toggle scope overlay
-                const scopeOverlay = document.getElementById('scope-overlay');
-                if (scopeOverlay) {
-                    scopeOverlay.classList.toggle('hidden');
-                }
-                
-                // Change crosshair appearance
-                const crosshair = document.getElementById('crosshair');
-                if (crosshair) {
-                    crosshair.style.opacity = this.isAimingDownSights ? '0' : '1';
-                }
-                
-                // Toggle aiming class on HUD
-                const hudElement = document.getElementById('hud');
-                if (hudElement) {
-                    hudElement.classList.toggle('aiming');
-                }
-                
-                // Force a render to update the scene
-                this.renderer.render(this.scene, this.camera);
-                
-                // Log scene hierarchy after toggling
-                console.log('DEBUG: Scene hierarchy after toggling:');
-                this.logSceneHierarchy(this.scene);
-                
-                // Log camera children after toggling
-                console.log('DEBUG: Camera children after toggling:');
-                this.camera.children.forEach((child, index) => {
-                    console.log(`Child ${index}:`, child.type, child.name, child.visible);
-                });
-                
-                return;
-            }
-            
-            // Handle movement keys even if controls aren't locked
-            if (this.isRunning) {
-                console.log("DEBUG: Key press while game is running:", event.code);
+            // Handle keyboard events for movement
+            document.addEventListener('keydown', (event) => {
+                console.log('DEBUG: Key pressed:', event.code);
                 
                 switch (event.code) {
                     case 'KeyW':
-                        console.log("DEBUG: W key pressed, setting moveForward to true");
+                        console.log('DEBUG: Forward movement started');
                         this.moveForward = true;
                         break;
                     case 'KeyS':
-                        console.log("DEBUG: S key pressed, setting moveBackward to true");
+                        console.log('DEBUG: Backward movement started');
                         this.moveBackward = true;
                         break;
                     case 'KeyA':
-                        console.log("DEBUG: A key pressed, setting moveLeft to true");
+                        console.log('DEBUG: Left movement started');
                         this.moveLeft = true;
                         break;
                     case 'KeyD':
-                        console.log("DEBUG: D key pressed, setting moveRight to true");
+                        console.log('DEBUG: Right movement started');
                         this.moveRight = true;
                         break;
                     case 'ShiftLeft':
-                        console.log("DEBUG: Shift key pressed, setting isSprinting to true");
+                    case 'ShiftRight':
+                        console.log('DEBUG: Sprint started');
                         this.isSprinting = true;
                         break;
+                    case 'KeyF':
+                        console.log('DEBUG: Aim toggle pressed');
+                        this.isAimingDownSights = !this.isAimingDownSights;
+                        console.log('DEBUG: Aiming down sights:', this.isAimingDownSights);
+                        break;
                 }
-            } else {
-                console.log("DEBUG: Key press ignored, game not running. isRunning:", this.isRunning, "controls.isLocked:", this.controls ? this.controls.isLocked : 'controls not initialized');
-            }
-        });
-        
-        // Handle key up events
-        document.addEventListener('keyup', (event) => {
-            console.log('DEBUG: Key up event:', event.code);
+                
+                // Update local player movement flags
+                if (this.localPlayer) {
+                    console.log('DEBUG: Updating local player movement flags');
+                    this.localPlayer.setMovementFlags(
+                        this.moveForward,
+                        this.moveBackward,
+                        this.moveLeft,
+                        this.moveRight,
+                        this.isSprinting
+                    );
+                }
+            });
             
-            // Handle movement keys even if controls aren't locked
-            if (this.isRunning) {
+            document.addEventListener('keyup', (event) => {
+                console.log('DEBUG: Key released:', event.code);
+                
                 switch (event.code) {
                     case 'KeyW':
-                        console.log("DEBUG: W key released, setting moveForward to false");
+                        console.log('DEBUG: Forward movement stopped');
                         this.moveForward = false;
                         break;
                     case 'KeyS':
-                        console.log("DEBUG: S key released, setting moveBackward to false");
+                        console.log('DEBUG: Backward movement stopped');
                         this.moveBackward = false;
                         break;
                     case 'KeyA':
-                        console.log("DEBUG: A key released, setting moveLeft to false");
+                        console.log('DEBUG: Left movement stopped');
                         this.moveLeft = false;
                         break;
                     case 'KeyD':
-                        console.log("DEBUG: D key released, setting moveRight to false");
+                        console.log('DEBUG: Right movement stopped');
                         this.moveRight = false;
                         break;
                     case 'ShiftLeft':
-                        console.log("DEBUG: Shift key released, setting isSprinting to false");
+                    case 'ShiftRight':
+                        console.log('DEBUG: Sprint stopped');
                         this.isSprinting = false;
                         break;
                 }
-            }
-        });
-        
-        // Handle window resize
-        window.addEventListener('resize', () => this.onWindowResize());
-        
-        console.log("DEBUG: Event listeners set up successfully");
+                
+                // Update local player movement flags
+                if (this.localPlayer) {
+                    console.log('DEBUG: Updating local player movement flags');
+                    this.localPlayer.setMovementFlags(
+                        this.moveForward,
+                        this.moveBackward,
+                        this.moveLeft,
+                        this.moveRight,
+                        this.isSprinting
+                    );
+                }
+            });
+            
+            console.log("DEBUG: Event listeners set up successfully");
+        } catch (error) {
+            console.error("DEBUG: Error setting up event listeners:", error);
+        }
     }
 
     // Update debug information display
