@@ -1835,7 +1835,7 @@ class SimpleGame {
             );
 
             // Main wooden stock with texture
-            const stockGeometry = new THREE.BoxGeometry(0.06, .04, .8);
+            const stockGeometry = new THREE.BoxGeometry(0.06, .04, .6);
             const stockMaterial = new THREE.MeshStandardMaterial({ 
                 map: woodTexture,
                 roughness: 0.8,
@@ -1843,10 +1843,36 @@ class SimpleGame {
             });
             console.log('DEBUG: Stock material properties:', stockMaterial);
             const stock = new THREE.Mesh(stockGeometry, stockMaterial);
-            stock.position.set(0, 0.02, -0.09);
+            stock.position.set(0, 0.02, -0.3);
             console.log('DEBUG: Stock position:', stock.position);
             stock.name = "weaponStock";
             weaponGroup.add(stock);
+
+            // Stock grip with texture
+            const gripGeometry = new THREE.BoxGeometry(0.06, .04, .08);
+            const gripMaterial = new THREE.MeshStandardMaterial({ 
+                map: woodTexture,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const grip = new THREE.Mesh(gripGeometry, gripMaterial);
+            grip.position.set(0, -.003, .02);
+            grip.rotation.x = Math.PI / 7;
+            grip.name = "weaponGrip";
+            weaponGroup.add(grip);
+
+            // Butt with texture
+            const buttGeometry = new THREE.BoxGeometry(0.06, .04, .08);
+            const buttMaterial = new THREE.MeshStandardMaterial({ 
+                map: woodTexture,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const butt = new THREE.Mesh(buttGeometry, buttMaterial);
+            butt.position.set(0, -.03, .09);
+            butt.rotation.x = Math.PI / 12;
+            butt.name = "weaponButt";
+            weaponGroup.add(butt);
 
             // Barrel with texture
             const barrelGeometry = new THREE.CylinderGeometry(0.008, 0.008, 0.8, 16);
