@@ -54,6 +54,7 @@ io.on('connection', (socket) => {
             moveLeft: false,
             moveRight: false,
             isSprinting: false,
+            isAimingDownSights: false,
             timestamp: Date.now()
         };
         
@@ -80,6 +81,8 @@ io.on('connection', (socket) => {
             players[socket.id].moveLeft = playerData.moveLeft || false;
             players[socket.id].moveRight = playerData.moveRight || false;
             players[socket.id].isSprinting = playerData.isSprinting || false;
+            // Update aiming state
+            players[socket.id].isAimingDownSights = playerData.isAimingDownSights || false;
             players[socket.id].timestamp = playerData.timestamp || Date.now();
             
             // Broadcast to all other players

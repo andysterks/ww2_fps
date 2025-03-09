@@ -277,6 +277,9 @@ class Player {
         this.moveLeft = false;
         this.moveRight = false;
         this.isSprinting = false;
+        
+        // Aiming state
+        this.isAimingDownSights = false;
     }
 
     // Create a 3D model for the player
@@ -488,6 +491,11 @@ class Player {
                 if (this.game && this.game.camera) {
                     this.position.copy(this.game.camera.position);
                     this.rotation.y = this.game.camera.rotation.y;
+                    
+                    // Update aiming state from game
+                    if (this.game.isAimingDownSights !== undefined) {
+                        this.isAimingDownSights = this.game.isAimingDownSights;
+                    }
                 }
             } else {
                 // For remote players, interpolate towards target position and rotation
@@ -497,6 +505,7 @@ class Player {
                     console.log(`DEBUG: Current position:`, this.position.clone());
                     console.log(`DEBUG: Target position:`, this.targetPosition.clone());
                     console.log(`DEBUG: Distance to target:`, this.position.distanceTo(this.targetPosition));
+                    console.log(`DEBUG: Aiming state:`, this.isAimingDownSights);
                 }
                 
                 // Make sure target position and rotation are valid
@@ -539,6 +548,9 @@ class Player {
                     
                     // Update rotation
                     this.model.rotation.y = this.rotation.y;
+                    
+                    // Update rifle position based on aiming state
+                    this.updateRiflePosition();
                     
                     // Log model position occasionally
                     if (this.game && this.game.frameCounter % 60 === 0) {
@@ -614,7 +626,7 @@ class Player {
     }
     
     // Update player position based on network data (for remote players)
-    updateFromNetwork(position, rotation, moveForward, moveBackward, moveLeft, moveRight, isSprinting) {
+    updateFromNetwork(position, rotation, moveForward, moveBackward, moveLeft, moveRight, isSprinting, isAimingDownSights) {
         try {
             console.log(`DEBUG: Updating remote player ${this.id} from network`);
             
@@ -646,6 +658,8 @@ class Player {
             this.moveLeft = moveLeft || false;
             this.moveRight = moveRight || false;
             this.isSprinting = isSprinting || false;
+            // Update aiming state
+            this.isAimingDownSights = isAimingDownSights || false;
             
             // Log occasionally to reduce console spam
             if (this.game && this.game.frameCounter % 300 === 0) {
@@ -656,7 +670,8 @@ class Player {
                     backward: this.moveBackward,
                     left: this.moveLeft,
                     right: this.moveRight,
-                    sprint: this.isSprinting
+                    sprint: this.isSprinting,
+                    aiming: this.isAimingDownSights
                 });
             }
             
@@ -664,9 +679,33 @@ class Player {
             if (this.model) {
                 // Make sure model is visible
                 this.model.visible = true;
+                
+                // Update rifle position based on aiming state
+                this.updateRiflePosition();
             }
         } catch (error) {
             console.error(`ERROR: Failed to update player ${this.id} from network:`, error);
+        }
+    }
+    
+    // Update rifle position based on aiming state
+    updateRiflePosition() {
+        // Find the rifle in the player model
+        const rifle = this.model.getObjectByName('playerModelRifle');
+        if (!rifle) return;
+        
+        if (this.isAimingDownSights) {
+            // Position for aiming down sights
+            // Move the rifle up to shoulder level and forward
+            rifle.position.set(-0.3, 1.5, 0.4);
+            // Rotate to point forward
+            rifle.rotation.set(0, 0, 0);
+        } else {
+            // Position for normal stance
+            // Rifle held at side/hip
+            rifle.position.set(-0.6, 1.1, 0.2);
+            // Angled slightly
+            rifle.rotation.set(0, Math.PI / 4, 0);
         }
     }
 
@@ -1032,7 +1071,7 @@ class SimpleGame {
                 if (player) {
                     console.log("DEBUG: Received update for player:", playerData.id);
                     console.log("DEBUG: Update data:", playerData);
-                    player.updateFromNetwork(playerData.position, playerData.rotation, playerData.moveForward, playerData.moveBackward, playerData.moveLeft, playerData.moveRight, playerData.isSprinting);
+                    player.updateFromNetwork(playerData.position, playerData.rotation, playerData.moveForward, playerData.moveBackward, playerData.moveLeft, playerData.moveRight, playerData.isSprinting, playerData.isAimingDownSights);
                 } else {
                     console.warn("DEBUG: Received update for unknown player:", playerData.id);
                     // Add the player if they don't exist
@@ -1088,6 +1127,8 @@ class SimpleGame {
                 moveLeft: this.moveLeft,
                 moveRight: this.moveRight,
                 isSprinting: this.isSprinting,
+                // Include aiming state
+                isAimingDownSights: this.isAimingDownSights,
                 timestamp: Date.now()
             };
             
@@ -1103,6 +1144,8 @@ class SimpleGame {
             if (this.localPlayer) {
                 this.localPlayer.position.copy(this.camera.position);
                 this.localPlayer.rotation.copy(this.camera.rotation);
+                // Update aiming state
+                this.localPlayer.isAimingDownSights = this.isAimingDownSights;
             }
         } catch (error) {
             console.error("DEBUG: Error sending network update:", error);
