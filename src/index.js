@@ -349,41 +349,64 @@ class Player {
             
             // Only add rifle to remote players (local player has first-person weapon)
             if (!this.isLocal) {
-                // Add a simple rifle (Kar98k style)
-                console.log('DEBUG: Creating Kar98k rifle for player model');
-                const rifle = new THREE.Group();
-                rifle.name = 'playerModelRifle';
+                // Add a detailed Kar98k rifle
+                console.log('DEBUG: Creating detailed Kar98k rifle for player model');
                 
-                // Rifle body
-                const rifleBody = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.1, 0.1, 1.2),
-                    new THREE.MeshLambertMaterial({ color: 0x5c2e00 })
-                );
-                rifleBody.position.z = 0.6;
-                rifleBody.name = 'playerModelRifleBody';
-                rifle.add(rifleBody);
+                // Use the same detailed Kar98 model as the local player
+                let detailedRifle = null;
                 
-                // Rifle barrel
-                const rifleBarrel = new THREE.Mesh(
-                    new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8),
-                    new THREE.MeshLambertMaterial({ color: 0x333333 })
-                );
-                rifleBarrel.rotation.x = Math.PI / 2;
-                rifleBarrel.position.z = 1.1;
-                rifleBarrel.name = 'playerModelRifleBarrel';
-                rifle.add(rifleBarrel);
-                
-                // Position the rifle in the right hand
-                rifle.position.set(-0.6, 1.1, 0.2);
-                rifle.rotation.y = Math.PI / 4;
-                
-                this.model.add(rifle);
+                if (this.game && this.game.createSimpleWeaponModel) {
+                    // Create a detailed Kar98 rifle using the same method as for the local player
+                    detailedRifle = this.game.createSimpleWeaponModel();
+                    
+                    if (detailedRifle) {
+                        // Rename it for the player model
+                        detailedRifle.name = 'playerModelRifle';
+                        
+                        // Scale it down slightly
+                        detailedRifle.scale.set(0.8, 0.8, 0.8);
+                        
+                        // Position the rifle in the right hand
+                        detailedRifle.position.set(-0.6, 1.1, 0.2);
+                        
+                        // Rotate it to be held properly
+                        detailedRifle.rotation.set(0, Math.PI / 4, 0);
+                        
+                        // Add to player model
+                        this.model.add(detailedRifle);
+                        
+                        console.log('DEBUG: Added detailed Kar98 rifle to player model');
+                    } else {
+                        console.error('DEBUG: Failed to create detailed Kar98 rifle for player model');
+                        
+                        // Fallback to simple rifle
+                        this.createSimpleRifle();
+                    }
+                } else {
+                    console.warn('DEBUG: Game or createSimpleWeaponModel not available, using simple rifle');
+                    
+                    // Fallback to simple rifle
+                    this.createSimpleRifle();
+                }
             }
             
             // Set initial position
-            this.model.position.copy(this.position);
+            // IMPORTANT: For remote players, we need to adjust the y-position
+            // The model's origin is at the bottom of the feet, but the player's position is at eye level
+            // So we need to set the model's position to the player's position, but with y=0
+            if (this.isLocal) {
+                // For local player, just copy the position
+                this.model.position.copy(this.position);
+            } else {
+                // For remote players, adjust the y-position to be on the ground
+                this.model.position.set(
+                    this.position.x,
+                    0, // Set y to 0 to place feet on the ground
+                    this.position.z
+                );
+            }
             
-            console.log(`DEBUG: Model created for player ${this.id}`);
+            console.log(`DEBUG: Model created for player ${this.id} at position:`, this.model.position.clone());
             return this.model;
         } catch (error) {
             console.error(`DEBUG: Error creating model for player ${this.id}:`, error);
@@ -402,8 +425,16 @@ class Player {
                 fallbackMesh.position.y = 0.9; // Center vertically
                 this.model.add(fallbackMesh);
                 
-                // Set initial position
-                this.model.position.copy(this.position);
+                // Set initial position with y=0 for remote players
+                if (this.isLocal) {
+                    this.model.position.copy(this.position);
+                } else {
+                    this.model.position.set(
+                        this.position.x,
+                        0, // Set y to 0 to place feet on the ground
+                        this.position.z
+                    );
+                }
                 
                 return this.model;
             } catch (fallbackError) {
@@ -411,6 +442,41 @@ class Player {
                 return null;
             }
         }
+    }
+    
+    // Create a simple rifle as fallback
+    createSimpleRifle() {
+        console.log('DEBUG: Creating simple Kar98k rifle for player model');
+        const rifle = new THREE.Group();
+        rifle.name = 'playerModelRifle';
+        
+        // Rifle body
+        const rifleBody = new THREE.Mesh(
+            new THREE.BoxGeometry(0.1, 0.1, 1.2),
+            new THREE.MeshLambertMaterial({ color: 0x5c2e00 })
+        );
+        rifleBody.position.z = 0.6;
+        rifleBody.name = 'playerModelRifleBody';
+        rifle.add(rifleBody);
+        
+        // Rifle barrel
+        const rifleBarrel = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8),
+            new THREE.MeshLambertMaterial({ color: 0x333333 })
+        );
+        rifleBarrel.rotation.x = Math.PI / 2;
+        rifleBarrel.position.z = 1.1;
+        rifleBarrel.name = 'playerModelRifleBarrel';
+        rifle.add(rifleBarrel);
+        
+        // Position the rifle in the right hand
+        rifle.position.set(-0.6, 1.1, 0.2);
+        rifle.rotation.y = Math.PI / 4;
+        
+        this.model.add(rifle);
+        
+        console.log('DEBUG: Added simple Kar98 rifle to player model');
+        return rifle;
     }
 
     // Update player position and rotation based on controls (for local player)
@@ -462,8 +528,16 @@ class Player {
                     // Make sure model is visible
                     this.model.visible = true;
                     
-                    // Update model position and rotation
-                    this.model.position.copy(this.position);
+                    // IMPORTANT: For remote players, we need to adjust the y-position
+                    // The model's origin is at the bottom of the feet, but the player's position is at eye level
+                    // So we need to set the model's position to the player's position, but with y=0
+                    this.model.position.set(
+                        this.position.x,
+                        0, // Set y to 0 to place feet on the ground
+                        this.position.z
+                    );
+                    
+                    // Update rotation
                     this.model.rotation.y = this.rotation.y;
                     
                     // Log model position occasionally
@@ -1069,8 +1143,14 @@ class SimpleGame {
                 // Make sure model is visible
                 playerModel.visible = true;
                 
-                // Set model position
-                playerModel.position.copy(player.position);
+                // IMPORTANT: For remote players, we need to adjust the y-position
+                // The model's origin is at the bottom of the feet, but the player's position is at eye level
+                // So we need to set the model's position to the player's position, but with y=0
+                playerModel.position.set(
+                    safePosition.x,
+                    0, // Set y to 0 to place feet on the ground
+                    safePosition.z
+                );
                 
                 console.log("DEBUG: Remote player model added to scene successfully");
                 console.log("DEBUG: Model position:", playerModel.position.clone());
