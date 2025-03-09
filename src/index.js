@@ -1863,20 +1863,40 @@ class SimpleGame {
             barrel.name = "weaponBarrel";
             weaponGroup.add(barrel);
 
-            // Bolt mechanism with texture
-            const boltGeometry = new THREE.CylinderGeometry(0.01, 0.01, 0.03, 8);
+            // Bolt sleeve group
+            const boltSleeveGroup = new THREE.Group();
+            boltSleeveGroup.name = "weaponBoltSleeveGroup";
+            weaponGroup.add(boltSleeveGroup);
+            boltSleeveGroup.position.set(-.04, .025, -0.09);
+
+            // Bolt sleeve
+            const boltSleeveGeometry = new THREE.CylinderGeometry(0.01, 0.01, 0.08, 8);
             const boltMaterial = new THREE.MeshStandardMaterial({ 
                 map: metalTexture,
                 roughness: 0.3,
                 metalness: 0.9
             });
+            const boltSleeve = new THREE.Mesh(boltSleeveGeometry, boltMaterial);
+            boltSleeve.rotation.x = Math.PI / 2;
+            boltSleeve.position.set(0.04, 0.019, .05);
+            boltSleeve.name = "weaponBoltSleeve";
+            boltSleeveGroup.add(boltSleeve);  
+
+            // Bolt group
+            const boltGroup = new THREE.Group();
+            boltGroup.name = "weaponBoltGroup";
+            weaponGroup.add(boltGroup);
+            boltGroup.position.set(-0.02, 0.023, -0.09);
+
+            // Bolt mechanism with texture
+            const boltGeometry = new THREE.CylinderGeometry(0.01, 0.01, 0.03, 8);
             console.log('DEBUG: Bolt material properties:', boltMaterial);
             const bolt = new THREE.Mesh(boltGeometry, boltMaterial);
             bolt.rotation.z = Math.PI / 2;
             bolt.position.set(0.04, 0.019, .05);
             console.log('DEBUG: Bolt position:', bolt.position);
             bolt.name = "weaponBolt";
-            weaponGroup.add(bolt);
+            boltGroup.add(bolt);
 
             // Bolt handle with texture
             const boltHandleGeometry = new THREE.CylinderGeometry(0.007, 0.007, 0.05, 8);
@@ -1889,17 +1909,29 @@ class SimpleGame {
             boltHandle.rotation.z = Math.PI / 4; // 45 degrees in radians
 
             boltHandle.name = "weaponBoltHandle";
-            weaponGroup.add(boltHandle);
+            boltGroup.add(boltHandle);
 
             // add ball at end of bolt handle
             const boltHandleBallGeometry = new THREE.SphereGeometry(0.01, 8, 8);
             const boltHandleBall = new THREE.Mesh(boltHandleBallGeometry, boltMaterial);
             boltHandleBall.position.set(0.083, -0.015, .05);
             boltHandleBall.name = "weaponBoltHandleBall";
-            weaponGroup.add(boltHandleBall);
+            boltGroup.add(boltHandleBall);
 
             // Create detailed iron sights
             this.createDetailedKar98IronSights(weaponGroup);
+
+            // Create a simple trigger group
+            const triggerGroup = new THREE.Group();
+            triggerGroup.name = "weaponTriggerGroup";
+            weaponGroup.add(triggerGroup);
+
+            // Create a simple trigger
+            const triggerGeometry = new THREE.BoxGeometry(0.01, 0.01, 0.01);
+            const trigger = new THREE.Mesh(triggerGeometry, boltMaterial);
+            trigger.position.set(0.04, 0.019, .05);
+            trigger.name = "weaponTrigger";
+            triggerGroup.add(trigger);
 
             // Position the weapon in front of the camera
             weaponGroup.position.set(0.25, -0.25, -0.5);
