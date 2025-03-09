@@ -1953,9 +1953,9 @@ class SimpleGame {
             weaponGroup.add(triggerGroup);
 
             // Create a simple trigger
-            const triggerGeometry = new THREE.BoxGeometry(0.01, 0.01, 0.01);
+            const triggerGeometry = new THREE.BoxGeometry(0.005, 0.01, 0.005);
             const trigger = new THREE.Mesh(triggerGeometry, boltMaterial);
-            trigger.position.set(0.04, 0.019, .05);
+            trigger.position.set(-0.02, -0.006, -.034);
             trigger.name = "weaponTrigger";
             triggerGroup.add(trigger);
 
