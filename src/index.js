@@ -844,6 +844,14 @@ class SimpleGame {
             this.frameCounter = 0;
             this.debugMode = true;
             
+            // Register as the active game instance if no other instance is active
+            if (!window.gameInstance) {
+                console.log("DEBUG: Registering SimpleGame as the active game instance");
+                window.gameInstance = this;
+            } else {
+                console.log("DEBUG: Another game instance is already active");
+            }
+            
             // Initialize players collection as an object (not a Map)
             this.players = {};
             this.localPlayer = null;
@@ -1967,25 +1975,53 @@ class SimpleGame {
                 }
             });
             
-            // Handle click on the game container to request pointer lock
-            document.body.addEventListener('click', () => {
-                console.log("DEBUG: Body clicked, requesting pointer lock");
+            // Handle mouse buttons for shooting and aiming
+            document.addEventListener('mousedown', (event) => {
+                console.log("DEBUG: Mouse button pressed:", event.button);
                 
-                // Only request pointer lock if not already locked
-                if (document.pointerLockElement !== document.body) {
-                    console.log("DEBUG: Requesting pointer lock on document.body");
-                    
-                    // Request pointer lock on the document body
-                    document.body.requestPointerLock = document.body.requestPointerLock || 
-                                                      document.body.mozRequestPointerLock ||
-                                                      document.body.webkitRequestPointerLock;
-                    
-                    document.body.requestPointerLock();
-                } else {
-                    // If pointer is already locked, handle shooting
-                    console.log("DEBUG: Pointer already locked, attempting to shoot");
-                    this.shoot();
+                // Handle left-click (button 0)
+                if (event.button === 0) {
+                    // Only request pointer lock if not already locked
+                    if (document.pointerLockElement !== document.body) {
+                        console.log("DEBUG: Requesting pointer lock on document.body");
+                        
+                        // Request pointer lock on the document body
+                        document.body.requestPointerLock = document.body.requestPointerLock || 
+                                                          document.body.mozRequestPointerLock ||
+                                                          document.body.webkitRequestPointerLock;
+                        
+                        document.body.requestPointerLock();
+                    } else {
+                        // If pointer is already locked, handle shooting
+                        console.log("DEBUG: Pointer already locked, attempting to shoot");
+                        this.shoot();
+                    }
                 }
+                // Handle right-click (button 2)
+                else if (event.button === 2) {
+                    // Prevent the default context menu from appearing
+                    event.preventDefault();
+                    
+                    // Only handle if pointer is locked
+                    if (document.pointerLockElement === document.body) {
+                        console.log("DEBUG: Right-click detected, toggling aim down sights");
+                        
+                        // Toggle aiming down sights
+                        this.isAimingDownSights = !this.isAimingDownSights;
+                        console.log('DEBUG: Aiming down sights:', this.isAimingDownSights);
+                        
+                        // Update local player if available
+                        if (this.localPlayer) {
+                            // Update the player's aiming state
+                            this.localPlayer.isAimingDownSights = this.isAimingDownSights;
+                        }
+                    }
+                }
+            });
+            
+            // Prevent context menu from appearing
+            document.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
             });
             
             // Handle keyboard events for movement
@@ -2015,9 +2051,8 @@ class SimpleGame {
                         this.isSprinting = true;
                         break;
                     case 'KeyF':
-                        console.log('DEBUG: Aim toggle pressed');
-                        this.isAimingDownSights = !this.isAimingDownSights;
-                        console.log('DEBUG: Aiming down sights:', this.isAimingDownSights);
+                        // F key is no longer used for aiming down sights
+                        // It can be repurposed for another action if needed
                         break;
                 }
                 
