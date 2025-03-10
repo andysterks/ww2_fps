@@ -697,7 +697,7 @@ class Player {
         if (this.isAimingDownSights) {
             // Position for aiming down sights
             // Move the rifle up to shoulder level and forward
-            rifle.position.set(-0.3, 1.5, 0.4);
+            rifle.position.set(.05, 1.5, -.35);
             // Rotate to point forward
             rifle.rotation.set(0, 0, 0);
         } else {
