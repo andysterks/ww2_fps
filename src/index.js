@@ -575,6 +575,48 @@ class Player {
                 this.position.distanceTo(this.targetPosition) > 0.01 ||
                 Math.abs(this.rotation.y - this.targetRotation.y) > 0.01;
             
+            // Get references to arm parts
+            const leftArm = this.model.getObjectByName('leftArm');
+            const rightArm = this.model.getObjectByName('rightArm');
+            
+            // Handle aiming down sights animation
+            if (this.isAimingDownSights) {
+                // When aiming, position arms to hold rifle at shoulder level
+                if (leftArm) {
+                    leftArm.rotation.set(
+                        -Math.PI / 4, // Raise arm up
+                        0,
+                        Math.PI / 8   // Angle slightly inward
+                    );
+                    // Move left arm forward to support rifle
+                    leftArm.position.set(0.3, 1.3, -0.2);
+                }
+                
+                if (rightArm) {
+                    rightArm.rotation.set(
+                        -Math.PI / 3, // Raise arm up more for trigger hand
+                        0,
+                        -Math.PI / 8  // Angle slightly inward
+                    );
+                    // Move right arm to trigger position
+                    rightArm.position.set(-0.3, 1.3, -0.1);
+                }
+                
+                // Skip regular movement animation when aiming
+                return;
+            } else {
+                // Reset arm positions when not aiming
+                if (leftArm && !isMoving) {
+                    leftArm.rotation.set(0, 0, 0);
+                    leftArm.position.set(0.4, 1.1, 0);
+                }
+                
+                if (rightArm && !isMoving) {
+                    rightArm.rotation.set(0, 0, 0);
+                    rightArm.position.set(-0.4, 1.1, 0);
+                }
+            }
+            
             if (isMoving) {
                 // Calculate animation speed
                 const animSpeed = this.isSprinting ? 15 : 10;
@@ -596,17 +638,23 @@ class Player {
                             part.rotation.x = Math.sin(this.legSwing + Math.PI) * 0.5;
                             break;
                         case 'leftArm':
-                            part.rotation.x = Math.sin(this.armSwing + Math.PI) * 0.5;
+                            // Only animate arms if not aiming
+                            if (!this.isAimingDownSights) {
+                                part.rotation.x = Math.sin(this.armSwing + Math.PI) * 0.5;
+                            }
                             break;
                         case 'rightArm':
-                            part.rotation.x = Math.sin(this.armSwing) * 0.5;
+                            // Only animate arms if not aiming
+                            if (!this.isAimingDownSights) {
+                                part.rotation.x = Math.sin(this.armSwing) * 0.5;
+                            }
                             break;
                     }
                 });
             } else {
-                // Reset animations when not moving
+                // Reset animations when not moving (except arms when aiming)
                 this.model.children.forEach(part => {
-                    if (['leftLeg', 'rightLeg', 'leftArm', 'rightArm'].includes(part.name)) {
+                    if (['leftLeg', 'rightLeg'].includes(part.name)) {
                         part.rotation.x = 0;
                     }
                 });
@@ -697,15 +745,25 @@ class Player {
         if (this.isAimingDownSights) {
             // Position for aiming down sights
             // Move the rifle up to shoulder level and forward
-            rifle.position.set(.05, 1.5, -.35);
+            rifle.position.set(0, 1.4, -0.3);
             // Rotate to point forward
             rifle.rotation.set(0, 0, 0);
+            
+            // Add debug logging occasionally
+            if (this.game && this.game.frameCounter % 120 === 0) {
+                console.log(`DEBUG: Player ${this.id} rifle positioned for aiming:`, rifle.position.clone());
+            }
         } else {
             // Position for normal stance
             // Rifle held at side/hip
             rifle.position.set(-0.6, 1.1, 0.2);
             // Angled slightly
             rifle.rotation.set(0, Math.PI / 4, 0);
+            
+            // Add debug logging occasionally
+            if (this.game && this.game.frameCounter % 120 === 0) {
+                console.log(`DEBUG: Player ${this.id} rifle positioned for normal stance:`, rifle.position.clone());
+            }
         }
     }
 
