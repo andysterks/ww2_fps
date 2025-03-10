@@ -2303,7 +2303,7 @@ class SimpleGame {
         try {
             // Load textures for wood and metal
             const textureLoader = new THREE.TextureLoader();
-            const woodTexture = textureLoader.load('assets/textures/wood.jpg',
+            const woodTexture = textureLoader.load('assets/textures/wood2.jpg',
                 () => console.log('DEBUG: Wood texture loaded successfully'),
                 undefined,
                 (err) => console.error('ERROR: Failed to load wood texture', err)
