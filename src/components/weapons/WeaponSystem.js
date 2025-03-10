@@ -284,10 +284,13 @@ class WeaponSystem {
         this.lastShotTime = now;
         this.bulletCount--;
         
-        // Play appropriate sound
+        // Play appropriate sound based on weapon state
         if (this.bulletCount === 0) {
             // Play M1 Garand ping on last round
             audioManager.play('ping');
+        } else if (this._isAimingDownSights) {
+            // Play Kar98 gunshot when aiming down sights
+            audioManager.play('kar98_shot');
         } else {
             // Play normal gunshot
             audioManager.play('gunshot');
@@ -540,7 +543,7 @@ class WeaponSystem {
         return this._isAimingDownSights;
     }
     
-    isAiming() {
+    getAimingState() {
         return this.isAiming;
     }
     

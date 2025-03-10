@@ -15,7 +15,8 @@ class AudioManager {
             'gunshot': { path: './sounds/m1_garand_shot.mp3', description: 'M1 Garand gunshot' },
             'empty': { path: './sounds/empty_click.mp3', description: 'Empty gun click' },
             'reload': { path: './sounds/m1_garand_reload.mp3', description: 'M1 Garand reload' },
-            'ping': { path: './sounds/m1_garand_ping.mp3', description: 'M1 Garand ping' }
+            'ping': { path: './sounds/m1_garand_ping.mp3', description: 'M1 Garand ping' },
+            'kar98_shot': { path: './sounds/m1_garand_shot.mp3', description: 'Kar98 gunshot (using M1 Garand sound as placeholder)' }
             // We're now using the converted MP3 file directly as 'gunshot'
         };
     }

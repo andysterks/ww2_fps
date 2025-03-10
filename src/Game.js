@@ -94,7 +94,14 @@ class Game {
                 this.player.getControls().lock();
                 this.isRunning = true;
             } else if (this.weaponSystem.canShoot) {
+                // Shoot when left-clicking
                 this.shoot();
+                
+                // Log aiming state for debugging
+                console.log('Shooting with aiming state:', {
+                    isAiming: this.weaponSystem.getAimingState(),
+                    isAimingDownSights: this.weaponSystem.isAimingDownSights()
+                });
             }
         });
         
@@ -117,7 +124,7 @@ class Game {
                     try {
                         const adsResult = this.weaponSystem.toggleAimDownSights();
                         console.log('ADS result from direct handler:', adsResult);
-                        this.ui.updateCrosshair(this.weaponSystem.isAiming(), adsResult.isAimingDownSights);
+                        this.ui.updateCrosshair(this.weaponSystem.getAimingState(), adsResult.isAimingDownSights);
                         
                         if (adsResult.isFirstTime) {
                             this.ui.showMessage("Looking down sights for better accuracy", 3000);
@@ -164,7 +171,7 @@ class Game {
         if (!this.isRunning) return;
         
         // Log aiming states
-        const isAiming = this.weaponSystem.isAiming();
+        const isAiming = this.weaponSystem.getAimingState();
         const isAimingDownSights = this.weaponSystem.isAimingDownSights();
         
         // Only log when aiming states change to avoid console spam
@@ -206,7 +213,7 @@ class Game {
         
         // Render weapon on top
         if (this.isRunning) {
-            const isAiming = this.weaponSystem.isAiming();
+            const isAiming = this.weaponSystem.getAimingState();
             const isAimingDownSights = this.weaponSystem.isAimingDownSights();
             
             // Only log when aiming states change to avoid console spam

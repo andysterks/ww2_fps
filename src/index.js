@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { io } from 'socket.io-client';
+import { audioManager } from './audio.js';
 
 console.log("Script loaded");
 
@@ -829,6 +830,10 @@ class SimpleGame {
         console.log("DEBUG: Initializing SimpleGame");
         
         try {
+            // Initialize audio system
+            console.log("DEBUG: Initializing audio system");
+            audioManager.init();
+            
             // Initialize properties
             this.scene = new THREE.Scene();
             this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -1884,6 +1889,10 @@ class SimpleGame {
                                                       document.body.webkitRequestPointerLock;
                     
                     document.body.requestPointerLock();
+                } else {
+                    // If pointer is already locked, handle shooting
+                    console.log("DEBUG: Pointer already locked, attempting to shoot");
+                    this.shoot();
                 }
             });
             
@@ -1978,7 +1987,154 @@ class SimpleGame {
             console.error("DEBUG: Error setting up event listeners:", error);
         }
     }
-
+    
+    // Handle shooting
+    shoot() {
+        console.log("DEBUG: Shoot method called");
+        
+        // Check if we're in a valid state to shoot
+        if (!this.isRunning || !document.pointerLockElement) {
+            console.log("DEBUG: Cannot shoot - game not running or pointer not locked");
+            return;
+        }
+        
+        // Play appropriate sound based on aiming state
+        if (this.isAimingDownSights) {
+            console.log("DEBUG: Playing Kar98 gunshot sound (aiming down sights)");
+            audioManager.play('kar98_shot');
+        } else {
+            console.log("DEBUG: Playing regular gunshot sound");
+            audioManager.play('gunshot');
+        }
+        
+        // Create bullet impact
+        this.createBulletImpact();
+    }
+    
+    // Create bullet impact when shooting
+    createBulletImpact() {
+        console.log("DEBUG: Creating bullet impact");
+        
+        // Create a raycaster for bullet trajectory
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+        
+        // Check for intersections with scene objects
+        const intersects = raycaster.intersectObjects(this.scene.children, true);
+        
+        if (intersects.length > 0) {
+            const hit = intersects[0];
+            console.log("DEBUG: Bullet hit object at", hit.point);
+            
+            // Create bullet hole
+            const bulletHoleMaterial = new THREE.MeshBasicMaterial({
+                color: 0x000000,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+            
+            const bulletHole = new THREE.Mesh(
+                new THREE.CircleGeometry(0.03, 8),
+                bulletHoleMaterial
+            );
+            
+            // Position slightly off the surface to prevent z-fighting
+            bulletHole.position.copy(hit.point);
+            bulletHole.position.add(hit.face.normal.multiplyScalar(0.01));
+            
+            // Orient to face normal
+            bulletHole.lookAt(new THREE.Vector3().copy(hit.point).add(hit.face.normal));
+            
+            // Add to scene
+            this.scene.add(bulletHole);
+            
+            // Create impact particles
+            this.createImpactParticles(hit.point, hit.face.normal);
+        } else {
+            console.log("DEBUG: Bullet didn't hit anything");
+        }
+    }
+    
+    // Create particles for bullet impact
+    createImpactParticles(position, normal) {
+        console.log("DEBUG: Creating impact particles");
+        
+        // Create a simple version of impact particles
+        const particleCount = 10;
+        const particleGeometry = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        
+        // Create particle material
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0xffaa00,
+            size: 0.05,
+            blending: THREE.AdditiveBlending,
+            transparent: true
+        });
+        
+        // Set initial positions
+        for (let i = 0; i < particleCount; i++) {
+            particlePositions[i * 3] = position.x;
+            particlePositions[i * 3 + 1] = position.y;
+            particlePositions[i * 3 + 2] = position.z;
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        
+        // Create particle system
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        this.scene.add(particles);
+        
+        // Create velocity array for particles
+        const velocities = [];
+        for (let i = 0; i < particleCount; i++) {
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.3,
+                (Math.random() - 0.5) * 0.3 + 0.2, // Slight upward bias
+                (Math.random() - 0.5) * 0.3
+            );
+            
+            // Adjust velocity to spray outward from impact
+            velocity.add(normal.clone().multiplyScalar(0.1));
+            velocities.push(velocity);
+        }
+        
+        // Animate particles
+        const startTime = performance.now();
+        const animateParticles = () => {
+            const positions = particles.geometry.attributes.position.array;
+            const elapsed = performance.now() - startTime;
+            
+            // Update particle positions
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] += velocities[i].x;
+                positions[i * 3 + 1] += velocities[i].y - 0.01; // Add gravity
+                positions[i * 3 + 2] += velocities[i].z;
+                
+                // Slow down particles
+                velocities[i].multiplyScalar(0.9);
+            }
+            
+            particles.geometry.attributes.position.needsUpdate = true;
+            
+            // Fade out particles
+            particles.material.opacity = 1.0 - elapsed / 500;
+            
+            // Remove particles after 0.5 seconds
+            if (elapsed < 500) {
+                requestAnimationFrame(animateParticles);
+            } else {
+                this.scene.remove(particles);
+                particles.geometry.dispose();
+                particles.material.dispose();
+            }
+        };
+        
+        // Start animation
+        requestAnimationFrame(animateParticles);
+    }
+    
     // Update debug information display
     updateDebugInfo() {
         const debugInfo = document.getElementById('debug-info');
@@ -2008,11 +2164,16 @@ class SimpleGame {
         
         // Add remote player info
         let remotePlayers = '';
-        this.players.forEach((player, id) => {
-            if (!player.isLocal) {
-                remotePlayers += `<br>- ${id}: (${player.position.x.toFixed(1)}, ${player.position.y.toFixed(1)}, ${player.position.z.toFixed(1)})`;
-            }
-        });
+        
+        // Check if this.players exists and is an object
+        if (this.players && typeof this.players === 'object') {
+            // Use Object.entries to iterate over the players object
+            Object.entries(this.players).forEach(([id, player]) => {
+                if (player && !player.isLocal && player.position) {
+                    remotePlayers += `<br>- ${id}: (${player.position.x.toFixed(1)}, ${player.position.y.toFixed(1)}, ${player.position.z.toFixed(1)})`;
+                }
+            });
+        }
         
         if (remotePlayers) {
             info += `<br>Remote Players:${remotePlayers}`;
