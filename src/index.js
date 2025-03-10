@@ -757,7 +757,7 @@ class Player {
         } else {
             // Position for normal stance
             // Rifle held at side/hip
-            rifle.position.set(-0.6, 1.1, 0.2);
+            rifle.position.set(0.3, 1.1, -0.15);
             // Angled slightly
             rifle.rotation.set(0, Math.PI / 4, 0);
             
