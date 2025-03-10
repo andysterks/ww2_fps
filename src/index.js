@@ -860,6 +860,17 @@ class SimpleGame {
             this.isSprinting = false;
             this.isAimingDownSights = false;
             
+            // New recoil implementation
+            this.recoil = {
+                active: false,
+                startTime: 0,
+                duration: 300, // ms
+                weaponOffset: new THREE.Vector3(0, 0, 0),
+                weaponRotation: new THREE.Euler(0, 0, 0),
+                intensity: 0,
+                recoveryRate: 0.1
+            };
+            
             // Physics variables
             this.velocity = new THREE.Vector3();
             this.direction = new THREE.Vector3();
@@ -1376,6 +1387,10 @@ class SimpleGame {
                 // Update weapon position based on movement and aiming
                 try {
                     this.updateWeaponPosition();
+                    
+                    // We no longer need camera recoil recovery since we're not directly modifying camera rotation
+                    // The screen shake effect is handled by setTimeout in applyScreenShake
+                    // And weapon recoil is handled in updateWeaponPosition
                 } catch (error) {
                     console.error('ERROR: Failed to update weapon position:', error);
                 }
@@ -1531,11 +1546,60 @@ class SimpleGame {
             // Slight tilt for more realistic sight picture
             targetRotation = new THREE.Euler(0, -0.01, 0);
         }
+        
+        // Handle recoil animation
+        if (this.recoil.active) {
+            const now = performance.now();
+            const elapsedTime = now - this.recoil.startTime;
+            const recoilProgress = Math.min(1, elapsedTime / this.recoil.duration);
+            
+            // Calculate recoil effect based on progress
+            if (recoilProgress < 0.3) {
+                // Initial recoil phase (0-30% of duration) - weapon kicks back
+                const kickPhaseProgress = recoilProgress / 0.3; // 0 to 1 during kick phase
+                
+                if (this.isAimingDownSights) {
+                    // When aiming down sights, recoil should be more precise but still visible
+                    targetPosition.y -= this.recoil.intensity * 0.3 * kickPhaseProgress;
+                    targetPosition.z += this.recoil.intensity * 0.5 * kickPhaseProgress;
+                    targetRotation.x += this.recoil.intensity * 0.8 * kickPhaseProgress;
+                } else {
+                    // Hip fire recoil is more exaggerated
+                    targetPosition.y -= this.recoil.intensity * 0.2 * kickPhaseProgress;
+                    targetPosition.z += this.recoil.intensity * 0.3 * kickPhaseProgress;
+                    targetRotation.x += this.recoil.intensity * 0.5 * kickPhaseProgress;
+                    // Add slight random horizontal rotation for hip fire
+                    targetRotation.y += (Math.random() - 0.5) * 0.05 * this.recoil.intensity * kickPhaseProgress;
+                }
+            } else {
+                // Recovery phase (30-100% of duration) - weapon returns to position
+                const recoveryPhaseProgress = (recoilProgress - 0.3) / 0.7; // 0 to 1 during recovery
+                
+                // Gradually reduce recoil effect during recovery
+                const recoveryFactor = 1 - recoveryPhaseProgress;
+                
+                if (this.isAimingDownSights) {
+                    targetPosition.y -= this.recoil.intensity * 0.3 * recoveryFactor;
+                    targetPosition.z += this.recoil.intensity * 0.5 * recoveryFactor;
+                    targetRotation.x += this.recoil.intensity * 0.8 * recoveryFactor;
+                } else {
+                    targetPosition.y -= this.recoil.intensity * 0.2 * recoveryFactor;
+                    targetPosition.z += this.recoil.intensity * 0.3 * recoveryFactor;
+                    targetRotation.x += this.recoil.intensity * 0.5 * recoveryFactor;
+                }
+            }
+            
+            // End recoil if duration is complete
+            if (elapsedTime >= this.recoil.duration) {
+                this.recoil.active = false;
+                console.log("DEBUG: Recoil animation complete");
+            }
+        }
 
         // Smooth transition between positions
         this.weaponModel.position.lerp(targetPosition, 0.1);
         
-        // Apply rotation changes
+        // Apply rotation changes with smooth interpolation
         this.weaponModel.rotation.x = THREE.MathUtils.lerp(this.weaponModel.rotation.x, targetRotation.x, 0.1);
         this.weaponModel.rotation.y = THREE.MathUtils.lerp(this.weaponModel.rotation.y, targetRotation.y, 0.1);
         this.weaponModel.rotation.z = THREE.MathUtils.lerp(this.weaponModel.rotation.z, targetRotation.z, 0.1);
@@ -2002,13 +2066,60 @@ class SimpleGame {
         if (this.isAimingDownSights) {
             console.log("DEBUG: Playing Kar98 gunshot sound (aiming down sights)");
             audioManager.play('kar98_shot');
+            
+            // Apply stronger recoil when aiming down sights for more noticeable effect
+            this.applyRecoil(0.15);
         } else {
             console.log("DEBUG: Playing regular gunshot sound");
             audioManager.play('gunshot');
+            
+            // Apply standard recoil when hip firing
+            this.applyRecoil(0.1);
         }
         
         // Create bullet impact
         this.createBulletImpact();
+    }
+    
+    // Apply recoil effect to the weapon
+    applyRecoil(amount) {
+        console.log("DEBUG: Applying recoil effect with new implementation");
+        
+        // Set recoil parameters
+        this.recoil.intensity = amount;
+        this.recoil.active = true;
+        this.recoil.startTime = performance.now();
+        
+        // Store current weapon position and rotation for recovery
+        if (this.weaponModel) {
+            this.recoil.weaponOffset.copy(this.weaponModel.position);
+            this.recoil.weaponRotation.copy(this.weaponModel.rotation);
+        }
+        
+        // Instead of directly modifying camera rotation, we'll apply recoil
+        // only to the weapon model and use a screen shake effect
+        this.applyScreenShake(amount);
+    }
+    
+    // Apply a screen shake effect instead of directly modifying camera rotation
+    applyScreenShake(intensity) {
+        // Create a subtle screen shake effect
+        if (this.camera) {
+            // Apply a quick upward impulse to the camera
+            const impulse = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.01 * intensity, // Slight random horizontal movement
+                intensity * 0.02,                         // Upward movement
+                0
+            );
+            
+            // Apply impulse to camera position
+            this.camera.position.add(impulse);
+            
+            // Schedule a quick recovery of camera position
+            setTimeout(() => {
+                this.camera.position.sub(impulse);
+            }, 50);
+        }
     }
     
     // Create bullet impact when shooting
@@ -2192,7 +2303,7 @@ class SimpleGame {
         try {
             // Load textures for wood and metal
             const textureLoader = new THREE.TextureLoader();
-            const woodTexture = textureLoader.load('textures/wood.jpg',
+            const woodTexture = textureLoader.load('assets/textures/wood.jpg',
                 () => console.log('DEBUG: Wood texture loaded successfully'),
                 undefined,
                 (err) => console.error('ERROR: Failed to load wood texture', err)
