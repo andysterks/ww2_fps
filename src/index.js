@@ -1136,6 +1136,34 @@ class SimpleGame {
                 this.removePlayer(playerId);
             });
             
+            // Handle player hit events
+            this.socket.on('hitByPlayer', (hitData) => {
+                console.log("DEBUG: Hit by player event received:", hitData);
+                
+                // Apply screen vibration effect to indicate being hit
+                this.applyHitEffect(hitData.hitIntensity || 1.0);
+                
+                // Play hit sound
+                audioManager.play('gunshot', { volume: 0.3 });
+            });
+            
+            // Handle player hit visual events (for spectators)
+            this.socket.on('playerHitVisual', (hitData) => {
+                console.log("DEBUG: Player hit visual event received:", hitData);
+                
+                // Show visual effect at hit position if we can see it
+                if (hitData.hitPosition) {
+                    const hitPosition = new THREE.Vector3(
+                        hitData.hitPosition.x,
+                        hitData.hitPosition.y,
+                        hitData.hitPosition.z
+                    );
+                    
+                    // Create a small blood effect at the hit position
+                    this.createBloodEffect(hitPosition);
+                }
+            });
+            
             // Handle player updates
             this.socket.on('playerUpdate', (playerData) => {
                 // Don't update ourselves
@@ -2130,41 +2158,179 @@ class SimpleGame {
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
         
-        // Check for intersections with scene objects
-        const intersects = raycaster.intersectObjects(this.scene.children, true);
+        // Collect all objects that could be hit
+        const sceneObjects = [...this.scene.children];
+        
+        // Add player models to the list of objects that can be hit
+        const playerModels = [];
+        for (const playerId in this.players) {
+            const player = this.players[playerId];
+            // Skip local player - can't shoot yourself
+            if (player.isLocal) continue;
+            
+            // Add player model to the list if it exists
+            if (player.model) {
+                playerModels.push({
+                    playerId: playerId,
+                    model: player.model
+                });
+                sceneObjects.push(player.model);
+            }
+        }
+        
+        // Check for intersections with all objects
+        const intersects = raycaster.intersectObjects(sceneObjects, true);
         
         if (intersects.length > 0) {
             const hit = intersects[0];
             console.log("DEBUG: Bullet hit object at", hit.point);
             
-            // Create bullet hole
-            const bulletHoleMaterial = new THREE.MeshBasicMaterial({
-                color: 0x000000,
-                transparent: true,
-                opacity: 0.8,
-                side: THREE.DoubleSide
-            });
+            // Check if the hit object is a player model
+            let hitPlayer = null;
+            for (const playerInfo of playerModels) {
+                if (hit.object.isDescendantOf && hit.object.isDescendantOf(playerInfo.model)) {
+                    hitPlayer = playerInfo;
+                    break;
+                }
+                
+                // Alternative check if isDescendantOf is not available
+                let parent = hit.object;
+                while (parent) {
+                    if (parent === playerInfo.model) {
+                        hitPlayer = playerInfo;
+                        break;
+                    }
+                    parent = parent.parent;
+                }
+                
+                if (hitPlayer) break;
+            }
             
-            const bulletHole = new THREE.Mesh(
-                new THREE.CircleGeometry(0.03, 8),
-                bulletHoleMaterial
-            );
-            
-            // Position slightly off the surface to prevent z-fighting
-            bulletHole.position.copy(hit.point);
-            bulletHole.position.add(hit.face.normal.multiplyScalar(0.01));
-            
-            // Orient to face normal
-            bulletHole.lookAt(new THREE.Vector3().copy(hit.point).add(hit.face.normal));
-            
-            // Add to scene
-            this.scene.add(bulletHole);
-            
-            // Create impact particles
-            this.createImpactParticles(hit.point, hit.face.normal);
+            if (hitPlayer) {
+                console.log(`DEBUG: Hit player ${hitPlayer.playerId} at`, hit.point);
+                
+                // Send hit event to server
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit('playerHit', {
+                        targetId: hitPlayer.playerId,
+                        hitPosition: {
+                            x: hit.point.x,
+                            y: hit.point.y,
+                            z: hit.point.z
+                        },
+                        hitIntensity: this.isAimingDownSights ? 1.5 : 1.0 // More damage when aiming
+                    });
+                }
+                
+                // Create blood particle effect instead of regular impact
+                this.createBloodEffect(hit.point);
+            } else {
+                // Regular environment hit
+                // Create bullet hole
+                const bulletHoleMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x000000,
+                    transparent: true,
+                    opacity: 0.8,
+                    side: THREE.DoubleSide
+                });
+                
+                const bulletHole = new THREE.Mesh(
+                    new THREE.CircleGeometry(0.03, 8),
+                    bulletHoleMaterial
+                );
+                
+                // Position slightly off the surface to prevent z-fighting
+                bulletHole.position.copy(hit.point);
+                bulletHole.position.add(hit.face.normal.multiplyScalar(0.01));
+                
+                // Orient to face normal
+                bulletHole.lookAt(new THREE.Vector3().copy(hit.point).add(hit.face.normal));
+                
+                // Add to scene
+                this.scene.add(bulletHole);
+                
+                // Create impact particles
+                this.createImpactParticles(hit.point, hit.face.normal);
+            }
         } else {
             console.log("DEBUG: Bullet didn't hit anything");
         }
+    }
+    
+    // Create blood effect for player hits
+    createBloodEffect(position) {
+        console.log("DEBUG: Creating blood effect at", position);
+        
+        // Create blood particles
+        const particleCount = 20;
+        const particleGeometry = new THREE.BufferGeometry();
+        const particlePositions = new Float32Array(particleCount * 3);
+        
+        // Create blood particle material (red)
+        const particleMaterial = new THREE.PointsMaterial({
+            color: 0xcc0000,
+            size: 0.05,
+            blending: THREE.AdditiveBlending,
+            transparent: true
+        });
+        
+        // Set initial positions
+        for (let i = 0; i < particleCount; i++) {
+            particlePositions[i * 3] = position.x;
+            particlePositions[i * 3 + 1] = position.y;
+            particlePositions[i * 3 + 2] = position.z;
+        }
+        
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        
+        // Create particle system
+        const particles = new THREE.Points(particleGeometry, particleMaterial);
+        this.scene.add(particles);
+        
+        // Create velocity array for particles
+        const velocities = [];
+        for (let i = 0; i < particleCount; i++) {
+            const velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.5,
+                (Math.random() - 0.5) * 0.5,
+                (Math.random() - 0.5) * 0.5
+            );
+            velocities.push(velocity);
+        }
+        
+        // Animate particles
+        const startTime = performance.now();
+        const animateParticles = () => {
+            const positions = particles.geometry.attributes.position.array;
+            const elapsed = performance.now() - startTime;
+            
+            // Update particle positions
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] += velocities[i].x;
+                positions[i * 3 + 1] += velocities[i].y - 0.01; // Add gravity
+                positions[i * 3 + 2] += velocities[i].z;
+                
+                // Slow down particles
+                velocities[i].multiplyScalar(0.95);
+            }
+            
+            particles.geometry.attributes.position.needsUpdate = true;
+            
+            // Fade out particles
+            particles.material.opacity = 1.0 - elapsed / 500;
+            
+            // Remove particles after 0.5 seconds
+            if (elapsed < 500) {
+                requestAnimationFrame(animateParticles);
+            } else {
+                this.scene.remove(particles);
+                particles.geometry.dispose();
+                particles.material.dispose();
+            }
+        };
+        
+        // Start animation
+        requestAnimationFrame(animateParticles);
     }
     
     // Create particles for bullet impact
@@ -2585,5 +2751,77 @@ class SimpleGame {
         this.camera.bottom = window.innerHeight * -0.5;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    // Apply screen vibration effect when hit by another player
+    applyHitEffect(intensity) {
+        console.log("DEBUG: Applying hit effect with intensity:", intensity);
+        
+        // Create a more intense screen shake effect than the recoil
+        if (this.camera) {
+            // Apply a series of random impulses to simulate being hit
+            const applyShake = (iteration, maxIterations, baseIntensity) => {
+                if (iteration >= maxIterations) return;
+                
+                // Calculate decreasing intensity
+                const currentIntensity = baseIntensity * (1 - iteration / maxIterations);
+                
+                // Create random impulse
+                const impulse = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.05 * currentIntensity,
+                    (Math.random() - 0.5) * 0.05 * currentIntensity,
+                    0
+                );
+                
+                // Apply impulse to camera position
+                this.camera.position.add(impulse);
+                
+                // Schedule recovery and next shake
+                setTimeout(() => {
+                    // Remove the impulse
+                    this.camera.position.sub(impulse);
+                    
+                    // Apply next shake after a short delay
+                    setTimeout(() => {
+                        applyShake(iteration + 1, maxIterations, baseIntensity);
+                    }, 50);
+                }, 50);
+            };
+            
+            // Start the shake effect with 5 iterations
+            applyShake(0, 5, intensity);
+            
+            // Add a red flash overlay to indicate damage
+            this.showDamageOverlay(intensity);
+        }
+    }
+    
+    // Show a red flash overlay to indicate taking damage
+    showDamageOverlay(intensity) {
+        // Create or get the damage overlay element
+        let overlay = document.getElementById('damage-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'damage-overlay';
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'rgba(255, 0, 0, 0)';
+            overlay.style.pointerEvents = 'none';
+            overlay.style.transition = 'background-color 0.1s ease-in, background-color 0.5s ease-out';
+            overlay.style.zIndex = '1000';
+            document.body.appendChild(overlay);
+        }
+        
+        // Set the overlay opacity based on hit intensity
+        const opacity = Math.min(0.6, intensity * 0.3);
+        overlay.style.backgroundColor = `rgba(255, 0, 0, ${opacity})`;
+        
+        // Fade out the overlay
+        setTimeout(() => {
+            overlay.style.backgroundColor = 'rgba(255, 0, 0, 0)';
+        }, 100);
     }
 }

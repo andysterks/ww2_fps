@@ -90,6 +90,28 @@ io.on('connection', (socket) => {
         }
     });
     
+    // Handle player hit events
+    socket.on('playerHit', (hitData) => {
+        console.log(`Player ${hitData.targetId} was hit by ${socket.id}`);
+        
+        // Validate that both players exist
+        if (players[socket.id] && players[hitData.targetId]) {
+            // Send hit notification to the target player
+            io.to(hitData.targetId).emit('hitByPlayer', {
+                shooterId: socket.id,
+                hitPosition: hitData.hitPosition,
+                hitIntensity: hitData.hitIntensity || 1.0
+            });
+            
+            // Broadcast hit event to all other players for visual effects
+            socket.broadcast.emit('playerHitVisual', {
+                shooterId: socket.id,
+                targetId: hitData.targetId,
+                hitPosition: hitData.hitPosition
+            });
+        }
+    });
+    
     // Handle disconnection
     socket.on('disconnect', (reason) => {
         console.log(`Player disconnected: ${socket.id}, reason: ${reason}`);
