@@ -491,7 +491,15 @@ class Player {
             if (this.isLocal) {
                 if (this.game && this.game.camera) {
                     this.position.copy(this.game.camera.position);
-                    this.rotation.y = this.game.camera.rotation.y;
+                    
+                    // Simply copy the camera's rotation directly
+                    // No normalization needed - we'll handle orientation in the model update
+                    this.rotation.copy(this.game.camera.rotation);
+                    
+                    // Log for debugging
+                    if (this.game && this.game.frameCounter % 240 === 0) {
+                        console.log(`DEBUG: Local player ${this.id} camera rotation:`, this.rotation);
+                    }
                     
                     // Update aiming state from game
                     if (this.game.isAimingDownSights !== undefined) {
@@ -525,12 +533,16 @@ class Player {
                 this.position.lerp(this.targetPosition, lerpFactor);
                 
                 // Interpolate rotation (only y for now)
+                // Simply interpolate directly, we'll handle the model orientation elsewhere
                 if (!isNaN(this.rotation.y) && !isNaN(this.targetRotation.y)) {
-                    this.rotation.y = THREE.MathUtils.lerp(
-                        this.rotation.y,
-                        this.targetRotation.y,
-                        lerpFactor
-                    );
+                    // Use direct lerp - no special handling needed since we use lookAt for the model
+                    this.rotation.x = THREE.MathUtils.lerp(this.rotation.x, this.targetRotation.x, lerpFactor);
+                    this.rotation.y = THREE.MathUtils.lerp(this.rotation.y, this.targetRotation.y, lerpFactor);
+                    this.rotation.z = THREE.MathUtils.lerp(this.rotation.z, this.targetRotation.z, lerpFactor);
+                    
+                    if (this.game && this.game.frameCounter % 240 === 0) {
+                        console.log(`DEBUG: Rotation after interpolation:`, this.rotation);
+                    }
                 }
                 
                 // Update model position and rotation
@@ -547,8 +559,46 @@ class Player {
                         this.position.z
                     );
                     
-                    // Update rotation
-                    this.model.rotation.y = this.rotation.y;
+                    // COMPLETELY NEW APPROACH: Using THREE.js built-in lookAt functionality
+                    // This is a fundamental THREE.js method for orienting objects
+                    
+                    // First, calculate the forward direction as a normalized vector
+                    const forward = new THREE.Vector3(0, 0, -1);
+                    
+                    // Create a quaternion from the player's rotation
+                    const playerQuaternion = new THREE.Quaternion();
+                    playerQuaternion.setFromEuler(this.rotation);
+                    
+                    // Apply the player's rotation to the forward vector
+                    forward.applyQuaternion(playerQuaternion);
+                    
+                    // Create a look-at point in front of the player
+                    const lookAtPosition = new THREE.Vector3(
+                        this.position.x + forward.x * 10,  // * 10 to put it far in front
+                        this.position.y,                   // Maintain vertical position
+                        this.position.z + forward.z * 10   // * 10 to put it far in front
+                    );
+                    
+                    // Store the model's current position
+                    const modelPosition = this.model.position.clone();
+                    
+                    // Use THREE.js lookAt to point the model at the look-at position
+                    // This is a built-in method that handles all the complex rotation math
+                    this.model.lookAt(lookAtPosition);
+                    
+                    // Flip the model's rotation 180 degrees around the Y axis
+                    // This accounts for the model's default orientation
+                    this.model.rotateY(Math.PI);
+                    
+                    // Restore the model's position (lookAt can sometimes affect position)
+                    this.model.position.copy(modelPosition);
+                    
+                    // Debug logging
+                    if (this.game && this.game.frameCounter % 240 === 0) {
+                        console.log(`DEBUG: Player ${this.id} forward vector:`, forward);
+                        console.log(`DEBUG: Look-at position:`, lookAtPosition);
+                        console.log(`DEBUG: Model rotation after lookAt:`, this.model.rotation);
+                    }
                     
                     // Update rifle position based on aiming state
                     this.updateRiflePosition();
@@ -679,6 +729,11 @@ class Player {
         try {
             console.log(`DEBUG: Updating remote player ${this.id} from network`);
             
+            // Debug incoming rotation value
+            if (rotation) {
+                console.log(`DEBUG: Network rotation received for player ${this.id}: ${JSON.stringify(rotation)}`);
+            }
+            
             // Make sure position and rotation are valid
             if (!position) {
                 console.error(`ERROR: Invalid position data for player ${this.id}`);
@@ -694,11 +749,20 @@ class Player {
             
             // Update target rotation for interpolation
             if (rotation) {
+                // CRITICAL FIX: Just directly set the target rotation from the network data
+                // We'll handle all orientation with the lookAt method
+                
                 this.targetRotation.set(
                     rotation.x !== undefined ? rotation.x : this.targetRotation.x,
                     rotation.y !== undefined ? rotation.y : this.targetRotation.y,
                     rotation.z !== undefined ? rotation.z : this.targetRotation.z
                 );
+                
+                // Log for debugging
+                if (this.game && this.game.frameCounter % 240 === 0) {
+                    console.log(`DEBUG: Raw network rotation received:`, rotation);
+                    console.log(`DEBUG: Target rotation set:`, this.targetRotation);
+                }
             }
             
             // Update movement flags
@@ -771,6 +835,10 @@ class Player {
     // Serialize player data for network transmission
     serialize() {
         try {
+            // Log raw rotation before serialization
+            console.log(`DEBUG: Player ${this.id} raw rotation before serialization:`, 
+                this.rotation ? { x: this.rotation.x, y: this.rotation.y, z: this.rotation.z } : 'undefined');
+            
             // Create a safe copy of position and rotation
             const safePosition = {
                 x: this.position ? this.position.x || 0 : 0,
@@ -783,6 +851,9 @@ class Player {
                 y: this.rotation ? this.rotation.y || 0 : 0,
                 z: this.rotation ? this.rotation.z || 0 : 0
             };
+            
+            // Log serialized rotation
+            console.log(`DEBUG: Player ${this.id} serialized rotation:`, safeRotation);
             
             const data = {
                 id: this.id,
@@ -1213,6 +1284,9 @@ class SimpleGame {
                 return;
             }
             
+            // IMPROVEMENT: Only send updates when there's an actual change
+            // This prevents unnecessary network traffic while ensuring smooth rotation
+            
             // Get current camera position and rotation
             const position = {
                 x: this.camera.position.x,
@@ -1220,13 +1294,20 @@ class SimpleGame {
                 z: this.camera.position.z
             };
             
+            // Send the raw camera rotation values without any processing
+            // We'll handle rotation at the receiving end with the lookAt method
             const rotation = {
                 x: this.camera.rotation.x,
                 y: this.camera.rotation.y,
                 z: this.camera.rotation.z
             };
             
-            // Create player data
+            // Log raw rotation values occasionally
+            if (this.frameCounter % 240 === 0) {
+                console.log("DEBUG: Sending camera rotation:", rotation);
+            }
+            
+            // Create player data with timestamp for better synchronization
             const playerData = {
                 id: this.socket.id,
                 position: position,
