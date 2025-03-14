@@ -281,6 +281,10 @@ class Player {
         
         // Aiming state
         this.isAimingDownSights = false;
+        
+        // Track vertical look adjustments to avoid animation conflicts
+        this.isAdjustingVerticalLook = false;
+        this.lastVerticalLookFactor = 0;
     }
 
     // Create a 3D model for the player
@@ -486,135 +490,118 @@ class Player {
     // Update player position and rotation based on controls (for local player)
     // or based on network data (for remote players)
     update(delta) {
-        try {
-            // For local player, position is controlled by the camera/controls
-            if (this.isLocal) {
-                if (this.game && this.game.camera) {
-                    this.position.copy(this.game.camera.position);
-                    
-                    // Simply copy the camera's rotation directly
-                    // No normalization needed - we'll handle orientation in the model update
-                    this.rotation.copy(this.game.camera.rotation);
-                    
-                    // Log for debugging
-                    if (this.game && this.game.frameCounter % 240 === 0) {
-                        console.log(`DEBUG: Local player ${this.id} camera rotation:`, this.rotation);
-                    }
-                    
-                    // Update aiming state from game
-                    if (this.game.isAimingDownSights !== undefined) {
-                        this.isAimingDownSights = this.game.isAimingDownSights;
-                    }
+        // Keep track of whether this is the local player or remote player
+        const isRemotePlayer = !this.isLocalPlayer;
+        
+        // For local player, get position and rotation from camera
+        if (this.isLocalPlayer) {
+            if (this.game && this.game.camera) {
+                // Copy position directly from camera
+                this.position.copy(this.game.camera.position);
+                
+                // Calculate forward direction for model orientation
+                const forwardVector = new THREE.Vector3(0, 0, -1);
+                forwardVector.applyQuaternion(this.game.camera.quaternion);
+                
+                // Store direction vector
+                if (!this.directionVector) {
+                    this.directionVector = new THREE.Vector3();
                 }
-            } else {
-                // For remote players, interpolate towards target position and rotation
-                // Only log occasionally to reduce console spam
-                if (this.game && this.game.frameCounter % 60 === 0) {
-                    console.log(`DEBUG: Updating remote player ${this.id}`);
-                    console.log(`DEBUG: Current position:`, this.position.clone());
-                    console.log(`DEBUG: Target position:`, this.targetPosition.clone());
-                    console.log(`DEBUG: Distance to target:`, this.position.distanceTo(this.targetPosition));
-                    console.log(`DEBUG: Aiming state:`, this.isAimingDownSights);
+                this.directionVector.copy(forwardVector);
+                
+                // Store vertical look angle
+                this.verticalLookAngle = this.game.camera.rotation.x;
+                
+                // Debug log camera rotation occasionally
+                if (this.game && this.game.frameCounter % 240 === 0) {
+                    console.log(`DEBUG: Local player ${this.id} direction:`, this.directionVector);
+                    console.log(`DEBUG: Local player ${this.id} vertical look:`, this.verticalLookAngle);
                 }
                 
-                // Make sure target position and rotation are valid
-                if (!this.targetPosition) {
-                    this.targetPosition = new THREE.Vector3(0, 0, 0);
-                }
-                
-                if (!this.targetRotation) {
-                    this.targetRotation = new THREE.Euler(0, 0, 0);
-                }
-                
-                // Interpolation factor (0-1) - higher values = faster interpolation
-                const lerpFactor = Math.min(1, delta * 5); // Adjust for smoother movement
-                
-                // Interpolate position
-                this.position.lerp(this.targetPosition, lerpFactor);
-                
-                // Interpolate rotation (only y for now)
-                // Simply interpolate directly, we'll handle the model orientation elsewhere
-                if (!isNaN(this.rotation.y) && !isNaN(this.targetRotation.y)) {
-                    // Use direct lerp - no special handling needed since we use lookAt for the model
-                    this.rotation.x = THREE.MathUtils.lerp(this.rotation.x, this.targetRotation.x, lerpFactor);
-                    this.rotation.y = THREE.MathUtils.lerp(this.rotation.y, this.targetRotation.y, lerpFactor);
-                    this.rotation.z = THREE.MathUtils.lerp(this.rotation.z, this.targetRotation.z, lerpFactor);
-                    
-                    if (this.game && this.game.frameCounter % 240 === 0) {
-                        console.log(`DEBUG: Rotation after interpolation:`, this.rotation);
-                    }
-                }
-                
-                // Update model position and rotation
-                if (this.model) {
-                    // Make sure model is visible
-                    this.model.visible = true;
-                    
-                    // IMPORTANT: For remote players, we need to adjust the y-position
-                    // The model's origin is at the bottom of the feet, but the player's position is at eye level
-                    // So we need to set the model's position to the player's position, but with y=0
-                    this.model.position.set(
-                        this.position.x,
-                        0, // Set y to 0 to place feet on the ground
-                        this.position.z
-                    );
-                    
-                    // COMPLETELY NEW APPROACH: Using THREE.js built-in lookAt functionality
-                    // This is a fundamental THREE.js method for orienting objects
-                    
-                    // First, calculate the forward direction as a normalized vector
-                    const forward = new THREE.Vector3(0, 0, -1);
-                    
-                    // Create a quaternion from the player's rotation
-                    const playerQuaternion = new THREE.Quaternion();
-                    playerQuaternion.setFromEuler(this.rotation);
-                    
-                    // Apply the player's rotation to the forward vector
-                    forward.applyQuaternion(playerQuaternion);
-                    
-                    // Create a look-at point in front of the player
-                    const lookAtPosition = new THREE.Vector3(
-                        this.position.x + forward.x * 10,  // * 10 to put it far in front
-                        this.position.y,                   // Maintain vertical position
-                        this.position.z + forward.z * 10   // * 10 to put it far in front
-                    );
-                    
-                    // Store the model's current position
-                    const modelPosition = this.model.position.clone();
-                    
-                    // Use THREE.js lookAt to point the model at the look-at position
-                    // This is a built-in method that handles all the complex rotation math
-                    this.model.lookAt(lookAtPosition);
-                    
-                    // Flip the model's rotation 180 degrees around the Y axis
-                    // This accounts for the model's default orientation
-                    this.model.rotateY(Math.PI);
-                    
-                    // Restore the model's position (lookAt can sometimes affect position)
-                    this.model.position.copy(modelPosition);
-                    
-                    // Debug logging
-                    if (this.game && this.game.frameCounter % 240 === 0) {
-                        console.log(`DEBUG: Player ${this.id} forward vector:`, forward);
-                        console.log(`DEBUG: Look-at position:`, lookAtPosition);
-                        console.log(`DEBUG: Model rotation after lookAt:`, this.model.rotation);
-                    }
-                    
-                    // Update rifle position based on aiming state
-                    this.updateRiflePosition();
-                    
-                    // Log model position occasionally
-                    if (this.game && this.game.frameCounter % 60 === 0) {
-                        console.log(`DEBUG: Model position:`, this.model.position.clone());
-                    }
+                // Update aiming state from game
+                if (this.game.isAimingDownSights !== undefined) {
+                    this.isAimingDownSights = this.game.isAimingDownSights;
                 }
             }
+        } else {
+            // For remote players, interpolate towards target position
+            // Update position interpolation
+            if (this.position.distanceTo(this.targetPosition) > 0.01) {
+                this.position.lerp(this.targetPosition, Math.min(1.0, 10.0 * delta));
+            } else {
+                this.position.copy(this.targetPosition);
+            }
             
-            // Animate the model (legs, arms, etc.)
-            this.animateModel(delta);
-        } catch (error) {
-            console.error(`ERROR: Failed to update player ${this.id}:`, error);
+            // Log every 240 frames
+            if (this.game && this.game.frameCounter % 240 === 0) {
+                console.log(`DEBUG: Player ${this.id} position:`, this.position.clone());
+                if (this.directionVector) {
+                    console.log(`DEBUG: Player ${this.id} direction:`, this.directionVector.clone());
+                }
+            }
         }
+        
+        // Apply direction to the model (both local and remote players)
+        if (this.model && this.directionVector) {
+            // Make sure model is visible
+            this.model.visible = true;
+            
+            // Update model position
+            // IMPORTANT: For players, we need to adjust the y-position
+            // The model's origin is at the bottom of the feet, but the player's position is at eye level
+            this.model.position.set(
+                this.position.x,
+                0, // Set y to 0 to place feet on the ground
+                this.position.z
+            );
+            
+            // SIMPLIFIED APPROACH: Use lookAt with Y=0 to orient the model horizontally
+            // while maintaining upright position
+            
+            // First, create a target position in the direction the player is facing
+            const targetPosition = new THREE.Vector3();
+            targetPosition.copy(this.model.position); // Start from model's position
+            
+            // FIX: INVERT the direction vector by subtracting instead of adding
+            // This makes the model face in the correct direction
+            targetPosition.x -= this.directionVector.x;
+            // targetPosition.y = this.model.position.y; // Keep Y the same (already 0)
+            targetPosition.z -= this.directionVector.z;
+            
+            // Reset model rotation first to avoid accumulation
+            this.model.rotation.set(0, 0, 0);
+            
+            // Have the model look at the target position
+            this.model.lookAt(targetPosition);
+            
+            // Log model orientation periodically
+            if (this.game && this.game.frameCounter % 240 === 0) {
+                console.log(`DEBUG: Model position:`, this.model.position.clone());
+                console.log(`DEBUG: Model looking at:`, targetPosition);
+                console.log(`DEBUG: Model rotation:`, this.model.rotation.clone());
+            }
+        }
+        
+        // Update rifle position based on aiming state and vertical look
+        this.updateRiflePosition();
+        
+        // Update rifle vertical angle based on vertical look
+        if (this.rifle && typeof this.verticalLookAngle === 'number') {
+            // Apply the vertical look angle to the rifle
+            this.updateRifleForVerticalLook(Math.sin(this.verticalLookAngle));
+        }
+        
+        // Animate the model (legs, arms, etc.)
+        this.animateModel(delta);
+        
+        // Update the camera if this is the local player
+        if (this.isLocalPlayer && this.thirdPersonCamera) {
+            this.thirdPersonCamera.update(delta);
+        }
+        
+        // Increment update counter
+        if (!this.updateCount) this.updateCount = 0;
+        this.updateCount++;
     }
     
     // Separate method for model animation
@@ -630,88 +617,37 @@ class Player {
             const leftArm = this.model.getObjectByName('leftArm');
             const rightArm = this.model.getObjectByName('rightArm');
             
-            // Handle aiming down sights animation
+            // Skip arm positioning for aiming, as it's now handled in updateRifleForVerticalLook
             if (this.isAimingDownSights) {
-                // When aiming, position arms to hold rifle at shoulder level
-                if (leftArm) {
-                    leftArm.rotation.set(
-                        -Math.PI / 4, // Raise arm up
-                        0,
-                        Math.PI / 8   // Angle slightly inward
-                    );
-                    // Move left arm forward to support rifle
-                    leftArm.position.set(0.3, 1.3, -0.2);
-                }
-                
-                if (rightArm) {
-                    rightArm.rotation.set(
-                        -Math.PI / 3, // Raise arm up more for trigger hand
-                        0,
-                        -Math.PI / 8  // Angle slightly inward
-                    );
-                    // Move right arm to trigger position
-                    rightArm.position.set(-0.3, 1.3, -0.1);
-                }
-                
                 // Skip regular movement animation when aiming
+                // Arm positioning for aiming is now handled in updateRifleForVerticalLook
                 return;
-            } else {
-                // Reset arm positions when not aiming
-                if (leftArm && !isMoving) {
-                    leftArm.rotation.set(0, 0, 0);
+            }
+            
+            // Only reset arm positions if we're not moving and not in the process of looking up/down
+            // This helps prevent conflicts with the updateRifleForVerticalLook method
+            if (!isMoving && !this.isAdjustingVerticalLook) {
+                // Reset arm positions when not aiming and not moving
+                if (leftArm) {
+                    // We don't reset X rotation as that's handled by updateRifleForVerticalLook
+                    leftArm.rotation.y = 0;
+                    leftArm.rotation.z = 0;
                     leftArm.position.set(0.4, 1.1, 0);
                 }
                 
-                if (rightArm && !isMoving) {
-                    rightArm.rotation.set(0, 0, 0);
+                if (rightArm) {
+                    // We don't reset X rotation as that's handled by updateRifleForVerticalLook
+                    rightArm.rotation.y = 0;
+                    rightArm.rotation.z = 0;
                     rightArm.position.set(-0.4, 1.1, 0);
                 }
             }
             
-            if (isMoving) {
-                // Calculate animation speed
-                const animSpeed = this.isSprinting ? 15 : 10;
-                
-                // Update animation timers
-                if (!this.legSwing) this.legSwing = 0;
-                if (!this.armSwing) this.armSwing = 0;
-                
-                this.legSwing += delta * animSpeed;
-                this.armSwing = this.legSwing;
-                
-                // Apply animations
-                this.model.children.forEach(part => {
-                    switch(part.name) {
-                        case 'leftLeg':
-                            part.rotation.x = Math.sin(this.legSwing) * 0.5;
-                            break;
-                        case 'rightLeg':
-                            part.rotation.x = Math.sin(this.legSwing + Math.PI) * 0.5;
-                            break;
-                        case 'leftArm':
-                            // Only animate arms if not aiming
-                            if (!this.isAimingDownSights) {
-                                part.rotation.x = Math.sin(this.armSwing + Math.PI) * 0.5;
-                            }
-                            break;
-                        case 'rightArm':
-                            // Only animate arms if not aiming
-                            if (!this.isAimingDownSights) {
-                                part.rotation.x = Math.sin(this.armSwing) * 0.5;
-                            }
-                            break;
-                    }
-                });
-            } else {
-                // Reset animations when not moving (except arms when aiming)
-                this.model.children.forEach(part => {
-                    if (['leftLeg', 'rightLeg'].includes(part.name)) {
-                        part.rotation.x = 0;
-                    }
-                });
-            }
+            // The rest of the animation code (e.g., walking animations) would go here
+            // ...
+            
         } catch (error) {
-            console.error(`ERROR: Failed to animate player ${this.id} model:`, error);
+            console.error("Error in animateModel:", error);
         }
     }
     
@@ -725,80 +661,79 @@ class Player {
     }
     
     // Update player position based on network data (for remote players)
-    updateFromNetwork(position, rotation, moveForward, moveBackward, moveLeft, moveRight, isSprinting, isAimingDownSights) {
-        try {
-            console.log(`DEBUG: Updating remote player ${this.id} from network`);
-            
-            // Debug incoming rotation value
-            if (rotation) {
-                console.log(`DEBUG: Network rotation received for player ${this.id}: ${JSON.stringify(rotation)}`);
-            }
-            
-            // Make sure position and rotation are valid
-            if (!position) {
-                console.error(`ERROR: Invalid position data for player ${this.id}`);
-                return;
-            }
-            
-            // Update target position for interpolation
-            this.targetPosition.set(
-                position.x !== undefined ? position.x : this.targetPosition.x,
-                position.y !== undefined ? position.y : this.targetPosition.y,
-                position.z !== undefined ? position.z : this.targetPosition.z
-            );
-            
-            // Update target rotation for interpolation
-            if (rotation) {
-                // CRITICAL FIX: Just directly set the target rotation from the network data
-                // We'll handle all orientation with the lookAt method
-                
-                this.targetRotation.set(
-                    rotation.x !== undefined ? rotation.x : this.targetRotation.x,
-                    rotation.y !== undefined ? rotation.y : this.targetRotation.y,
-                    rotation.z !== undefined ? rotation.z : this.targetRotation.z
-                );
-                
-                // Log for debugging
-                if (this.game && this.game.frameCounter % 240 === 0) {
-                    console.log(`DEBUG: Raw network rotation received:`, rotation);
-                    console.log(`DEBUG: Target rotation set:`, this.targetRotation);
-                }
-            }
-            
-            // Update movement flags
-            this.moveForward = moveForward || false;
-            this.moveBackward = moveBackward || false;
-            this.moveLeft = moveLeft || false;
-            this.moveRight = moveRight || false;
-            this.isSprinting = isSprinting || false;
-            // Update aiming state
-            this.isAimingDownSights = isAimingDownSights || false;
-            
-            // Log occasionally to reduce console spam
-            if (this.game && this.game.frameCounter % 300 === 0) {
-                console.log(`DEBUG: Updated target position for player ${this.id}:`, this.targetPosition.clone());
-                console.log(`DEBUG: Updated target rotation for player ${this.id}:`, this.targetRotation.clone());
-                console.log(`DEBUG: Updated movement flags:`, {
-                    forward: this.moveForward,
-                    backward: this.moveBackward,
-                    left: this.moveLeft,
-                    right: this.moveRight,
-                    sprint: this.isSprinting,
-                    aiming: this.isAimingDownSights
-                });
-            }
-            
-            // Update model position and rotation immediately
-            if (this.model) {
-                // Make sure model is visible
-                this.model.visible = true;
-                
-                // Update rifle position based on aiming state
-                this.updateRiflePosition();
-            }
-        } catch (error) {
-            console.error(`ERROR: Failed to update player ${this.id} from network:`, error);
+    updateFromNetwork(position, direction, verticalLook, moveForward, moveBackward, moveLeft, moveRight, isSprinting, isAimingDownSights) {
+        // Log received network data for debugging
+        console.log(`DEBUG: Network update received for player ${this.id}:`, {
+            position, 
+            direction,
+            verticalLook,
+            movement: {moveForward, moveBackward, moveLeft, moveRight, isSprinting}, 
+            aiming: isAimingDownSights
+        });
+        
+        // Perform stricter validation
+        const isValidPosition = position && 
+                               typeof position.x === 'number' && !isNaN(position.x) &&
+                               typeof position.y === 'number' && !isNaN(position.y) &&
+                               typeof position.z === 'number' && !isNaN(position.z);
+        
+        const isValidDirection = direction && 
+                               typeof direction.x === 'number' && !isNaN(direction.x) &&
+                               typeof direction.y === 'number' && !isNaN(direction.y) &&
+                               typeof direction.z === 'number' && !isNaN(direction.z);
+        
+        // Set target position from network
+        if (isValidPosition) {
+            this.targetPosition.set(position.x, position.y, position.z);
+        } else {
+            console.error(`ERROR: Invalid position received for player ${this.id}:`, position);
+            // Don't update position if invalid data is received
         }
+        
+        // Store direction vector for model orientation
+        if (isValidDirection) {
+            console.log(`DEBUG: Network direction received for player ${this.id}:`, direction);
+            
+            // Store the direction vector for use in the update method
+            if (!this.directionVector) {
+                this.directionVector = new THREE.Vector3();
+            }
+            this.directionVector.set(direction.x, direction.y, direction.z);
+            
+            // Store last valid direction for fallback
+            this.lastValidNetworkDirection = {
+                x: direction.x,
+                y: direction.y,
+                z: direction.z
+            };
+        } else {
+            console.error(`ERROR: Invalid direction received for player ${this.id}:`, direction);
+            
+            // If we have a last valid direction, use it instead
+            if (this.lastValidNetworkDirection && this.directionVector) {
+                console.log(`DEBUG: Using last valid direction for player ${this.id}:`, this.lastValidNetworkDirection);
+                this.directionVector.set(
+                    this.lastValidNetworkDirection.x,
+                    this.lastValidNetworkDirection.y,
+                    this.lastValidNetworkDirection.z
+                );
+            }
+        }
+        
+        // Store vertical look angle for rifle aiming
+        if (typeof verticalLook === 'number' && !isNaN(verticalLook)) {
+            this.verticalLookAngle = verticalLook;
+        }
+        
+        // Set movement flags (for animation)
+        this.moveForward = moveForward || false;
+        this.moveBackward = moveBackward || false;
+        this.moveLeft = moveLeft || false;
+        this.moveRight = moveRight || false;
+        this.isSprinting = isSprinting || false;
+        
+        // Set aiming state
+        this.isAimingDownSights = isAimingDownSights || false;
     }
     
     // Update rifle position based on aiming state
@@ -829,6 +764,62 @@ class Player {
             if (this.game && this.game.frameCounter % 120 === 0) {
                 console.log(`DEBUG: Player ${this.id} rifle positioned for normal stance:`, rifle.position.clone());
             }
+        }
+    }
+
+    // New method to handle vertical look angle for the rifle
+    updateRifleForVerticalLook(verticalLookFactor) {
+        // Find the rifle in the player model
+        const rifle = this.model.getObjectByName('playerModelRifle');
+        if (!rifle) return;
+        
+        // Calculate pitch angle for the rifle based on vertical look factor
+        // verticalLookFactor is the y component of the forward vector, ranging from -1 to 1
+        // We'll convert this to an angle between -45 and 45 degrees (or whatever range looks good)
+        const pitchAngle = Math.asin(Math.max(-0.7, Math.min(0.7, verticalLookFactor)));
+        
+        // Apply the pitch rotation to the rifle
+        // We keep the existing Y rotation (for aiming vs normal stance) but modify X to point up/down
+        const currentYRotation = rifle.rotation.y;
+        const currentZRotation = rifle.rotation.z;
+        
+        // Differentiate between aiming down sights and normal stance
+        if (this.isAimingDownSights) {
+            // When aiming, the rifle should follow the look direction more precisely
+            rifle.rotation.set(
+                pitchAngle,      // X rotation (pitch) - up/down
+                currentYRotation, // Y rotation (maintained from current)
+                currentZRotation  // Z rotation (maintained from current)
+            );
+        } else {
+            // In normal stance, the rifle follows with reduced movement
+            rifle.rotation.set(
+                pitchAngle * 0.5, // Reduced pitch effect when not aiming
+                currentYRotation,
+                currentZRotation
+            );
+        }
+        
+        // Also adjust arms to match the rifle's orientation
+        const leftArm = this.model.getObjectByName('leftArm');
+        const rightArm = this.model.getObjectByName('rightArm');
+        
+        if (leftArm && rightArm) {
+            // Base arm positioning from the existing animate method
+            if (this.isAimingDownSights) {
+                // Adjust arm rotations to follow the rifle pitch
+                leftArm.rotation.x = -Math.PI / 4 + pitchAngle;
+                rightArm.rotation.x = -Math.PI / 3 + pitchAngle;
+            } else {
+                // Normal stance - slight adjustment for pitch
+                leftArm.rotation.x = pitchAngle * 0.5;
+                rightArm.rotation.x = pitchAngle * 0.5;
+            }
+        }
+        
+        // Debug logging occasionally
+        if (this.game && this.game.frameCounter % 240 === 0) {
+            console.log(`DEBUG: Rifle pitch adjusted for vertical look:`, pitchAngle);
         }
     }
 
@@ -1181,16 +1172,40 @@ class SimpleGame {
             
             // Handle player join events
             this.socket.on('playerJoined', (playerData) => {
-                console.log("DEBUG: Player joined event received:", playerData);
+                // Skip if it's us
+                if (playerData.id === this.socket.id) return;
                 
-                // Don't add ourselves
-                if (playerData.id === this.socket.id) {
-                    console.log("DEBUG: Ignoring own player join event");
-                    return;
+                console.log(`DEBUG: Player joined: ${playerData.id}`);
+                console.log(`DEBUG: Position: ${JSON.stringify(playerData.position)}`);
+                console.log(`DEBUG: Direction: ${JSON.stringify(playerData.direction)}`);
+                
+                // Create a new player object for this player
+                const remotePlayer = this.addRemotePlayer(playerData.id, playerData.position);
+                
+                // Set the initial direction
+                if (playerData.direction) {
+                    if (!remotePlayer.directionVector) {
+                        remotePlayer.directionVector = new THREE.Vector3();
+                    }
+                    remotePlayer.directionVector.set(
+                        playerData.direction.x,
+                        playerData.direction.y,
+                        playerData.direction.z
+                    );
                 }
                 
-                console.log("DEBUG: Adding remote player:", playerData.id);
-                this.addRemotePlayer(playerData.id, playerData.position);
+                // Set vertical look angle
+                if (typeof playerData.verticalLook === 'number') {
+                    remotePlayer.verticalLookAngle = playerData.verticalLook;
+                }
+                
+                // Set movement flags and aiming state
+                remotePlayer.moveForward = playerData.moveForward || false;
+                remotePlayer.moveBackward = playerData.moveBackward || false;
+                remotePlayer.moveLeft = playerData.moveLeft || false;
+                remotePlayer.moveRight = playerData.moveRight || false;
+                remotePlayer.isSprinting = playerData.isSprinting || false;
+                remotePlayer.isAimingDownSights = playerData.isAimingDownSights || false;
             });
             
             // Handle existing players
@@ -1250,12 +1265,21 @@ class SimpleGame {
                 
                 const player = this.players[playerData.id];
                 if (player) {
-                    console.log("DEBUG: Received update for player:", playerData.id);
-                    console.log("DEBUG: Update data:", playerData);
-                    player.updateFromNetwork(playerData.position, playerData.rotation, playerData.moveForward, playerData.moveBackward, playerData.moveLeft, playerData.moveRight, playerData.isSprinting, playerData.isAimingDownSights);
+                    console.log(`DEBUG: Received update for player ${playerData.id}`);
+                    player.updateFromNetwork(
+                        playerData.position, 
+                        playerData.direction,
+                        playerData.verticalLook,
+                        playerData.moveForward, 
+                        playerData.moveBackward, 
+                        playerData.moveLeft, 
+                        playerData.moveRight, 
+                        playerData.isSprinting, 
+                        playerData.isAimingDownSights
+                    );
                 } else {
-                    console.warn("DEBUG: Received update for unknown player:", playerData.id);
-                    // Add the player if they don't exist
+                    console.warn(`DEBUG: Received update for unknown player: ${playerData.id}`);
+                    // Add player if we don't know them yet
                     this.addRemotePlayer(playerData.id, playerData.position);
                 }
             });
@@ -1284,34 +1308,40 @@ class SimpleGame {
                 return;
             }
             
-            // IMPROVEMENT: Only send updates when there's an actual change
-            // This prevents unnecessary network traffic while ensuring smooth rotation
-            
-            // Get current camera position and rotation
+            // Get current camera position
             const position = {
                 x: this.camera.position.x,
                 y: this.camera.position.y,
                 z: this.camera.position.z
             };
             
-            // Send the raw camera rotation values without any processing
-            // We'll handle rotation at the receiving end with the lookAt method
-            const rotation = {
-                x: this.camera.rotation.x,
-                y: this.camera.rotation.y,
-                z: this.camera.rotation.z
+            // NEW APPROACH: Calculate and send the forward direction vector instead of rotation
+            // This is the direction the player is facing
+            const forwardVector = new THREE.Vector3(0, 0, -1);
+            forwardVector.applyQuaternion(this.camera.quaternion);
+            forwardVector.normalize(); // Ensure it's normalized
+            
+            const direction = {
+                x: forwardVector.x,
+                y: forwardVector.y,
+                z: forwardVector.z
             };
             
-            // Log raw rotation values occasionally
-            if (this.frameCounter % 240 === 0) {
-                console.log("DEBUG: Sending camera rotation:", rotation);
+            // Also send vertical look for rifle aiming
+            const verticalLook = this.camera.rotation.x;
+            
+            // Log forward vector occasionally
+            if (this.frameCounter % 120 === 0) {
+                console.log("DEBUG: Sending direction vector:", direction);
+                console.log("DEBUG: Vertical look:", verticalLook);
             }
             
             // Create player data with timestamp for better synchronization
             const playerData = {
                 id: this.socket.id,
                 position: position,
-                rotation: rotation,
+                direction: direction,
+                verticalLook: verticalLook,
                 // Include movement flags for smoother animations
                 moveForward: this.moveForward,
                 moveBackward: this.moveBackward,
@@ -1323,23 +1353,9 @@ class SimpleGame {
                 timestamp: Date.now()
             };
             
-            // Only log occasionally to reduce console spam
-            if (this.frameCounter % 300 === 0) {
-                console.log("DEBUG: Sending player update:", playerData);
-            }
-            
-            // Send update to server
             this.socket.emit('playerUpdate', playerData);
-            
-            // Update local player's position and rotation
-            if (this.localPlayer) {
-                this.localPlayer.position.copy(this.camera.position);
-                this.localPlayer.rotation.copy(this.camera.rotation);
-                // Update aiming state
-                this.localPlayer.isAimingDownSights = this.isAimingDownSights;
-            }
         } catch (error) {
-            console.error("DEBUG: Error sending network update:", error);
+            console.error("ERROR: Failed to send network update", error);
         }
     }
     

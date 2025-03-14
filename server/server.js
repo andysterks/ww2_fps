@@ -48,7 +48,8 @@ io.on('connection', (socket) => {
         players[socket.id] = {
             id: socket.id,
             position: playerData.position || { x: 0, y: 0, z: 0 },
-            rotation: playerData.rotation || { x: 0, y: 0, z: 0 },
+            direction: playerData.direction || { x: 0, y: 0, z: 0 },
+            verticalLook: playerData.verticalLook || 0,
             moveForward: false,
             moveBackward: false,
             moveLeft: false,
@@ -69,11 +70,50 @@ io.on('connection', (socket) => {
     
     // Handle player updates
     socket.on('playerUpdate', (playerData) => {
+        // Validate the data first
+        if (!playerData || typeof playerData !== 'object') {
+            console.error(`Invalid player data received from ${socket.id}:`, playerData);
+            return;
+        }
+
         // Update player data in our records
         if (players[socket.id]) {
-            // Update position and rotation
-            players[socket.id].position = playerData.position;
-            players[socket.id].rotation = playerData.rotation;
+            // Validate position before storing
+            const isValidPosition = playerData.position && 
+                                  typeof playerData.position.x === 'number' && !isNaN(playerData.position.x) &&
+                                  typeof playerData.position.y === 'number' && !isNaN(playerData.position.y) &&
+                                  typeof playerData.position.z === 'number' && !isNaN(playerData.position.z);
+            
+            // Validate direction vector instead of rotation
+            const isValidDirection = playerData.direction && 
+                                  typeof playerData.direction.x === 'number' && !isNaN(playerData.direction.x) &&
+                                  typeof playerData.direction.y === 'number' && !isNaN(playerData.direction.y) &&
+                                  typeof playerData.direction.z === 'number' && !isNaN(playerData.direction.z);
+            
+            // Update position if valid
+            if (isValidPosition) {
+                players[socket.id].position = playerData.position;
+            } else if (playerData.position) {
+                console.error(`Invalid position data received from ${socket.id}:`, playerData.position);
+            }
+            
+            // Update direction if valid
+            if (isValidDirection) {
+                players[socket.id].direction = playerData.direction;
+                
+                // Log direction values occasionally to help with debugging
+                if (Math.random() < 0.01) { // ~1% of updates
+                    console.log(`Player ${socket.id} direction:`, playerData.direction);
+                }
+            } else if (playerData.direction) {
+                console.error(`Invalid direction data received from ${socket.id}:`, playerData.direction);
+                // Keep existing direction
+            }
+            
+            // Handle vertical look for rifle aiming
+            if (typeof playerData.verticalLook === 'number' && !isNaN(playerData.verticalLook)) {
+                players[socket.id].verticalLook = playerData.verticalLook;
+            }
             
             // Update movement flags
             players[socket.id].moveForward = playerData.moveForward || false;
@@ -85,8 +125,23 @@ io.on('connection', (socket) => {
             players[socket.id].isAimingDownSights = playerData.isAimingDownSights || false;
             players[socket.id].timestamp = playerData.timestamp || Date.now();
             
+            // Create a clean copy of the player data before broadcasting
+            const cleanPlayerData = {
+                id: socket.id,
+                position: players[socket.id].position,
+                direction: players[socket.id].direction,
+                verticalLook: players[socket.id].verticalLook,
+                moveForward: players[socket.id].moveForward,
+                moveBackward: players[socket.id].moveBackward,
+                moveLeft: players[socket.id].moveLeft,
+                moveRight: players[socket.id].moveRight,
+                isSprinting: players[socket.id].isSprinting,
+                isAimingDownSights: players[socket.id].isAimingDownSights,
+                timestamp: players[socket.id].timestamp
+            };
+            
             // Broadcast to all other players
-            socket.broadcast.emit('playerUpdate', players[socket.id]);
+            socket.broadcast.emit('playerUpdate', cleanPlayerData);
         }
     });
     
