@@ -242,20 +242,34 @@ class Player {
           rightCollar.name = 'collar';
 
           // Add angled white line for soldier's collar
-          const collarLineGeometry = new THREE.BoxGeometry(0.03, 0.003, 0.005);
-          const collarLine = new THREE.Mesh(collarLineGeometry, new THREE.MeshPhongMaterial({ 
+
+          // Top right collar line
+          const topRightCollarLineGeometry = new THREE.BoxGeometry(0.03, 0.003, 0.005);
+          const topRightCollarLine = new THREE.Mesh(topRightCollarLineGeometry, new THREE.MeshPhongMaterial({ 
               color: 0xFFFFFF,
               specular: 0x444444,
               shininess: 30
           }));
-          collarLine.position.set(0.06, 1.39, 0.101);
-          collarLine.rotation.z = Math.PI / 4; // Rotate 45 degrees
-          collarLine.name = 'collarLine';
+          topRightCollarLine.position.set(0.054, 1.396, 0.101);
+          topRightCollarLine.rotation.z = Math.PI / 4; // Rotate 45 degrees
+          topRightCollarLine.name = 'collarLine';
+
+          // Bottom right collar line
+          const bottomRightCollarLineGeometry = new THREE.BoxGeometry(0.03, 0.003, 0.005);
+          const bottomRightCollarLine = new THREE.Mesh(bottomRightCollarLineGeometry, new THREE.MeshPhongMaterial({ 
+              color: 0xFFFFFF,
+              specular: 0x444444,
+              shininess: 30
+          }));
+          bottomRightCollarLine.position.set(0.06, 1.39, 0.101);
+          bottomRightCollarLine.rotation.z = Math.PI / 4; // Rotate 45 degrees
+          bottomRightCollarLine.name = 'collarLine';
 
           const rightCollarGroup = new THREE.Group();
           rightCollarGroup.position.set(0, 0, 0.2);
           rightCollarGroup.add(rightCollar);
-          rightCollarGroup.add(collarLine);
+          rightCollarGroup.add(bottomRightCollarLine);
+          rightCollarGroup.add(topRightCollarLine);
           
           // Uniform pocket details (small rectangles on either side)
           const leftPocketGeometry = new THREE.BoxGeometry(0.06, 0.06, 0.101);

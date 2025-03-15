@@ -387,7 +387,10 @@ class SimpleGame {
             console.log("DEBUG: Initial player position:", initialPosition);
             
             // Create the local player
-            this.localPlayer = new Player('local-player', this, true, initialPosition);
+            this.localPlayer = new Player('local-player', this, true, {
+                ...initialPosition,
+                z: -1
+            });
             
             // Create the player model
             this.localPlayer.createModel();
