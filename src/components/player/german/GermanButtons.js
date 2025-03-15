@@ -3,6 +3,7 @@ import * as THREE from 'three';
 class GermanButtons {
     addCreases() {
       const creaseGeometry = new THREE.BoxGeometry(0.24, 0.006, 0.012);
+      const creaseX = .018;
       const creaseHeight = 1.288;
       const creaseDepth = 0.101;
 
@@ -14,13 +15,13 @@ class GermanButtons {
 
       const creaseLeft = new THREE.Mesh(creaseGeometry, creaseMaterial);
 
-      creaseLeft.position.set(-0.025, creaseHeight, creaseDepth);
+      creaseLeft.position.set(-creaseX, creaseHeight, creaseDepth);
       creaseLeft.rotation.z = Math.PI / 2; // Rotate 90 degrees
       creaseLeft.name = 'creaseLeft';
 
       const creaseRight = new THREE.Mesh(creaseGeometry, creaseMaterial);
 
-      creaseRight.position.set(0.025, creaseHeight, creaseDepth);
+      creaseRight.position.set(creaseX, creaseHeight, creaseDepth);
       creaseRight.rotation.z = Math.PI / 2; // Rotate 90 degrees
       creaseRight.name = 'creaseRight';
 

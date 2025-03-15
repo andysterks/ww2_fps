@@ -201,7 +201,7 @@ class Player {
           // Add uniform details to torso
           // Buttons (small light gray dots down the center)
           const createButton = (y) => {
-              const buttonGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.01, 8);
+              const buttonGeometry = new THREE.CylinderGeometry(0.007, 0.007, 0.01, 8);
               const button = new THREE.Mesh(buttonGeometry, lightGrayMaterial);
               button.rotation.x = Math.PI / 2;
               button.position.set(0, y, 0.101);
