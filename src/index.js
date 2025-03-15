@@ -5,10 +5,9 @@ import { io } from 'socket.io-client';
 import { audioManager } from './audio.js';
 
 // Import the Player class from its module
-import Player from './components/player/Player.js';
+import Player from './components/player/german/Player.js';
 
 console.log("Script loaded");
-console.log("Player class:", Player);
 
 // Initialize the game when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import GermanCollar from './GermanCollar.js';
 
 // Player class to manage individual player instances
 class Player {
@@ -405,8 +406,10 @@ class Player {
           this.model.add(buttonGroup);
           this.model.add(suspenderLeft);
           this.model.add(suspenderRight);
-          this.model.add(leftCollar);
-          this.model.add(rightCollarGroup);
+          //this.model.add(leftCollar);
+          //this.model.add(rightCollarGroup);
+          const collar = new GermanCollar(this).createCollarGroup();
+          this.model.add(collar);
           this.model.add(leftPocket);
           this.model.add(rightPocket);
           
