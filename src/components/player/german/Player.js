@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import GermanCollar from './GermanCollar.js';
+import GermanButtons from './GermanButtons.js';
 
 // Player class to manage individual player instances
 class Player {
@@ -404,6 +405,9 @@ class Player {
           // Add torso & uniform details
           this.model.add(torso);
           this.model.add(buttonGroup);
+          const creases = new GermanButtons(this).addCreases();
+          this.model.add(creases[0]);
+          this.model.add(creases[1]);
           this.model.add(suspenderLeft);
           this.model.add(suspenderRight);
           //this.model.add(leftCollar);
