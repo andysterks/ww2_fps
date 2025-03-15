@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import GermanCollar from './GermanCollar.js';
 import GermanButtons from './GermanButtons.js';
+import GermanPocket from './GermanPocket.js';
 
 // Player class to manage individual player instances
 class Player {
@@ -272,17 +273,44 @@ class Player {
           rightCollarGroup.add(rightCollar);
           rightCollarGroup.add(bottomRightCollarLine);
           rightCollarGroup.add(topRightCollarLine);
-          
-          // Uniform pocket details (small rectangles on either side)
-          const leftPocketGeometry = new THREE.BoxGeometry(0.06, 0.06, 0.101);
-          const leftPocket = new THREE.Mesh(leftPocketGeometry, uniformMaterial);
-          leftPocket.position.set(0.12, 1.35, 0.101);
-          leftPocket.name = 'leftPocket';
-          
-          const rightPocketGeometry = new THREE.BoxGeometry(0.06, 0.06, 0.101);
-          const rightPocket = new THREE.Mesh(rightPocketGeometry, uniformMaterial);
-          rightPocket.position.set(-0.12, 1.35, 0.101);
-          rightPocket.name = 'rightPocket';
+
+        const leftPocket = new GermanPocket(this).createPocket(.08);
+        this.model.add(leftPocket);
+
+          const rightPocketAlt = new GermanPocket(this).createPocket(-0.08);
+          this.model.add(rightPocketAlt);
+
+        //   const pocketOutlineGeometry1 = new THREE.BoxGeometry(0.06, 0.005, 0.025);
+        //   const pocketOutline1 = new THREE.Mesh(pocketOutlineGeometry1, blackMaterial);
+        //   pocketOutline1.position.set(0.08, 1.348, 0.11);
+        //   pocketOutline1.name = 'pocketOutline';
+        //   this.model.add(pocketOutline1);
+
+        //   const pocketOutlineGeometry2 = new THREE.BoxGeometry(0.06, 0.005, 0.025);
+        //   const pocketOutline2 = new THREE.Mesh(pocketOutlineGeometry2, blackMaterial);
+        //   pocketOutline2.position.set(0.08, 1.332, 0.11);
+        //   pocketOutline2.name = 'pocketOutline';
+        //   this.model.add(pocketOutline2);
+
+        //   const pocketOutlineGeometry3 = new THREE.BoxGeometry(0.06, 0.005, 0.025);
+        //   const pocketOutline3 = new THREE.Mesh(pocketOutlineGeometry3, blackMaterial);
+        //   pocketOutline3.position.set(0.0529, 1.321, 0.11);
+        //   pocketOutline3.rotation.z = Math.PI / 2;
+        //   pocketOutline3.name = 'pocketOutline3';
+        //   this.model.add(pocketOutline3);
+
+        //   const pocketOutlineGeometry4 = new THREE.BoxGeometry(0.06, 0.005, 0.025);
+        //   const pocketOutline4 = new THREE.Mesh(pocketOutlineGeometry4, blackMaterial);
+        //   pocketOutline4.position.set(0.1065, 1.321, 0.11);
+        //   pocketOutline4.rotation.z = Math.PI / 2;
+        //   pocketOutline4.name = 'pocketOutline4';
+        //   this.model.add(pocketOutline4);
+
+        //   const pocketOutlineGeometry5 = new THREE.BoxGeometry(0.06, 0.005, 0.025);
+        //   const pocketOutline5 = new THREE.Mesh(pocketOutlineGeometry5, blackMaterial);
+        //   pocketOutline5.position.set(0.08, 1.29, 0.11);
+        //   pocketOutline5.name = 'pocketOutline5';
+        //   this.model.add(pocketOutline5);
           
           // ====== HIPS CONNECTION ======
           // The hip connection (small rectangle at bottom of torso)
@@ -414,8 +442,6 @@ class Player {
           //this.model.add(rightCollarGroup);
           const collar = new GermanCollar(this).createCollarGroup();
           this.model.add(collar);
-          this.model.add(leftPocket);
-          this.model.add(rightPocket);
           
           // Add hip connection & belt
           this.model.add(hipConnection);
