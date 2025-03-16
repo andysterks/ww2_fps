@@ -361,12 +361,12 @@ class Player {
           
           const leftArm = new THREE.Mesh(armGeometry, uniformMaterial);
           leftArm.rotation.z = Math.PI / 2; // Horizontal
-          leftArm.position.set(0.27, 1.4, 0); // Connected to shoulder
+          leftArm.position.set(0.215, 1.3, 0); // Connected to shoulder
           leftArm.name = 'leftArm';
           
           const rightArm = new THREE.Mesh(armGeometry, uniformMaterial);
           rightArm.rotation.z = -Math.PI / 2; // Horizontal
-          rightArm.position.set(-0.27, 1.4, 0); // Connected to shoulder
+          rightArm.position.set(-0.215, 1.3, 0); // Connected to shoulder
           rightArm.name = 'rightArm';
           
           // LEGO hands (C-shaped clamps)
@@ -438,8 +438,6 @@ class Player {
           this.model.add(creases[1]);
           this.model.add(suspenderLeft);
           this.model.add(suspenderRight);
-          //this.model.add(leftCollar);
-          //this.model.add(rightCollarGroup);
           const collar = new GermanCollar(this).createCollarGroup();
           this.model.add(collar);
           
@@ -778,14 +776,16 @@ class Player {
                   // We don't reset X rotation as that's handled by updateRifleForVerticalLook
                   leftArm.rotation.y = 0;
                   leftArm.rotation.z = 0;
-                  leftArm.position.set(0.4, 1.1, 0);
+                  // commented out to test the new arm position
+                  //leftArm.position.set(0.4, 1.1, 0);
               }
               
               if (rightArm) {
                   // We don't reset X rotation as that's handled by updateRifleForVerticalLook
                   rightArm.rotation.y = 0;
                   rightArm.rotation.z = 0;
-                  rightArm.position.set(-0.4, 1.1, 0);
+                  // commented out to test the new arm position
+                  //rightArm.position.set(-0.4, 1.1, 0);
               }
           }
           
@@ -949,19 +949,19 @@ class Player {
       // Also adjust arms to match the rifle's orientation
       const leftArm = this.model.getObjectByName('leftArm');
       const rightArm = this.model.getObjectByName('rightArm');
-      
-      if (leftArm && rightArm) {
-          // Base arm positioning from the existing animate method
-          if (this.isAimingDownSights) {
-              // Adjust arm rotations to follow the rifle pitch
-              leftArm.rotation.x = -Math.PI / 4 + pitchAngle;
-              rightArm.rotation.x = -Math.PI / 3 + pitchAngle;
-          } else {
-              // Normal stance - slight adjustment for pitch
-              leftArm.rotation.x = pitchAngle * 0.5;
-              rightArm.rotation.x = pitchAngle * 0.5;
-          }
-      }
+      // commented out to test the new arm position
+    //   if (leftArm && rightArm) {
+    //       // Base arm positioning from the existing animate method
+    //       if (this.isAimingDownSights) {
+    //           // Adjust arm rotations to follow the rifle pitch
+    //           leftArm.rotation.x = -Math.PI / 4 + pitchAngle;
+    //           rightArm.rotation.x = -Math.PI / 3 + pitchAngle;
+    //       } else {
+    //           // Normal stance - slight adjustment for pitch
+    //           leftArm.rotation.x = pitchAngle * 0.5;
+    //           rightArm.rotation.x = pitchAngle * 0.5;
+    //       }
+    //   }
       
       // Debug logging occasionally
       if (this.game && this.game.frameCounter % 240 === 0) {
