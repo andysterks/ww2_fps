@@ -453,28 +453,34 @@ class Player {
       // LEGO arms (cylindrical, attach at shoulder)
       const armGeometry = new THREE.CylinderGeometry(0.035, 0.035, 0.2, 8);
 
-      const leftArm = new THREE.Mesh(armGeometry, uniformMaterial);
-      leftArm.rotation.z = defaultArmZRotation;
-      leftArm.position.set(0.215, 1.3, 0); // Connected to shoulder
-      leftArm.name = "leftArm";
-
       const rightArm = new THREE.Mesh(armGeometry, uniformMaterial);
-      rightArm.rotation.z = -Math.PI / 2; // Horizontal
-      rightArm.position.set(-0.215, 1.3, 0); // Connected to shoulder
+      rightArm.position.set(0.215, 1.3, 0); // Connected to shoulder
       rightArm.name = "rightArm";
+      const rightArmGroup = new THREE.Group();
+      rightArmGroup.name = "rightArmGroup";
+      rightArmGroup.add(rightArm);
+
+      const leftArm = new THREE.Mesh(armGeometry, uniformMaterial);
+      leftArm.position.set(-0.215, 1.3, 0); // Connected to shoulder
+      leftArm.name = "leftArm";
+      const leftArmGroup = new THREE.Group();
+      leftArmGroup.name = "leftArmGroup";
+      leftArmGroup.add(leftArm);
 
       // LEGO hands (C-shaped clamps)
       const handGeometry = new THREE.CylinderGeometry(0.035, 0.035, 0.05, 8);
 
-      const leftHand = new THREE.Mesh(handGeometry, blackMaterial);
-      leftHand.rotation.z = Math.PI / 2; // Horizontal
-      leftHand.position.set(0.215, 1.17, 0); // Connected to end of arm
-      leftHand.name = "leftHand";
-
       const rightHand = new THREE.Mesh(handGeometry, blackMaterial);
-      rightHand.rotation.z = -Math.PI / 2; // Horizontal
-      rightHand.position.set(-0.215, 1.17, 0); // Connected to end of arm
+      rightHand.rotation.z = Math.PI / 2; // Horizontal
+      rightHand.position.set(0.215, 1.17, 0); // Connected to end of arm
       rightHand.name = "rightHand";
+      rightArmGroup.add(rightHand);
+
+      const leftHand = new THREE.Mesh(handGeometry, blackMaterial);
+      leftHand.rotation.z = -Math.PI / 2; // Horizontal
+      leftHand.position.set(-0.215, 1.17, 0); // Connected to end of arm
+      leftHand.name = "leftHand";
+      leftArmGroup.add(leftHand);
 
       // ====== LEGS AND FEET ======
       // Hip joint (where legs connect to body)
@@ -546,10 +552,9 @@ class Player {
       // Add shoulders, arms & hands
       this.model.add(leftShoulderConnector);
       this.model.add(rightShoulderConnector);
+      this.model.add(rightArmGroup);
       this.model.add(leftArm);
-      this.model.add(rightArm);
       this.model.add(leftHand);
-      this.model.add(rightHand);
 
       // Add legs & feet
       this.model.add(leftLeg);
@@ -886,7 +891,9 @@ class Player {
         Math.abs(this.rotation.y - this.targetRotation.y) > 0.01;
 
       // Get references to all limbs
-      const leftArm = this.model.getObjectByName("leftArm");
+      //const leftArm = this.model.getObjectByName("leftArm");
+      const leftArmGroup = this.model.getObjectByName("leftArmGroup");
+      const rightArmGroup = this.model.getObjectByName("rightArmGroup");
       const rightArm = this.model.getObjectByName("rightArm");
       const leftLeg = this.model.getObjectByName("leftLeg");
       const rightLeg = this.model.getObjectByName("rightLeg");
@@ -941,21 +948,21 @@ class Player {
         }
 
         // Apply arm animations - opposite to legs for natural running motion
-        if (leftArm && rightArm) {
+        if (leftArmGroup && rightArmGroup) {
           // Forward/backward swing
-          leftArm.rotation.x = armAngle;
-          rightArm.rotation.x = -armAngle;
+          leftArmGroup.rotation.z = armAngle;
+          rightArmGroup.rotation.z = -armAngle;
 
           // Move hands with arms
-          if (leftHand) {
-            leftHand.rotation.x = armAngle;
-            leftHand.position.y = 1.17 + armAngle * 0.05;
-          }
+        //   if (leftHand) {
+        //     leftHand.rotation.x = armAngle;
+        //     leftHand.position.y = 1.17 + armAngle * 0.05;
+        //   }
 
-          if (rightHand) {
-            rightHand.rotation.x = -armAngle;
-            rightHand.position.y = 1.17 + -armAngle * 0.05;
-          }
+        //   if (rightHand) {
+        //     rightHand.rotation.x = -armAngle;
+        //     rightHand.position.y = 1.17 + -armAngle * 0.05;
+        //   }
         }
 
         // Add slight torso rotation for more natural movement
@@ -972,10 +979,10 @@ class Player {
         // Reset rotations to default poses when not moving and not aiming
         if (!this.isAdjustingVerticalLook) {
           // Reset arm positions
-          if (leftArm) {
-            leftArm.rotation.x = 0;
-            leftArm.rotation.y = 0;
-            leftArm.rotation.z = 0; // Default horizontal position
+          if (leftArmGroup) {
+            //leftArmGroup.rotation.x = 0;
+            //leftArmGroup.rotation.y = 0;
+            //leftArmGroup.rotation.z = 0; // Default horizontal position
           }
 
           if (rightArm) {
