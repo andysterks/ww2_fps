@@ -1133,9 +1133,7 @@ class Player {
 
     if (this.isAimingDownSights) {
       // Position for aiming down sights
-      // Adjust rifle to point forward when aiming
-      rifle.rotation.set(0, Math.PI / 3, 0);
-
+      rifle.position.set(-0.19, -0.05, 0.21);
       // Add debug logging occasionally
       if (this.game && this.game.frameCounter % 120 === 0) {
         console.log(
@@ -1146,6 +1144,7 @@ class Player {
       // Position for normal stance
       // Rifle held at side/hip
       rifle.rotation.set(0, Math.PI, 0);
+      rifle.position.set(-0.39, -0.25, -0.05);
 
       // Add debug logging occasionally
       if (this.game && this.game.frameCounter % 120 === 0) {
