@@ -553,8 +553,7 @@ class Player {
       this.model.add(leftShoulderConnector);
       this.model.add(rightShoulderConnector);
       this.model.add(rightArmGroup);
-      this.model.add(leftArm);
-      this.model.add(leftHand);
+      this.model.add(leftArmGroup);
 
       // Add legs & feet
       this.model.add(leftLeg);
@@ -891,10 +890,8 @@ class Player {
         Math.abs(this.rotation.y - this.targetRotation.y) > 0.01;
 
       // Get references to all limbs
-      //const leftArm = this.model.getObjectByName("leftArm");
       const leftArmGroup = this.model.getObjectByName("leftArmGroup");
       const rightArmGroup = this.model.getObjectByName("rightArmGroup");
-      const rightArm = this.model.getObjectByName("rightArm");
       const leftLeg = this.model.getObjectByName("leftLeg");
       const rightLeg = this.model.getObjectByName("rightLeg");
       const leftFoot = this.model.getObjectByName("leftFoot");
@@ -950,7 +947,7 @@ class Player {
         // Apply arm animations - opposite to legs for natural running motion
         if (leftArmGroup && rightArmGroup) {
           // Forward/backward swing
-          leftArmGroup.rotation.z = armAngle;
+          leftArmGroup.rotation.x = armAngle;
           rightArmGroup.rotation.z = -armAngle;
 
           // Move hands with arms
@@ -985,10 +982,10 @@ class Player {
             //leftArmGroup.rotation.z = 0; // Default horizontal position
           }
 
-          if (rightArm) {
-            rightArm.rotation.x = 0;
-            rightArm.rotation.y = 0;
-            rightArm.rotation.z = 0; // Default horizontal position
+          if (rightArmGroup) {
+            //rightArm.rotation.x = 0;
+            //rightArm.rotation.y = 0;
+            //rightArm.rotation.z = 0; // Default horizontal position
           }
 
           // Reset legs
