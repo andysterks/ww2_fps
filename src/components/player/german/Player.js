@@ -453,18 +453,22 @@ class Player {
       // LEGO arms (cylindrical, attach at shoulder)
       const armGeometry = new THREE.CylinderGeometry(0.035, 0.035, 0.2, 8);
 
-      const rightArm = new THREE.Mesh(armGeometry, uniformMaterial);
-      rightArm.position.set(0.215, 1.3, 0); // Connected to shoulder
-      rightArm.name = "rightArm";
       const rightArmGroup = new THREE.Group();
+      rightArmGroup.position.set(0.175, 1.4, 0); // Set group origin at shoulder joint
       rightArmGroup.name = "rightArmGroup";
+      
+      const rightArm = new THREE.Mesh(armGeometry, uniformMaterial);
+      rightArm.position.set(0.04, -0.1, 0); // Position arm relative to the group's origin
+      rightArm.name = "rightArm";
       rightArmGroup.add(rightArm);
 
-      const leftArm = new THREE.Mesh(armGeometry, uniformMaterial);
-      leftArm.position.set(-0.215, 1.3, 0); // Connected to shoulder
-      leftArm.name = "leftArm";
       const leftArmGroup = new THREE.Group();
+      leftArmGroup.position.set(-0.175, 1.4, 0); // Set group origin at shoulder joint
       leftArmGroup.name = "leftArmGroup";
+      
+      const leftArm = new THREE.Mesh(armGeometry, uniformMaterial);
+      leftArm.position.set(-0.04, -0.1, 0); // Position arm relative to the group's origin
+      leftArm.name = "leftArm";
       leftArmGroup.add(leftArm);
 
       // LEGO hands (C-shaped clamps)
@@ -472,13 +476,13 @@ class Player {
 
       const rightHand = new THREE.Mesh(handGeometry, blackMaterial);
       rightHand.rotation.z = Math.PI / 2; // Horizontal
-      rightHand.position.set(0.215, 1.17, 0); // Connected to end of arm
+      rightHand.position.set(0.04, -0.23, 0); // Connected to end of arm, relative to group
       rightHand.name = "rightHand";
       rightArmGroup.add(rightHand);
 
       const leftHand = new THREE.Mesh(handGeometry, blackMaterial);
       leftHand.rotation.z = -Math.PI / 2; // Horizontal
-      leftHand.position.set(-0.215, 1.17, 0); // Connected to end of arm
+      leftHand.position.set(-0.04, -0.23, 0); // Connected to end of arm, relative to group
       leftHand.name = "leftHand";
       leftArmGroup.add(leftHand);
 
@@ -896,8 +900,6 @@ class Player {
       const rightLeg = this.model.getObjectByName("rightLeg");
       const leftFoot = this.model.getObjectByName("leftFoot");
       const rightFoot = this.model.getObjectByName("rightFoot");
-      const leftHand = this.model.getObjectByName("leftHand");
-      const rightHand = this.model.getObjectByName("rightHand");
 
       // Skip arm positioning for aiming, as it's now handled in updateRifleForVerticalLook
       if (this.isAimingDownSights) {
@@ -946,20 +948,9 @@ class Player {
 
         // Apply arm animations - opposite to legs for natural running motion
         if (leftArmGroup && rightArmGroup) {
-          // Forward/backward swing
+          // Forward/backward swing - now correctly pivoting at shoulder
           leftArmGroup.rotation.x = armAngle;
-          rightArmGroup.rotation.z = -armAngle;
-
-          // Move hands with arms
-        //   if (leftHand) {
-        //     leftHand.rotation.x = armAngle;
-        //     leftHand.position.y = 1.17 + armAngle * 0.05;
-        //   }
-
-        //   if (rightHand) {
-        //     rightHand.rotation.x = -armAngle;
-        //     rightHand.position.y = 1.17 + -armAngle * 0.05;
-        //   }
+          rightArmGroup.rotation.x = -armAngle; // Right arm swings opposite
         }
 
         // Add slight torso rotation for more natural movement
@@ -977,15 +968,15 @@ class Player {
         if (!this.isAdjustingVerticalLook) {
           // Reset arm positions
           if (leftArmGroup) {
-            //leftArmGroup.rotation.x = 0;
-            //leftArmGroup.rotation.y = 0;
-            //leftArmGroup.rotation.z = 0; // Default horizontal position
+            leftArmGroup.rotation.x = 0;
+            leftArmGroup.rotation.y = 0;
+            leftArmGroup.rotation.z = 0;
           }
 
           if (rightArmGroup) {
-            //rightArm.rotation.x = 0;
-            //rightArm.rotation.y = 0;
-            //rightArm.rotation.z = 0; // Default horizontal position
+            rightArmGroup.rotation.x = 0;
+            rightArmGroup.rotation.y = 0;
+            rightArmGroup.rotation.z = 0;
           }
 
           // Reset legs
@@ -1002,17 +993,6 @@ class Player {
           // Reset feet
           if (leftFoot) leftFoot.rotation.x = 0;
           if (rightFoot) rightFoot.rotation.x = 0;
-
-          // Reset hands
-          if (leftHand) {
-            leftHand.rotation.x = 0;
-            leftHand.position.y = 1.17; // Default position
-          }
-
-          if (rightHand) {
-            rightHand.rotation.x = 0;
-            rightHand.position.y = 1.17; // Default position
-          }
 
           // Reset torso
           const torso = this.model.getObjectByName("torso");
