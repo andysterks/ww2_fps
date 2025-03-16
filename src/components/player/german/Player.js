@@ -706,11 +706,11 @@ class Player {
           const targetPosition = new THREE.Vector3();
           targetPosition.copy(this.model.position); // Start from model's position
           
-          // FIX: INVERT the direction vector by subtracting instead of adding
-          // This makes the model face in the correct direction
-          targetPosition.x -= this.directionVector.x;
+          // FIXED: ADD the direction vector instead of subtracting to make the model 
+          // face in the opposite direction (face the player/camera)
+          targetPosition.x += this.directionVector.x;
           // targetPosition.y = this.model.position.y; // Keep Y the same (already 0)
-          targetPosition.z -= this.directionVector.z;
+          targetPosition.z += this.directionVector.z;
           
           // Reset model rotation first to avoid accumulation
           this.model.rotation.set(0, 0, 0);
