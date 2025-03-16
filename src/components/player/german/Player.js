@@ -183,13 +183,13 @@ class Player {
           // Helmet back flap
           const helmetBackGeometry = new THREE.BoxGeometry(0.2, 0.02, 0.08);
           const helmetBack = new THREE.Mesh(helmetBackGeometry, helmetMaterial);
-          helmetBack.position.set(0, 1.48, -0.17);
+          helmetBack.position.set(0, 1.52, -0.17);
           helmetBack.name = 'helmetBack';
           
           // Helmet brim at the front
           const helmetBrimGeometry = new THREE.BoxGeometry(0.2, 0.02, 0.06);
           const helmetBrim = new THREE.Mesh(helmetBrimGeometry, helmetMaterial);
-          helmetBrim.position.set(0, 1.48, 0.17);
+          helmetBrim.position.set(0, 1.52, 0.17);
           helmetBrim.name = 'helmetBrim';
           
           // ====== TORSO ======
@@ -374,12 +374,12 @@ class Player {
           
           const leftHand = new THREE.Mesh(handGeometry, blackMaterial);
           leftHand.rotation.z = Math.PI / 2; // Horizontal
-          leftHand.position.set(0.38, 1.4, 0); // Connected to end of arm
+          leftHand.position.set(0.215, 1.17, 0); // Connected to end of arm
           leftHand.name = 'leftHand';
           
           const rightHand = new THREE.Mesh(handGeometry, blackMaterial);
           rightHand.rotation.z = -Math.PI / 2; // Horizontal
-          rightHand.position.set(-0.38, 1.4, 0); // Connected to end of arm
+          rightHand.position.set(-0.215, 1.17, 0); // Connected to end of arm
           rightHand.name = 'rightHand';
           
           // ====== LEGS AND FEET ======
