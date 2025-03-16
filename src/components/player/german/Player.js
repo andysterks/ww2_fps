@@ -573,11 +573,14 @@ class Player {
         );
 
         // Create a detailed LEGO-style rifle group
-        const rifleGroup = new Kar98().create(-0.215, 1.12, -0.1);
+        const rifleGroup = new Kar98().create(-0.39, -0.25, -0.05);
         rifleGroup.name = "legoRifle";
 
-        // Add to model
-        this.model.add(rifleGroup);
+        // Adjust rifle rotation to be held properly in the hand
+        rifleGroup.rotation.set(0, Math.PI / 4, 0);
+        
+        // Add rifle to right arm group instead of directly to model
+        rightArmGroup.add(rifleGroup);
         this.rifle = rifleGroup;
 
         console.log(
@@ -1124,44 +1127,40 @@ class Player {
   // Update rifle position based on aiming state
   updateRiflePosition() {
     // Find the rifle in the player model
-    const rifle = this.model.getObjectByName("playerModelRifle");
+    const rightArmGroup = this.model?.getObjectByName("rightArmGroup");
+    const rifle = rightArmGroup?.getObjectByName("legoRifle") || this.model?.getObjectByName("playerModelRifle");
     if (!rifle) return;
 
     if (this.isAimingDownSights) {
       // Position for aiming down sights
-      // Move the rifle up to shoulder level and forward
-      rifle.position.set(0, 1.4, -0.3);
-      // Rotate to point forward
-      rifle.rotation.set(0, 0, 0);
+      // Adjust rifle to point forward when aiming
+      rifle.rotation.set(0, Math.PI / 3, 0);
 
       // Add debug logging occasionally
       if (this.game && this.game.frameCounter % 120 === 0) {
         console.log(
-          `DEBUG: Player ${this.id} rifle positioned for aiming:`,
-          rifle.position.clone()
+          `DEBUG: Player ${this.id} rifle positioned for aiming`
         );
       }
     } else {
       // Position for normal stance
       // Rifle held at side/hip
-      rifle.position.set(0.3, 1.1, -0.15);
-      // Angled slightly
-      rifle.rotation.set(0, Math.PI / 4, 0);
+      rifle.rotation.set(0, Math.PI, 0);
 
       // Add debug logging occasionally
       if (this.game && this.game.frameCounter % 120 === 0) {
         console.log(
-          `DEBUG: Player ${this.id} rifle positioned for normal stance:`,
-          rifle.position.clone()
+          `DEBUG: Player ${this.id} rifle positioned for normal stance`
         );
       }
     }
   }
 
-  // New method to handle vertical look angle for the rifle
+  // Update method for vertical look angle for the rifle
   updateRifleForVerticalLook(verticalLookFactor) {
     // Find the rifle in the player model
-    const rifle = this.model.getObjectByName("playerModelRifle");
+    const rightArmGroup = this.model?.getObjectByName("rightArmGroup");
+    const rifle = rightArmGroup?.getObjectByName("legoRifle") || this.model?.getObjectByName("playerModelRifle");
     if (!rifle) return;
 
     // Calculate pitch angle for the rifle based on vertical look factor
@@ -1192,23 +1191,6 @@ class Player {
         currentZRotation
       );
     }
-
-    // Also adjust arms to match the rifle's orientation
-    const leftArm = this.model.getObjectByName("leftArm");
-    const rightArm = this.model.getObjectByName("rightArm");
-    // commented out to test the new arm position
-    //   if (leftArm && rightArm) {
-    //       // Base arm positioning from the existing animate method
-    //       if (this.isAimingDownSights) {
-    //           // Adjust arm rotations to follow the rifle pitch
-    //           leftArm.rotation.x = -Math.PI / 4 + pitchAngle;
-    //           rightArm.rotation.x = -Math.PI / 3 + pitchAngle;
-    //       } else {
-    //           // Normal stance - slight adjustment for pitch
-    //           leftArm.rotation.x = pitchAngle * 0.5;
-    //           rightArm.rotation.x = pitchAngle * 0.5;
-    //       }
-    //   }
 
     // Debug logging occasionally
     if (this.game && this.game.frameCounter % 240 === 0) {
