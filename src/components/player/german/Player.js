@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import GermanCollar from './GermanCollar.js';
 import GermanButtons from './GermanButtons.js';
 import GermanPocket from './GermanPocket.js';
-
+import Kar98 from '../Kar98.js';
 // Player class to manage individual player instances
 class Player {
   constructor(id, game, isLocal = false, initialPosition = { x: 0, y: 0, z: 0 }) {
@@ -469,61 +469,8 @@ class Player {
               console.log('DEBUG: Creating detailed LEGO Kar98k rifle for player model');
               
               // Create a detailed LEGO-style rifle group
-              const rifleGroup = new THREE.Group();
+              const rifleGroup = new Kar98().create(-.25, 1.15, -.1);
               rifleGroup.name = 'legoRifle';
-              
-              // Rifle stock (brown)
-              const rifleStockGeometry = new THREE.BoxGeometry(0.04, 0.04, 0.2);
-              const rifleStock = new THREE.Mesh(rifleStockGeometry, brownMaterial);
-              rifleStock.position.set(0, 0, 0.05);
-              rifleGroup.add(rifleStock);
-              
-              // Rifle body (upper part of the stock)
-              const rifleBodyGeometry = new THREE.BoxGeometry(0.035, 0.035, 0.12);
-              const rifleBody = new THREE.Mesh(rifleBodyGeometry, brownMaterial);
-              rifleBody.position.set(0, 0.02, -0.09);
-              rifleGroup.add(rifleBody);
-              
-              // Rifle barrel (black)
-              const rifleBarrelGeometry = new THREE.BoxGeometry(0.025, 0.025, 0.25);
-              const rifleBarrel = new THREE.Mesh(rifleBarrelGeometry, blackMaterial);
-              rifleBarrel.position.set(0, 0.02, -0.25);
-              rifleGroup.add(rifleBarrel);
-              
-              // Rifle scope (black cylinder on top)
-              const rifleScopeGeometry = new THREE.CylinderGeometry(0.012, 0.012, 0.1, 8);
-              const rifleScope = new THREE.Mesh(rifleScopeGeometry, blackMaterial);
-              rifleScope.rotation.x = Math.PI / 2;
-              rifleScope.position.set(0, 0.05, -0.15);
-              rifleGroup.add(rifleScope);
-              
-              // Rifle magazine (black)
-              const rifleMagGeometry = new THREE.BoxGeometry(0.025, 0.02, 0.05);
-              const rifleMag = new THREE.Mesh(rifleMagGeometry, blackMaterial);
-              rifleMag.position.set(0, -0.02, -0.09);
-              rifleGroup.add(rifleMag);
-              
-              // Rifle end piece (black)
-              const rifleEndGeometry = new THREE.BoxGeometry(0.025, 0.025, 0.03);
-              const rifleEnd = new THREE.Mesh(rifleEndGeometry, blackMaterial);
-              rifleEnd.position.set(0, 0.02, -0.375);
-              rifleGroup.add(rifleEnd);
-              
-              // Rifle strap mounts (small black bits on the sides)
-              const leftMountGeometry = new THREE.BoxGeometry(0.01, 0.01, 0.02);
-              const leftMount = new THREE.Mesh(leftMountGeometry, blackMaterial);
-              leftMount.position.set(0.03, 0.03, -0);
-              rifleGroup.add(leftMount);
-              
-              const rightMountGeometry = new THREE.BoxGeometry(0.01, 0.01, 0.02);
-              const rightMount = new THREE.Mesh(rightMountGeometry, blackMaterial);
-              rightMount.position.set(-0.03, 0.03, -0);
-              rifleGroup.add(rightMount);
-              
-              // Position in right hand, directly connected to hand
-              rifleGroup.position.set(-0.38, 1.4, 0.15);
-              rifleGroup.rotation.set(0, Math.PI / 8, 0); // Slight angle
-              rifleGroup.rotation.z = -Math.PI / 8; // Tilt
               
               // Add to model
               this.model.add(rifleGroup);
