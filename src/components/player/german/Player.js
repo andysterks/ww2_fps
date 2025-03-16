@@ -469,7 +469,7 @@ class Player {
               console.log('DEBUG: Creating detailed LEGO Kar98k rifle for player model');
               
               // Create a detailed LEGO-style rifle group
-              const rifleGroup = new Kar98().create(-.25, 1.15, -.1);
+              const rifleGroup = new Kar98().create(-.215, 1.12, -.1);
               rifleGroup.name = 'legoRifle';
               
               // Add to model
