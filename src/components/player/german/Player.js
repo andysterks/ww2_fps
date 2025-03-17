@@ -860,7 +860,7 @@ class Player {
       }
     }
 
-    // Update rifle position based on aiming state and vertical look
+    // Update rifle position based on aiming state
     this.updateRiflePosition();
 
     // Update rifle vertical angle based on vertical look
@@ -904,13 +904,38 @@ class Player {
       const leftFoot = this.model.getObjectByName("leftFoot");
       const rightFoot = this.model.getObjectByName("rightFoot");
 
-      // Skip arm positioning for aiming, as it's now handled in updateRifleForVerticalLook
+      // Skip arm animation when aiming - handled by updateRiflePosition and updateRifleForVerticalLook
       if (this.isAimingDownSights) {
-        // Skip regular movement animation when aiming
-        // Arm positioning for aiming is now handled in updateRifleForVerticalLook
-        return;
+        // Only animate legs when moving while aiming
+        if (isMoving && leftLeg && rightLeg) {
+          // Update animation counter based on movement speed - slower when aiming
+          this.legSwing += delta * 3.0; // Reduced animation speed when aiming
+          
+          // Calculate swing amplitudes - reduced when aiming
+          const legMaxAngle = 0.2; // Smaller leg movement when aiming
+          
+          // Calculate periodic animation values using sine waves
+          const legAngle = Math.sin(this.legSwing) * legMaxAngle;
+          
+          // Apply leg animations with slight offset between left and right
+          leftLeg.rotation.x = legAngle;
+          rightLeg.rotation.x = -legAngle;
+          
+          // Adjust feet to match leg angles for a more natural look
+          if (leftFoot) leftFoot.rotation.x = legAngle * 0.7;
+          if (rightFoot) rightFoot.rotation.x = -legAngle * 0.7;
+        } else {
+          // Reset leg positions when not moving while aiming
+          if (leftLeg) leftLeg.rotation.x = 0;
+          if (rightLeg) rightLeg.rotation.x = 0;
+          if (leftFoot) leftFoot.rotation.x = 0;
+          if (rightFoot) rightFoot.rotation.x = 0;
+        }
+        
+        return; // Skip the rest of the animation when aiming
       }
 
+      // Rest of the animation code for non-aiming states
       // Animation speed factors
       const walkSpeed = 5.0; // Base animation speed
       const sprintMultiplier = 1.7; // How much faster the animation plays when sprinting
@@ -1128,20 +1153,35 @@ class Player {
   updateRiflePosition() {
     // Find the rifle in the player model
     const rightArmGroup = this.model?.getObjectByName("rightArmGroup");
+    const leftArmGroup = this.model?.getObjectByName("leftArmGroup");
     const rifle = rightArmGroup?.getObjectByName("legoRifle") || this.model?.getObjectByName("playerModelRifle");
-    if (!rifle) return;
+    
+    if (!rifle || !rightArmGroup || !leftArmGroup) return;
 
     if (this.isAimingDownSights) {
       // Position for aiming down sights
+      // Adjust right arm to hold rifle up in aiming position
+      rightArmGroup.rotation.set(-0.4, 0.1, 0);
+      
+      // Position left arm to support the rifle barrel
+      leftArmGroup.rotation.set(-0.45, -0.1, 0);
+      
+      // Position the rifle for aiming down sights
       rifle.position.set(-0.19, -0.05, 0.21);
+      //rifle.rotation.set(0, Math.PI / 4, 0);
+      
       // Add debug logging occasionally
       if (this.game && this.game.frameCounter % 120 === 0) {
         console.log(
-          `DEBUG: Player ${this.id} rifle positioned for aiming`
+          `DEBUG: Player ${this.id} rifle and arms positioned for aiming`
         );
       }
     } else {
       // Position for normal stance
+      // Reset arm positions
+      rightArmGroup.rotation.set(0, 0, 0);
+      leftArmGroup.rotation.set(0, 0, 0);
+      
       // Rifle held at side/hip
       rifle.rotation.set(0, Math.PI, 0);
       rifle.position.set(-0.39, -0.25, -0.05);
@@ -1149,7 +1189,7 @@ class Player {
       // Add debug logging occasionally
       if (this.game && this.game.frameCounter % 120 === 0) {
         console.log(
-          `DEBUG: Player ${this.id} rifle positioned for normal stance`
+          `DEBUG: Player ${this.id} rifle and arms positioned for normal stance`
         );
       }
     }
@@ -1159,8 +1199,9 @@ class Player {
   updateRifleForVerticalLook(verticalLookFactor) {
     // Find the rifle in the player model
     const rightArmGroup = this.model?.getObjectByName("rightArmGroup");
+    const leftArmGroup = this.model?.getObjectByName("leftArmGroup");
     const rifle = rightArmGroup?.getObjectByName("legoRifle") || this.model?.getObjectByName("playerModelRifle");
-    if (!rifle) return;
+    if (!rifle || !rightArmGroup || !leftArmGroup) return;
 
     // Calculate pitch angle for the rifle based on vertical look factor
     // verticalLookFactor is the y component of the forward vector, ranging from -1 to 1
@@ -1178,9 +1219,22 @@ class Player {
     if (this.isAimingDownSights) {
       // When aiming, the rifle should follow the look direction more precisely
       rifle.rotation.set(
-        pitchAngle, // X rotation (pitch) - up/down
-        currentYRotation, // Y rotation (maintained from current)
+        -pitchAngle, // X rotation (pitch) - INVERTED to fix alignment with first-person view
+        currentYRotation, // Keep the y rotation consistent with aiming position
         currentZRotation // Z rotation (maintained from current)
+      );
+      
+      // Also adjust the arms to follow the rifle's vertical movement
+      rightArmGroup.rotation.set(
+        -0.4 - pitchAngle * 0.7, // Base aiming position + INVERTED adjustment for look
+        0.1,
+        0
+      );
+      
+      leftArmGroup.rotation.set(
+        -0.45 - pitchAngle * 0.7, // Base aiming position + INVERTED adjustment for look
+        -0.1,
+        0
       );
     } else {
       // In normal stance, the rifle follows with reduced movement
@@ -1189,11 +1243,13 @@ class Player {
         currentYRotation,
         currentZRotation
       );
+      
+      // For normal stance, arm movement is handled in animateModel
     }
 
     // Debug logging occasionally
     if (this.game && this.game.frameCounter % 240 === 0) {
-      console.log(`DEBUG: Rifle pitch adjusted for vertical look:`, pitchAngle);
+      console.log(`DEBUG: Rifle and arms adjusted for vertical look:`, pitchAngle);
     }
   }
 
