@@ -135,108 +135,90 @@ class Player {
       head.position.y = 1.48; // Position at top of torso
       head.name = "head";
 
-      // Add face details
-      // Eyes (black dots)
-      const leftEyeGeometry = new THREE.BoxGeometry(0.03, 0.02, 0.01);
+      // Add face details - LEGO minifigure style (stern German soldier)
+      // Eyes (small simple dots)
+      const leftEyeGeometry = new THREE.CircleGeometry(0.015, 8);
       const leftEye = new THREE.Mesh(leftEyeGeometry, blackMaterial);
-      leftEye.position.set(0.05, 1.49, 0.14);
+      leftEye.position.set(0.045, 1.50, 0.145);
       leftEye.name = "leftEye";
 
-      const rightEyeGeometry = new THREE.BoxGeometry(0.03, 0.02, 0.01);
+      const rightEyeGeometry = new THREE.CircleGeometry(0.015, 8);
       const rightEye = new THREE.Mesh(rightEyeGeometry, blackMaterial);
-      rightEye.position.set(-0.05, 1.49, 0.14);
+      rightEye.position.set(-0.045, 1.50, 0.145);
       rightEye.name = "rightEye";
 
-      // Mouth/smile (thin curved box)
-      const mouthGeometry = new THREE.BoxGeometry(0.08, 0.02, 0.01);
-      const mouth = new THREE.Mesh(mouthGeometry, blackMaterial);
-      mouth.position.set(0, 1.45, 0.14);
-      mouth.name = "mouth";
+      // Eyebrows (angled for stern look)
+      const leftBrowGeometry = new THREE.BoxGeometry(0.035, 0.008, 0.01);
+      const leftBrow = new THREE.Mesh(leftBrowGeometry, blackMaterial);
+      leftBrow.position.set(0.045, 1.52, 0.145);
+      leftBrow.rotation.z = -0.2; // Angled down towards center
+      leftBrow.name = "leftBrow";
 
-      // Stubble/beard pattern (small dots)
-      const createStubbleDot = (x, y) => {
-        const dotGeometry = new THREE.BoxGeometry(0.015, 0.015, 0.01);
-        const dot = new THREE.Mesh(
-          dotGeometry,
-          new THREE.MeshPhongMaterial({
-            color: 0x8b4513,
-            specular: 0x222222,
-            shininess: 10,
-          })
-        );
-        dot.position.set(x, y, 0.14);
-        return dot;
-      };
+      const rightBrowGeometry = new THREE.BoxGeometry(0.035, 0.008, 0.01);
+      const rightBrow = new THREE.Mesh(rightBrowGeometry, blackMaterial);
+      rightBrow.position.set(-0.045, 1.52, 0.145);
+      rightBrow.rotation.z = 0.2; // Angled down towards center
+      rightBrow.name = "rightBrow";
 
-      // Create stubble group
-      const stubbleGroup = new THREE.Group();
-      stubbleGroup.name = "stubble";
+      // Mouth - stern frown/neutral expression
+      const mouthGroup = new THREE.Group();
+      mouthGroup.name = "mouth";
 
-      // Add multiple dots for beard pattern - adjust positions for new head height
-      const stubblePositions = [
-        { x: 0.06, y: 1.42 },
-        { x: 0.03, y: 1.43 },
-        { x: 0.09, y: 1.43 },
-        { x: -0.06, y: 1.42 },
-        { x: -0.03, y: 1.43 },
-        { x: -0.09, y: 1.43 },
-        { x: 0.05, y: 1.41 },
-        { x: -0.05, y: 1.41 },
-        { x: 0, y: 1.41 },
-        { x: 0.08, y: 1.44 },
-        { x: -0.08, y: 1.44 },
-        { x: 0.02, y: 1.42 },
-        { x: -0.02, y: 1.42 },
+      // Create downturned mouth
+      const mouthSegments = [
+        { x: -0.03, y: 1.445, rotation: 0.15 },
+        { x: -0.015, y: 1.44, rotation: 0.05 },
+        { x: 0, y: 1.44, rotation: 0 },
+        { x: 0.015, y: 1.44, rotation: -0.05 },
+        { x: 0.03, y: 1.445, rotation: -0.15 },
       ];
 
-      stubblePositions.forEach((pos) => {
-        stubbleGroup.add(createStubbleDot(pos.x, pos.y));
+      mouthSegments.forEach((seg) => {
+        const segmentGeometry = new THREE.BoxGeometry(0.012, 0.015, 0.01);
+        const segment = new THREE.Mesh(segmentGeometry, blackMaterial);
+        segment.position.set(seg.x, seg.y, 0.145);
+        segment.rotation.z = seg.rotation;
+        mouthGroup.add(segment);
       });
 
+      // Small goatee/chin detail
+      const goateeGeometry = new THREE.BoxGeometry(0.02, 0.025, 0.01);
+      const goatee = new THREE.Mesh(goateeGeometry, blackMaterial);
+      goatee.position.set(0, 1.425, 0.145);
+      goatee.name = "goatee";
+
       // ====== HELMET ======
-      // Main helmet shape
-      const helmetGeometry = new THREE.SphereGeometry(
-        0.18,
-        16,
-        12,
-        0,
-        Math.PI * 2,
-        0,
-        Math.PI * 0.6
+      // LEGO-style German helmet (Stahlhelm)
+      // Dome + rim connected properly with no gaps
+
+      // Top dome - extends down enough to meet the rim
+      const helmetDomeGeometry = new THREE.SphereGeometry(
+        0.19, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.55
       );
-      const helmet = new THREE.Mesh(helmetGeometry, helmetMaterial);
-      helmet.scale.set(1, 0.75, 1.1); // Flatten and extend slightly
-      helmet.position.y = 1.56; // Position above head
+      const helmet = new THREE.Mesh(helmetDomeGeometry, helmetMaterial);
+      helmet.position.y = 1.55;
+      helmet.scale.set(1.0, 0.75, 1.05);
       helmet.name = "helmet";
 
-      // Helmet side flaps
-      const helmetSideLeftGeometry = new THREE.BoxGeometry(0.02, 0.08, 0.1);
-      const helmetSideLeft = new THREE.Mesh(
-        helmetSideLeftGeometry,
-        helmetMaterial
+      // Rim/skirt - positioned to overlap with dome, flares outward
+      const helmetRimGeometry = new THREE.CylinderGeometry(
+        0.18,   // top radius - matches dome edge
+        0.21,   // bottom radius - flares out
+        0.07,   // height
+        24,
+        1,
+        true
       );
-      helmetSideLeft.position.set(0.18, 1.5, 0);
-      helmetSideLeft.name = "helmetSideLeft";
+      const helmetRim = new THREE.Mesh(helmetRimGeometry, helmetMaterial);
+      helmetRim.position.y = 1.49;  // Overlaps with dome bottom
+      helmetRim.name = "helmetRim";
 
-      const helmetSideRightGeometry = new THREE.BoxGeometry(0.02, 0.08, 0.1);
-      const helmetSideRight = new THREE.Mesh(
-        helmetSideRightGeometry,
-        helmetMaterial
-      );
-      helmetSideRight.position.set(-0.18, 1.5, 0);
-      helmetSideRight.name = "helmetSideRight";
-
-      // Helmet back flap
-      const helmetBackGeometry = new THREE.BoxGeometry(0.2, 0.02, 0.08);
-      const helmetBack = new THREE.Mesh(helmetBackGeometry, helmetMaterial);
-      helmetBack.position.set(0, 1.52, -0.17);
-      helmetBack.name = "helmetBack";
-
-      // Helmet brim at the front
-      const helmetBrimGeometry = new THREE.BoxGeometry(0.2, 0.02, 0.06);
-      const helmetBrim = new THREE.Mesh(helmetBrimGeometry, helmetMaterial);
-      helmetBrim.position.set(0, 1.52, 0.17);
-      helmetBrim.name = "helmetBrim";
+      // Bottom edge/lip
+      const helmetLipGeometry = new THREE.TorusGeometry(0.21, 0.01, 8, 24);
+      const helmetLip = new THREE.Mesh(helmetLipGeometry, helmetMaterial);
+      helmetLip.rotation.x = Math.PI / 2;
+      helmetLip.position.y = 1.455;
+      helmetLip.name = "helmetLip";
 
       // ====== TORSO ======
       // LEGO torso (trapezoidal shape, wider at shoulders)
@@ -524,15 +506,15 @@ class Player {
       this.model.add(head);
       this.model.add(leftEye);
       this.model.add(rightEye);
-      this.model.add(mouth);
-      this.model.add(stubbleGroup);
+      this.model.add(leftBrow);
+      this.model.add(rightBrow);
+      this.model.add(mouthGroup);
+      this.model.add(goatee);
 
       // Add helmet
       this.model.add(helmet);
-      this.model.add(helmetBrim);
-      this.model.add(helmetSideLeft);
-      this.model.add(helmetSideRight);
-      this.model.add(helmetBack);
+      this.model.add(helmetRim);
+      this.model.add(helmetLip);
 
       // Add torso & uniform details
       this.model.add(torso);

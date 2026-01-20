@@ -294,6 +294,21 @@ class SimpleGame {
             this.moveRight = false;
             this.isSprinting = false;
             this.isAimingDownSights = false;
+
+            // Jump physics
+            this.velocityY = 0;                    // Vertical velocity in m/s
+            this.isGrounded = true;                // Whether player is on ground
+            this.isJumping = false;                // Whether jump is in progress
+            this.lastJumpTime = 0;                 // Timestamp of last jump
+            this.fallStartY = null;                // Y position when started falling
+
+            // Jump configuration constants
+            this.GRAVITY = 20.0;                   // m/s² (tuned higher than real 9.8 for snappier feel)
+            this.JUMP_VELOCITY = 4.9;              // Initial upward velocity for ~1.2m height
+            this.JUMP_COOLDOWN = 600;              // ms between jumps
+            this.AIR_CONTROL_FACTOR = 0.3;         // Reduced lateral movement while airborne
+            this.FALL_DAMAGE_THRESHOLD = 3.0;      // Height in meters to trigger fall damage
+            this.FALL_DAMAGE_MULTIPLIER = 10;      // Damage per meter above threshold
             
             // New recoil implementation
             this.recoil = {
@@ -1136,11 +1151,18 @@ class SimpleGame {
             // Initialize player speed if it doesn't exist
             if (!this.playerSpeed) this.playerSpeed = 5.0;
             if (!this.sprintMultiplier) this.sprintMultiplier = 2.0;
-    
+
+            // Apply gravity and update vertical position
+            this.velocityY -= this.GRAVITY * delta;
+            this.camera.position.y += this.velocityY * delta;
+
             // Handle player movement even if controls aren't locked
             if (this.isRunning) {
-                // Calculate movement speed based on sprint state
-                const speed = this.isSprinting ? this.playerSpeed * this.sprintMultiplier : this.playerSpeed;
+                // Calculate movement speed based on sprint state and air control
+                const baseSpeed = this.playerSpeed;
+                const sprintModifier = this.isSprinting ? this.sprintMultiplier : 1.0;
+                const airControlModifier = this.isGrounded ? 1.0 : this.AIR_CONTROL_FACTOR;
+                const speed = baseSpeed * sprintModifier * airControlModifier;
                 
                 // Calculate movement direction
                 this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
@@ -1197,7 +1219,10 @@ class SimpleGame {
                     console.error('ERROR: Controls not initialized');
                 }
             }
-            
+
+            // Check ground collision for jump physics
+            this.checkGroundCollision();
+
             // Update local player position if it exists
             if (this.localPlayer) {
                 this.localPlayer.update(delta);
@@ -1217,6 +1242,150 @@ class SimpleGame {
         } catch (error) {
             console.error('ERROR: Failed to update player position:', error);
         }
+    }
+
+    // Check ground collision for jump physics
+    checkGroundCollision() {
+        // Use raycaster to detect ground
+        const raycaster = new THREE.Raycaster();
+        const playerPosition = this.camera.position.clone();
+        const rayDirection = new THREE.Vector3(0, -1, 0);
+
+        raycaster.set(playerPosition, rayDirection);
+
+        // Get collidable objects from scene
+        const collidableObjects = [];
+        this.scene.traverse((object) => {
+            if (object.isMesh && object.name !== 'player' && object.name !== 'weapon') {
+                collidableObjects.push(object);
+            }
+        });
+
+        const intersections = raycaster.intersectObjects(collidableObjects, true);
+
+        const playerHeight = 1.8; // Standard player height in meters
+        const groundThreshold = 0.1; // Small tolerance for ground detection
+
+        if (intersections.length > 0) {
+            const groundDistance = intersections[0].distance;
+            const groundY = intersections[0].point.y;
+
+            // If we're falling and close to ground, land
+            if (this.velocityY <= 0 && groundDistance < playerHeight + groundThreshold) {
+                // Calculate fall distance for damage
+                if (this.fallStartY !== null && !this.isGrounded) {
+                    const fallDistance = this.fallStartY - groundY;
+                    this.handleFallDamage(fallDistance);
+                }
+
+                // Snap to ground
+                this.camera.position.y = groundY + playerHeight;
+                this.velocityY = 0;
+                this.isGrounded = true;
+                this.isJumping = false;
+                this.fallStartY = null;
+            } else if (groundDistance > playerHeight + groundThreshold) {
+                // Player is in the air
+                this.isGrounded = false;
+
+                // Start tracking fall if we just left the ground
+                if (this.fallStartY === null && !this.isJumping) {
+                    this.fallStartY = this.camera.position.y;
+                }
+            }
+        } else {
+            // No ground detected - player is falling
+            this.isGrounded = false;
+            if (this.fallStartY === null && !this.isJumping) {
+                this.fallStartY = this.camera.position.y;
+            }
+        }
+
+        // Check ceiling collision (prevent jumping through ceilings)
+        if (this.velocityY > 0) {
+            const ceilingRaycaster = new THREE.Raycaster();
+            ceilingRaycaster.set(playerPosition, new THREE.Vector3(0, 1, 0));
+            const ceilingIntersections = ceilingRaycaster.intersectObjects(collidableObjects, true);
+
+            if (ceilingIntersections.length > 0 && ceilingIntersections[0].distance < 0.3) {
+                // Hit ceiling, stop upward movement
+                this.velocityY = 0;
+            }
+        }
+    }
+
+    // Handle jump attempt
+    attemptJump() {
+        const now = performance.now();
+
+        // Check jump conditions
+        if (!this.isGrounded) {
+            return;
+        }
+
+        if (this.isAimingDownSights) {
+            return;
+        }
+
+        if (now - this.lastJumpTime < this.JUMP_COOLDOWN) {
+            return;
+        }
+
+        // Execute jump
+        this.velocityY = this.JUMP_VELOCITY;
+        this.isGrounded = false;
+        this.isJumping = true;
+        this.lastJumpTime = now;
+        this.fallStartY = this.camera.position.y;
+
+        // TODO: Play jump sound effect here when available
+        // audioManager.play('jump');
+    }
+
+    // Handle fall damage
+    handleFallDamage(fallDistance) {
+        if (fallDistance > this.FALL_DAMAGE_THRESHOLD) {
+            const damageAmount = (fallDistance - this.FALL_DAMAGE_THRESHOLD) * this.FALL_DAMAGE_MULTIPLIER;
+
+            console.log(`Fall damage: fell ${fallDistance.toFixed(2)}m, taking ${damageAmount.toFixed(1)} damage`);
+
+            // TODO: Integrate with health system when available
+            // this.health -= damageAmount;
+
+            // TODO: Play fall damage sound/effect
+            // audioManager.play('fall_damage');
+
+            // Visual feedback - screen shake or red flash
+            this.showFallDamageEffect(damageAmount);
+        }
+    }
+
+    // Show fall damage visual effect
+    showFallDamageEffect(damage) {
+        // Create a red overlay flash
+        const damageOverlay = document.getElementById('damage-overlay');
+        if (!damageOverlay) {
+            const overlay = document.createElement('div');
+            overlay.id = 'damage-overlay';
+            overlay.style.position = 'absolute';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.backgroundColor = 'red';
+            overlay.style.opacity = '0';
+            overlay.style.pointerEvents = 'none';
+            overlay.style.transition = 'opacity 0.2s';
+            overlay.style.zIndex = '9999';
+            document.body.appendChild(overlay);
+        }
+
+        const overlay = document.getElementById('damage-overlay');
+        overlay.style.opacity = Math.min(damage / 50, 0.5).toString();
+
+        setTimeout(() => {
+            overlay.style.opacity = '0';
+        }, 200);
     }
 
     // Create a simple test environment
@@ -1519,8 +1688,11 @@ class SimpleGame {
                         // F key is no longer used for aiming down sights
                         // It can be repurposed for another action if needed
                         break;
+                    case 'Space':
+                        this.attemptJump();
+                        break;
                 }
-                
+
                 // Update local player movement flags
                 if (this.localPlayer) {
                     console.log('DEBUG: Updating local player movement flags');
